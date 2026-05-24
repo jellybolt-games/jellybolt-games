@@ -24,6 +24,7 @@ const GAMES=[
 {id:'neon-snake',name:'Neon Snake',emoji:'🐍',genre:'Classic'},
 {id:'pixel-tower',name:'Pixel Tower',emoji:'🏗️',genre:'Stacking'},
 {id:'rhythm-tap',name:'Rhythm Tap',emoji:'🎵',genre:'Rhythm'},
+{id:'rush-lanes',name:'Rush Lanes',emoji:'🏃',genre:'Endless Runner'},
 {id:'space-trader',name:'Space Trader',emoji:'🛸',genre:'Trading'},
 {id:'word-rush',name:'Word Rush',emoji:'⌨️',genre:'Typing'},
 {id:'bolt-blocks',name:'Bolt Blocks',emoji:'🧱',genre:'Block Puzzle'},
