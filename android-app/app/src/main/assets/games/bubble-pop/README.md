@@ -86,4 +86,4 @@ games/bubble-pop/
 
 Built by the JellyBolt Games squad. Part of the JellyBolt HTML5 game collection.
 
-⚡ [JellyBolt Games](https://jellybolt.games)
+⚡ [JellyBolt Games](https://jellybolt-games.github.io/jellybolt-games)

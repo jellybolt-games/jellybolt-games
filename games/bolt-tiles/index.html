@@ -925,7 +925,7 @@ function closeInterstitial() {
 
 // ── Share ──
 function shareScore() {
-  const text = '⚡ Bolt Tiles | Score: ' + score + ' | Layout: ' + layoutName + ' | Time: ' + formatTime(elapsed) + '\nhttps://jellyboltgames.com/games/bolt-tiles/';
+  const text = '⚡ Bolt Tiles | Score: ' + score + ' | Layout: ' + layoutName + ' | Time: ' + formatTime(elapsed) + '\nhttps://jellybolt-games.github.io/jellybolt-games/games/bolt-tiles/';
   if (navigator.share) {
     navigator.share({ title: 'Bolt Tiles', text: text }).catch(() => {});
   } else {

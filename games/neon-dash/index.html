@@ -157,7 +157,7 @@ if (bestScore > 0) $startBest.textContent = '🏆 Best: ' + bestScore;
 
 // ─── Share ────────────────────────────────────────────
 function shareScore() {
-  const text = '⚡ Neon Dash | Score: ' + score + ' | Distance: ' + distance + 'm | Can you beat me?\nhttps://jellyboltgames.com/games/neon-dash/';
+  const text = '⚡ Neon Dash | Score: ' + score + ' | Distance: ' + distance + 'm | Can you beat me?\nhttps://jellybolt-games.github.io/jellybolt-games/games/neon-dash/';
   if (navigator.share) { navigator.share({ title: 'Neon Dash', text: text }); }
   else { navigator.clipboard.writeText(text).then(() => {}); }
 }

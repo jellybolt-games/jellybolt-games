@@ -65,4 +65,4 @@ Open `index.html` in any modern browser — no build step required.
 
 ---
 
-*© JellyBolt Games — [jellyboltgames.com](https://jellyboltgames.com)*
+*© JellyBolt Games — [jellyboltgames.com](https://jellybolt-games.github.io/jellybolt-games)*

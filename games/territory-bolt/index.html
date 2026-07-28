@@ -773,7 +773,7 @@ function showInterstitial(cb){
 /* ── SHARE ── */
 function shareScore(){
   var territory=pct(CELL_P);
-  var text='⚡ Territory Bolt | Captured: '+territory+'% | Can you beat me?\nhttps://jellyboltgames.com/games/territory-bolt/';
+  var text='⚡ Territory Bolt | Captured: '+territory+'% | Can you beat me?\nhttps://jellybolt-games.github.io/jellybolt-games/games/territory-bolt/';
   if(navigator.share){navigator.share({title:'Territory Bolt',text:text}).catch(function(){});}
   else{navigator.clipboard.writeText(text).then(function(){alert('Score copied!');}).catch(function(){});}
 }

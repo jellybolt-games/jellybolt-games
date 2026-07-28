@@ -2,7 +2,7 @@
 
 Date: 2026-06-05T14:50:00+03:00
 Decided by: Mario (picard)
-Requested by: Tamir Dresher
+Requested by: JellyBolt Games
 
 ## Decision
 

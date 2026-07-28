@@ -189,7 +189,7 @@ docs/play-store/store-listings/phase-2-games.md (10,178 chars)
 
 **To push to remote:**
 ```bash
-cd C:\Users\tamirdresher\source\repos\jellybolt-games
+cd <repo-root>\jellybolt-games
 git push org main  # or: git push origin main
 # May require authentication with tdsquadAI account
 ```
