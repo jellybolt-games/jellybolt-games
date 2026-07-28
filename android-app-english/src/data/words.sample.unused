@@ -1,0 +1,21 @@
+// UNUSED SAMPLE DATA — real worksheet data now lives in src/data/words.ts.
+// Kept only as a historical scaffold reference; do not import for gameplay.
+// SAMPLE DATA — replaced when word images parsed
+export type WordEntry = {
+  id: string;
+  english: string;
+  hebrew: string;
+};
+
+export const sampleWords: WordEntry[] = [
+  { id: 'apple', english: 'apple', hebrew: 'תפוח' },
+  { id: 'dog', english: 'dog', hebrew: 'כלב' },
+  { id: 'book', english: 'book', hebrew: 'ספר' },
+  { id: 'water', english: 'water', hebrew: 'מים' },
+  { id: 'house', english: 'house', hebrew: 'בית' },
+  { id: 'sun', english: 'sun', hebrew: 'שמש' },
+  { id: 'car', english: 'car', hebrew: 'מכונית' },
+  { id: 'cat', english: 'cat', hebrew: 'חתול' },
+  { id: 'school', english: 'school', hebrew: 'בית ספר' },
+  { id: 'friend', english: 'friend', hebrew: 'חבר' },
+];

@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "JellyBolt English",
+    "slug": "jellybolt-english",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "jellybolt-english",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "games.jellybolt.english",
+      "versionCode": 1,
+      "allowBackup": true,
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "./plugins/withAndroidRtl",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow JellyBolt English to record pronunciation practice."
+        }
+      ]
+    ],
+    "extra": {
+      "supportsRtl": true
+    }
+  }
+}
