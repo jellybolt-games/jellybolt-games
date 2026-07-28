@@ -33,7 +33,7 @@
     "status": "pending_setup"
   },
   "itchio": {
-    "store_url": "https://jellybolt.itch.io",
+    "store_url": "https://jellyboltgames.itch.io",
     "status": "active",
     "games": 24
   },
