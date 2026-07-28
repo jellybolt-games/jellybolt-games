@@ -1,11 +1,12 @@
 # JellyBolt Games — Project Status
-Last updated: 2026-04-01
+Last updated: 2026-07-28
 
 ## Brand Identity
 - **Name:** JellyBolt Games (JellyBolt⚡)
 - **NEVER mention "real owner identity"** — independent brand
 - **Landing page:** `index.html` — 24-game responsive site with affiliate gear section
-- **GitHub Pages:** https://jellybolt-games.github.io/jellybolt-games/
+- **GitHub Pages (live/maintained):** https://tdsquadai.github.io/jellybolt-games/ — deployed from `tdsquadAI/jellybolt-games@main`
+- **GitHub Pages (org mirror, ⚠️ stale since 2026-03-21):** https://jellybolt-games.github.io/jellybolt-games/ — cannot be pushed, see monetization/infra issues
 - **itch.io:** jellyboltgames.itch.io
 - **YouTube:** https://www.youtube.com/channel/UC0roFVTTy1nSW9Zc7DgcsmQ (12 videos)
 - **Contact:** tdsquadai@gmail.com
@@ -72,14 +73,15 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 | Platform | URL | Status |
 |----------|-----|--------|
 | JellyBolt Games (org) | jellybolt-games.github.io/jellybolt-games | ✅ Live |
-| JellyBolt Games (personal) | jellybolt-games.github.io/jellybolt-games | ✅ Live |
+| JellyBolt Games (live) | tdsquadai.github.io/jellybolt-games | ✅ Live, auto-deployed |
+| JellyBolt Games (org mirror) | jellybolt-games.github.io/jellybolt-games | ⚠️ Stale (2026-03-21), push blocked |
 | TechAI Explained | techai-explained.github.io/techai-explained | ✅ Live (11ty) |
 | Content Empire | content-empire.github.io | ✅ Live |
 | dev.to | dev.to/techaiexplained | ✅ Active |
 | itch.io | jellyboltgames.itch.io | ✅ 16 games |
 | YouTube | UC0roFVTTy1nSW9Zc7DgcsmQ | ✅ 12 videos |
 | Google Play | JellyBolt Games Collection | ✅ Internal testing |
-| Gumroad | squadai.gumroad.com | ✅ Active |
+| Gumroad | squadai.gumroad.com | ⚠️ Root loads, bundle `/l/qtmyl` 404s |
 
 ### Custom Domains (NOT WORKING — need registrar action)
 - techai-explained.dev — No DNS records
@@ -90,12 +92,12 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 
 ### Active
 - **itch.io:** jellyboltgames.itch.io — 16 games (8 more pending upload)
-- **Gumroad:** squadai.gumroad.com — Game Bundle $4.99 + courses
+- **Gumroad:** squadai.gumroad.com — Game Bundle $4.99 + courses (⚠️ product `qtmyl` returns 404 — verify product ID)
 - **Amazon Associates:** Tag `jellybolt-20` configured, gear section on landing page (pending account activation)
 
 ### Pending
 - **Google AdSense** — Placeholder in all games + landing page
-- **BuyMeACoffee** — buymeacoffee.com/jellyboltgames
+- **BuyMeACoffee** — buymeacoffee.com/jellyboltgames ⚠️ **account does not exist yet (404)**; the ☕ button on ~40 game pages is currently a dead link. Links are already pointed at this handle, so creating the account activates them all.
 - **Unity Affiliate** — pending signup
 - **JetBrains Affiliate** — pending signup
 
