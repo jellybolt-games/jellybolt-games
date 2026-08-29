@@ -210,7 +210,7 @@ window.jbShowLoadingAd = function(){
 if(!document.querySelector('.jb-monetization-bar')){
   const supportBtn=el('a',{
     class:'jb-support-btn',
-    href:'https://buymeacoffee.com/jellyboltgames',
+    href:'https://jellyboltgames.itch.io',
     target:'_blank',
     rel:'noopener noreferrer',
     title:'Support JellyBolt Games'

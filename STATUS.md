@@ -1,15 +1,14 @@
 # JellyBolt Games — Project Status
-Last updated: 2026-07-28
+Last updated: 2026-08-29
 
 ## Brand Identity
 - **Name:** JellyBolt Games (JellyBolt⚡)
 - **NEVER mention "real owner identity"** — independent brand
 - **Landing page:** `index.html` — 24-game responsive site with affiliate gear section
-- **GitHub Pages (live/maintained):** https://tdsquadai.github.io/jellybolt-games/ — deployed from `tdsquadAI/jellybolt-games@main`
-- **GitHub Pages (org mirror, ⚠️ stale since 2026-03-21):** https://jellybolt-games.github.io/jellybolt-games/ — cannot be pushed, see monetization/infra issues
+- **GitHub Pages:** https://jellybolt-games.github.io/jellybolt-games/ — live, but the org mirror is stale since 2026-03-21
 - **itch.io:** jellyboltgames.itch.io
 - **YouTube:** https://www.youtube.com/channel/UC0roFVTTy1nSW9Zc7DgcsmQ (12 videos)
-- **Contact:** tdsquadai@gmail.com
+- **Contact:** jellybolt@sharebot.net
 - **Gumroad:** squadai.gumroad.com (Game Bundle $4.99)
 
 ## Games (45 total)
@@ -73,8 +72,7 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 | Platform | URL | Status |
 |----------|-----|--------|
 | JellyBolt Games (org) | jellybolt-games.github.io/jellybolt-games | ✅ Live |
-| JellyBolt Games (live) | tdsquadai.github.io/jellybolt-games | ✅ Live, auto-deployed |
-| JellyBolt Games (org mirror) | jellybolt-games.github.io/jellybolt-games | ⚠️ Stale (2026-03-21), push blocked |
+| JellyBolt Games (org mirror) | jellybolt-games.github.io/jellybolt-games | ⚠️ Live but stale (2026-03-21); push blocked |
 | TechAI Explained | techai-explained.github.io/techai-explained | ✅ Live (11ty) |
 | Content Empire | content-empire.github.io | ✅ Live |
 | dev.to | dev.to/techaiexplained | ✅ Active |
@@ -97,7 +95,7 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 
 ### Pending
 - **Google AdSense** — Placeholder in all games + landing page
-- **BuyMeACoffee** — buymeacoffee.com/jellyboltgames ⚠️ **account does not exist yet (404)**; the ☕ button on ~40 game pages is currently a dead link. Links are already pointed at this handle, so creating the account activates them all.
+- **BuyMeACoffee** — buymeacoffee.com/jellyboltgames ⚠️ **account does not exist yet (404)**; public support buttons now use the live itch.io store as a safe fallback.
 - **Unity Affiliate** — pending signup
 - **JetBrains Affiliate** — pending signup
 
@@ -118,5 +116,5 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 - [ ] Build dungeon game series (#49)
 - [ ] Render remaining video scripts (#51)
 - [ ] Publish articles to Dev.to/Hashnode (#52)
-- [ ] Set up Gmail API for tdsquadai monitoring (#50)
+- [ ] Set up Gmail API for brand inbox monitoring (#50)
 - [ ] Record Squad for Kids demo videos (NO YouTube without approval)
