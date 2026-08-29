@@ -1,0 +1,10 @@
+{
+  "assignments": [
+    {
+      "assignment_id": "jellybolt-init",
+      "universe": "Video Games",
+      "created_at": "2025-01-15T00:00:00Z",
+      "agents": ["Mario", "Sonic", "Link", "Yoshi", "Toad", "Toadette", "Lakitu"]
+    }
+  ]
+}

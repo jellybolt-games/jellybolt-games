@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cube Runner — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0a0f;overflow:hidden;font-family:'Segoe UI',Arial,sans-serif;color:#fff;touch-action:none;}
+canvas{display:block;}
+#hud{position:fixed;top:20px;left:50%;transform:translateX(-50%);text-align:center;z-index:10;pointer-events:none;}
+#score{font-size:28px;font-weight:700;color:#0ff;text-shadow:0 0 20px #0ff,0 0 40px #08f;}
+#speed-bar{margin-top:6px;font-size:13px;color:#f0f;text-shadow:0 0 10px #f0f;}
+#overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(5,5,15,0.92);}
+#overlay.hidden{display:none;}
+#overlay h1{font-size:clamp(32px,6vw,56px);background:linear-gradient(135deg,#0ff,#f0f);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
+#overlay .sub{font-size:16px;color:#8af;margin-bottom:24px;}
+#overlay .final-score{font-size:22px;color:#0ff;margin-bottom:16px;display:none;}
+#overlay button{padding:14px 48px;font-size:20px;border:2px solid #0ff;background:transparent;color:#0ff;border-radius:8px;cursor:pointer;transition:all .2s;}
+#overlay button:hover{background:#0ff;color:#000;}
+#controls-hint{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);font-size:13px;color:#556;z-index:10;pointer-events:none;text-align:center;}
+#footer{position:fixed;bottom:0;width:100%;text-align:center;padding:10px;font-size:13px;z-index:10;background:rgba(5,5,15,0.85);border-top:1px solid #1a1a2e;}
+#footer a{color:#0ff;text-decoration:none;margin:0 10px;transition:color .2s;}
+#footer a:hover{color:#f0f;}
+.share-btn{display:inline-block;margin:0 6px;padding:4px 10px;border:1px solid #333;border-radius:4px;font-size:12px;color:#aaa;text-decoration:none;transition:all .2s;}
+.share-btn:hover{border-color:#0ff;color:#0ff;}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="score">0</div>
+  <div id="speed-bar">SPEED ▸▸</div>
+</div>
+<div id="overlay">
+  <h1>CUBE RUNNER</h1>
+  <div class="sub">by JellyBolt Games</div>
+  <div class="final-score" id="final-score"></div>
+  <button id="start-btn">START</button>
+</div>
+<div id="controls-hint">← → Arrow Keys / A D / Swipe to Move · Space / Tap to Jump</div>
+<div id="footer">
+  <span style="color:#555;">JellyBolt Games</span>
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank">☕ Support</a>
+  <a href="https://jellyboltgames.itch.io" target="_blank">🎮 More Games</a>
+  <a class="share-btn" href="https://twitter.com/intent/tweet?text=I%20scored%20in%20Cube%20Runner%20by%20JellyBolt%20Games!&url=https://jellyboltgames.itch.io" target="_blank">𝕏 Share</a>
+  <a class="share-btn" href="https://wa.me/?text=Play%20Cube%20Runner%20by%20JellyBolt%20Games!%20https://jellyboltgames.itch.io" target="_blank">WhatsApp</a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x0a0a1a,0.012);
+const camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,200);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x0a0a1a);
+document.body.insertBefore(renderer.domElement,document.body.firstChild);
+
+// Lighting
+const ambientLight=new THREE.AmbientLight(0x111133,0.5);
+scene.add(ambientLight);
+const dirLight=new THREE.DirectionalLight(0x4488ff,0.8);
+dirLight.position.set(5,10,5);
+scene.add(dirLight);
+
+// Road
+const roadGeo=new THREE.PlaneGeometry(6,400,1,1);
+const roadMat=new THREE.MeshBasicMaterial({color:0x0a0a1e});
+const road=new THREE.Mesh(roadGeo,roadMat);
+road.rotation.x=-Math.PI/2;
+road.position.z=-180;
+scene.add(road);
+
+// Road lines
+function createRoadLines(){
+  const g=new THREE.BufferGeometry();
+  const positions=[];
+  for(let i=0;i<100;i++){
+    const z=-i*4;
+    positions.push(-3,0.01,z,-3,0.01,z-1.5);
+    positions.push(3,0.01,z,3,0.01,z-1.5);
+    positions.push(0,0.01,z,0,0.01,z-0.8);
+  }
+  g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  const m=new THREE.LineBasicMaterial({color:0x0066ff,transparent:true,opacity:0.4});
+  return new THREE.LineSegments(g,m);
+}
+const roadLines=createRoadLines();
+scene.add(roadLines);
+
+// Grid floor
+const gridHelper=new THREE.GridHelper(400,80,0x111144,0x080822);
+gridHelper.position.y=-0.01;
+gridHelper.position.z=-180;
+scene.add(gridHelper);
+
+// Player
+const playerGeo=new THREE.BoxGeometry(0.5,0.5,0.5);
+const playerMat=new THREE.MeshPhongMaterial({color:0x00ffff,emissive:0x006688,shininess:100});
+const player=new THREE.Mesh(playerGeo,playerMat);
+player.position.set(0,0.3,0);
+scene.add(player);
+
+// Player glow
+const glowGeo=new THREE.BoxGeometry(0.6,0.6,0.6);
+const glowMat=new THREE.MeshBasicMaterial({color:0x00ffff,transparent:true,opacity:0.15,side:THREE.BackSide});
+const glow=new THREE.Mesh(glowGeo,glowMat);
+player.add(glow);
+
+// Particle trail
+const trailCount=80;
+const trailGeo=new THREE.BufferGeometry();
+const trailPositions=new Float32Array(trailCount*3);
+const trailColors=new Float32Array(trailCount*3);
+trailGeo.setAttribute('position',new THREE.BufferAttribute(trailPositions,3));
+trailGeo.setAttribute('color',new THREE.BufferAttribute(trailColors,3));
+const trailMat=new THREE.PointsMaterial({size:0.08,vertexColors:true,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending});
+const trail=new THREE.Points(trailGeo,trailMat);
+scene.add(trail);
+let trailIdx=0;
+
+// Stars background
+const starGeo=new THREE.BufferGeometry();
+const starPos=new Float32Array(3000);
+for(let i=0;i<3000;i++){
+  starPos[i*3]=(Math.random()-0.5)*200;
+  starPos[i*3+1]=Math.random()*60+5;
+  starPos[i*3+2]=(Math.random()-0.5)*400-100;
+}
+starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
+const starMat=new THREE.PointsMaterial({size:0.15,color:0x8888ff,transparent:true,opacity:0.6});
+scene.add(new THREE.Points(starGeo,starMat));
+
+// Camera position
+camera.position.set(0,3,5);
+camera.lookAt(0,0.5,-10);
+
+// Game state
+let gameRunning=false,score=0,speed=0.15,targetLane=0,playerY=0.3,velY=0,jumping=false;
+const lanes=[-1.8,0,1.8];
+let laneIdx=1;
+const obstacles=[];
+let nextObstacleZ=-20;
+
+const obstacleMats=[
+  new THREE.MeshPhongMaterial({color:0xff0066,emissive:0x440011}),
+  new THREE.MeshPhongMaterial({color:0xff6600,emissive:0x331100}),
+  new THREE.MeshPhongMaterial({color:0xaa00ff,emissive:0x220044}),
+  new THREE.MeshPhongMaterial({color:0xff0044,emissive:0x330011})
+];
+
+function spawnObstacle(){
+  const type=Math.random();
+  let mesh;
+  if(type<0.4){
+    // Wall in 1-2 lanes
+    const blockedLanes=Math.random()<0.5?[Math.floor(Math.random()*3)]:[Math.floor(Math.random()*3),Math.floor(Math.random()*3)];
+    const unique=[...new Set(blockedLanes)];
+    unique.forEach(li=>{
+      const geo=new THREE.BoxGeometry(1.4,1.2,0.4);
+      mesh=new THREE.Mesh(geo,obstacleMats[Math.floor(Math.random()*obstacleMats.length)]);
+      mesh.position.set(lanes[li],0.6,nextObstacleZ);
+      mesh.userData={type:'wall',speed:0};
+      scene.add(mesh);
+      obstacles.push(mesh);
+      // Glow edge
+      const edge=new THREE.BoxHelper(mesh,0xff0066);
+      mesh.add(edge);
+    });
+  } else if(type<0.7){
+    // Low bar (jump over)
+    const geo=new THREE.BoxGeometry(5.5,0.3,0.3);
+    mesh=new THREE.Mesh(geo,obstacleMats[2]);
+    mesh.position.set(0,0.15,nextObstacleZ);
+    mesh.userData={type:'low',speed:0};
+    scene.add(mesh);
+    obstacles.push(mesh);
+  } else {
+    // Moving block
+    const li=Math.floor(Math.random()*3);
+    const geo=new THREE.BoxGeometry(1,1,1);
+    mesh=new THREE.Mesh(geo,obstacleMats[3]);
+    mesh.position.set(lanes[li],0.5,nextObstacleZ);
+    mesh.userData={type:'moving',dir:1,speed:0.02+Math.random()*0.02};
+    scene.add(mesh);
+    obstacles.push(mesh);
+  }
+  const gap=Math.max(5,12-speed*8);
+  nextObstacleZ-=gap+Math.random()*4;
+}
+
+function resetGame(){
+  obstacles.forEach(o=>scene.remove(o));
+  obstacles.length=0;
+  score=0;speed=0.15;laneIdx=1;targetLane=lanes[1];
+  playerY=0.3;velY=0;jumping=false;
+  player.position.set(0,0.3,0);
+  nextObstacleZ=-20;
+  roadLines.position.z=0;
+  gridHelper.position.z=-180;
+  for(let i=0;i<8;i++)spawnObstacle();
+}
+
+function checkCollision(){
+  const pb=new THREE.Box3().setFromObject(player);
+  pb.min.addScalar(0.05);pb.max.addScalar(-0.05);
+  for(const o of obstacles){
+    if(o.position.z>player.position.z+2)continue;
+    if(o.position.z<player.position.z-2)continue;
+    const ob=new THREE.Box3().setFromObject(o);
+    if(pb.intersectsBox(ob))return true;
+  }
+  return false;
+}
+
+function gameOver(){
+  gameRunning=false;
+  const fs=document.getElementById('final-score');
+  fs.textContent='Score: '+Math.floor(score);
+  fs.style.display='block';
+  document.getElementById('start-btn').textContent='RETRY';
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+// Controls
+const keys={};
+window.addEventListener('keydown',e=>{keys[e.code]=true;e.preventDefault();});
+window.addEventListener('keyup',e=>{keys[e.code]=false;});
+
+let touchStartX=0,touchStartY=0;
+window.addEventListener('touchstart',e=>{
+  if(!gameRunning){document.getElementById('start-btn').click();return;}
+  touchStartX=e.touches[0].clientX;
+  touchStartY=e.touches[0].clientY;
+},{passive:true});
+window.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  const dy=e.changedTouches[0].clientY-touchStartY;
+  if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)){
+    if(dx<0&&laneIdx>0)laneIdx--;
+    else if(dx>0&&laneIdx<2)laneIdx++;
+  } else if(dy<-30||Math.abs(dx)<15){
+    if(!jumping){velY=0.18;jumping=true;}
+  }
+},{passive:true});
+
+document.getElementById('start-btn').addEventListener('click',()=>{
+  document.getElementById('overlay').classList.add('hidden');
+  resetGame();
+  gameRunning=true;
+});
+
+// Animation
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+
+  if(gameRunning){
+    // Input
+    if((keys['ArrowLeft']||keys['KeyA'])&&laneIdx>0){laneIdx--;keys['ArrowLeft']=false;keys['KeyA']=false;}
+    if((keys['ArrowRight']||keys['KeyD'])&&laneIdx<2){laneIdx++;keys['ArrowRight']=false;keys['KeyD']=false;}
+    if((keys['Space']||keys['ArrowUp'])&&!jumping){velY=0.18;jumping=true;}
+
+    targetLane=lanes[laneIdx];
+    player.position.x+=(targetLane-player.position.x)*0.15;
+
+    // Jump physics
+    velY-=0.008;
+    playerY+=velY;
+    if(playerY<=0.3){playerY=0.3;velY=0;jumping=false;}
+    player.position.y=playerY;
+
+    // Player rotation
+    player.rotation.x-=speed*2;
+    player.rotation.z=(targetLane-player.position.x)*0.3;
+
+    // Move obstacles toward player
+    for(let i=obstacles.length-1;i>=0;i--){
+      const o=obstacles[i];
+      o.position.z+=speed;
+      if(o.userData.type==='moving'){
+        o.position.x+=o.userData.dir*o.userData.speed;
+        if(o.position.x>2.5||o.position.x<-2.5)o.userData.dir*=-1;
+      }
+      if(o.position.z>6){scene.remove(o);obstacles.splice(i,1);}
+    }
+
+    // Spawn new obstacles
+    const farthest=obstacles.length?Math.min(...obstacles.map(o=>o.position.z)):-10;
+    if(farthest>-60)spawnObstacle();
+
+    // Road scroll effect
+    roadLines.position.z=(roadLines.position.z+speed)%4;
+    gridHelper.position.z=(gridHelper.position.z+speed)%5;
+
+    // Speed & Score
+    speed=Math.min(0.5,speed+dt*0.003);
+    score+=speed*3;
+    document.getElementById('score').textContent=Math.floor(score);
+    const bars='▸'.repeat(Math.min(10,Math.floor((speed-0.15)*30)+1));
+    document.getElementById('speed-bar').textContent='SPEED '+bars;
+
+    // Trail
+    trailPositions[trailIdx*3]=player.position.x+(Math.random()-0.5)*0.2;
+    trailPositions[trailIdx*3+1]=player.position.y-0.2;
+    trailPositions[trailIdx*3+2]=player.position.z+0.3;
+    const hue=(score*0.01)%1;
+    const c=new THREE.Color().setHSL(hue,1,0.5);
+    trailColors[trailIdx*3]=c.r;
+    trailColors[trailIdx*3+1]=c.g;
+    trailColors[trailIdx*3+2]=c.b;
+    trailIdx=(trailIdx+1)%trailCount;
+    trailGeo.attributes.position.needsUpdate=true;
+    trailGeo.attributes.color.needsUpdate=true;
+
+    // Collision
+    if(checkCollision())gameOver();
+  }
+
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+})();
+</script>
+</body>
+</html>

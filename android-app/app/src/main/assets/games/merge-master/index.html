@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Merge Master — JellyBolt Games</title>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8350556723025693" crossorigin="anonymous"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0d0d1a;
+  --surface: #12122a;
+  --border: #1e1e3a;
+  --accent: #00ff88;
+  --accent2: #58a6ff;
+  --text: #e0e0ff;
+  --muted: #666688;
+  --gap: 7px;
+  --radius: 12px;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+body {
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ═══════════════════════════════════════════════
+   SCREENS
+═══════════════════════════════════════════════ */
+.screen {
+  display: none;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  flex-direction: column;
+  align-items: center;
+}
+.screen.active { display: flex; }
+
+/* ═══════════════════════════════════════════════
+   JELLYBOLT TOP BAR
+═══════════════════════════════════════════════ */
+#jb-topbar {
+  width: 100%;
+  max-width: 480px;
+  background: #08081a;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  font-size: 0.78em;
+  font-weight: 700;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  height: 38px;
+}
+.jb-brand { color: var(--accent); letter-spacing: 0.5px; }
+#hud-score-top { color: var(--text); }
+#hud-coins-top { color: #ffd700; }
+
+/* ═══════════════════════════════════════════════
+   MENU SCREEN
+═══════════════════════════════════════════════ */
+#screen-menu {
+  justify-content: flex-start;
+  align-items: center;
+  padding: 56px 20px 20px;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.mm-title {
+  font-size: 2.6em;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffd700, #ff6b35, #ff0080, #9f7aea);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+.mm-subtitle {
+  color: var(--muted);
+  font-size: 0.82em;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.menu-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.stat-badge {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  text-align: center;
+  min-width: 88px;
+}
+.stat-badge .val {
+  font-size: 1.2em;
+  font-weight: 900;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+.stat-badge .lbl { font-size: 0.68em; color: var(--muted); margin-top: 1px; }
+
+.btn {
+  padding: 12px 28px;
+  font-size: 1em;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  width: 100%;
+  max-width: 280px;
+}
+.btn:hover  { transform: translateY(-2px); }
+.btn:active { transform: translateY(0); }
+.btn-primary  { background: linear-gradient(135deg,#00ff88,#00cc6a); color: #000; box-shadow: 0 4px 20px rgba(0,255,136,0.25); }
+.btn-secondary{ background: linear-gradient(135deg,#58a6ff,#3b82f6); color: #fff; box-shadow: 0 4px 16px rgba(88,166,255,0.2); }
+.btn-daily    { background: linear-gradient(135deg,#ffd700,#ff8c00); color: #000; box-shadow: 0 4px 18px rgba(255,215,0,0.25); }
+.btn-danger   { background: linear-gradient(135deg,#ff6b6b,#ee2222); color: #fff; }
+.btn-sm { padding: 8px 20px; font-size: 0.88em; max-width: 220px; }
+
+.daily-badge {
+  background: linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,140,0,0.1));
+  border: 1px solid rgba(255,215,0,0.3);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.8em;
+  color: #ffd700;
+  text-align: center;
+  max-width: 280px;
+}
+
+.tier-preview {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+  width: 100%;
+  max-width: 330px;
+}
+.tier-thumb {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.tier-thumb-lbl { font-size: 0.42em; color: rgba(255,255,255,0.65); margin-top: 1px; }
+
+.menu-hint {
+  color: var(--muted);
+  font-size: 0.75em;
+  text-align: center;
+  max-width: 270px;
+  line-height: 1.5;
+}
+.credit { color: #333355; font-size: 0.72em; text-align: center; margin-top: 4px; }
+
+/* ═══════════════════════════════════════════════
+   GAME SCREEN
+═══════════════════════════════════════════════ */
+#screen-game {
+  padding-top: 38px;
+  padding-bottom: 0;
+  justify-content: flex-start;
+  position: relative;
+}
+
+/* ═══════════════════════════════════════════════
+   GAME HUD
+═══════════════════════════════════════════════ */
+#game-hud {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(8,8,26,0.97);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 7px 10px;
+  position: fixed;
+  top: 38px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 190;
+  height: 50px;
+}
+.hud-item { display: flex; flex-direction: column; align-items: center; }
+.hud-val  { font-size: 1.05em; font-weight: 900; color: var(--accent); line-height: 1.1; }
+.hud-lbl  { font-size: 0.6em; color: var(--muted); }
+.hud-coins-val { color: #ffd700 !important; }
+.hud-sep  { width: 1px; height: 26px; background: var(--border); }
+
+/* ═══════════════════════════════════════════════
+   EXTRA SPACE TIMER BAR
+═══════════════════════════════════════════════ */
+#extra-timer-bar {
+  display: none;
+  width: 100%;
+  max-width: 480px;
+  height: 3px;
+  position: fixed;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.08);
+  z-index: 189;
+}
+#extra-timer-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg,#ffd700,#ff8c00);
+  transition: width 1s linear;
+}
+
+/* ═══════════════════════════════════════════════
+   GRID WRAPPER & GRID
+═══════════════════════════════════════════════ */
+#grid-wrap {
+  width: 100%;
+  max-width: 480px;
+  padding: 10px 12px;
+  margin-top: 88px;
+  margin-bottom: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+#game-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--gap);
+  width: 100%;
+  max-width: 400px;
+  transition: grid-template-columns 0.35s ease;
+}
+#game-grid.extra-space { grid-template-columns: repeat(6, 1fr); }
+
+/* ═══════════════════════════════════════════════
+   CELLS
+═══════════════════════════════════════════════ */
+.cell {
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  border: 2px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.03);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.1s, border-color 0.12s, box-shadow 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.cell.has-item  { cursor: grab; }
+.cell.drag-over {
+  border-color: rgba(0,255,136,0.85) !important;
+  box-shadow: 0 0 0 2px rgba(0,255,136,0.35), inset 0 0 18px rgba(0,255,136,0.12) !important;
+  transform: scale(0.95);
+}
+.cell.drag-source { opacity: 0.35; transform: scale(0.9); }
+.cell.remove-target:hover {
+  border-color: rgba(255,68,68,0.9) !important;
+  box-shadow: 0 0 0 2px rgba(255,68,68,0.4) !important;
+  cursor: pointer;
+}
+.cell.extra-col {
+  border-color: rgba(255,215,0,0.25);
+  background: rgba(255,215,0,0.03);
+}
+.cell.extra-col.has-item { box-shadow: 0 0 10px rgba(255,215,0,0.15); }
+.cell.no-match-flash {
+  border-color: rgba(255,100,100,0.7) !important;
+}
+
+.cell-emoji { font-size: clamp(20px, 7vw, 34px); line-height: 1; pointer-events: none; }
+.cell-label {
+  font-size: clamp(6px, 2.2vw, 10px);
+  font-weight: 700;
+  margin-top: 2px;
+  color: rgba(255,255,255,0.78);
+  letter-spacing: 0.4px;
+  pointer-events: none;
+}
+.cell-tier {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: clamp(6px, 1.8vw, 9px);
+  font-weight: 900;
+  color: rgba(255,255,255,0.45);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════
+   CELL ANIMATIONS
+═══════════════════════════════════════════════ */
+@keyframes mergeAnim {
+  0%   { transform: scale(1);    filter: brightness(1); }
+  25%  { transform: scale(0.75); filter: brightness(3.5); }
+  60%  { transform: scale(1.3);  filter: brightness(1.6); }
+  80%  { transform: scale(0.93); filter: brightness(1); }
+  100% { transform: scale(1);    filter: brightness(1); }
+}
+@keyframes spawnAnim {
+  0%   { transform: scale(0);    opacity: 0; }
+  65%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+@keyframes chainAnim {
+  0%   { transform: scale(1);    filter: brightness(1)   hue-rotate(0deg); }
+  20%  { transform: scale(0.8);  filter: brightness(5)   hue-rotate(60deg); }
+  50%  { transform: scale(1.35); filter: brightness(2.5) hue-rotate(180deg); }
+  80%  { transform: scale(0.95); filter: brightness(1.3) hue-rotate(300deg); }
+  100% { transform: scale(1);    filter: brightness(1)   hue-rotate(360deg); }
+}
+@keyframes vanishAnim {
+  0%   { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(0);   opacity: 0; }
+}
+@keyframes shakeAnim {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-5px); }
+  40%     { transform: translateX(5px); }
+  60%     { transform: translateX(-3px); }
+  80%     { transform: translateX(3px); }
+}
+@keyframes pulseRainbow {
+  0%   { filter: hue-rotate(0deg)   brightness(1.4); }
+  50%  { filter: hue-rotate(180deg) brightness(1.8); }
+  100% { filter: hue-rotate(360deg) brightness(1.4); }
+}
+
+.cell.anim-merge  { animation: mergeAnim  0.4s ease-out; }
+.cell.anim-spawn  { animation: spawnAnim  0.3s cubic-bezier(0.175,0.885,0.32,1.275); }
+.cell.anim-chain  { animation: chainAnim  0.55s ease-out; }
+.cell.anim-vanish { animation: vanishAnim 0.25s ease-in  forwards; }
+.cell.anim-rainbow{ animation: pulseRainbow 0.8s ease-in-out; }
+
+/* ═══════════════════════════════════════════════
+   DRAG GHOST
+═══════════════════════════════════════════════ */
+#drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 12px;
+  transform: translate(-50%, -50%) scale(1.15);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.6);
+}
+#drag-ghost.active { display: flex; }
+
+/* ═══════════════════════════════════════════════
+   BOTTOM POWER-UP BAR
+═══════════════════════════════════════════════ */
+#bottom-bar {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(8,8,26,0.97);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  padding: 5px 8px 8px;
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 190;
+  height: 62px;
+  gap: 6px;
+}
+.pu-btn {
+  flex: 1;
+  padding: 5px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.7em;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  transition: all 0.13s;
+}
+.pu-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(0,255,136,0.07);
+  transform: translateY(-2px);
+}
+.pu-btn:disabled { opacity: 0.38; cursor: not-allowed; transform: none; }
+.pu-btn.active-mode {
+  border-color: #ff6b6b;
+  background: rgba(255,107,107,0.14);
+  animation: shakeAnim 0.5s ease-in-out infinite alternate;
+}
+.pu-btn .pu-icon { font-size: 1.35em; line-height: 1; }
+.pu-btn .pu-cost { color: #ffd700; font-size: 0.82em; }
+.pu-btn .pu-timer { color: #ffd700; font-size: 0.78em; }
+.pu-btn-quit { border-color: rgba(255,100,100,0.25); }
+.pu-btn-quit:hover:not(:disabled) {
+  border-color: rgba(255,100,100,0.7);
+  background: rgba(255,100,100,0.08);
+}
+
+/* ═══════════════════════════════════════════════
+   SHOP OVERLAY
+═══════════════════════════════════════════════ */
+#shop-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  z-index: 500;
+  align-items: flex-end;
+  justify-content: center;
+}
+#shop-overlay.active { display: flex; }
+
+.shop-panel {
+  width: 100%;
+  max-width: 480px;
+  background: #13132e;
+  border: 1px solid var(--border);
+  border-radius: 22px 22px 0 0;
+  padding: 18px 18px 24px;
+}
+.shop-title { font-size: 1.25em; font-weight: 900; color: var(--accent); }
+.shop-coins { color: #ffd700; font-size: 0.85em; margin: 4px 0 14px; }
+.shop-items { display: flex; flex-direction: column; gap: 9px; }
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  cursor: pointer;
+  transition: all 0.13s;
+}
+.shop-item:hover:not(.si-disabled) {
+  border-color: var(--accent);
+  background: rgba(0,255,136,0.06);
+}
+.shop-item.si-disabled { opacity: 0.38; cursor: not-allowed; }
+.si-icon { font-size: 2em; line-height: 1; }
+.si-info { flex: 1; }
+.si-name { font-weight: 700; font-size: 0.9em; }
+.si-desc { color: var(--muted); font-size: 0.75em; margin-top: 2px; }
+.si-cost { font-size: 1em; font-weight: 900; color: #ffd700; white-space: nowrap; }
+
+/* ═══════════════════════════════════════════════
+   GAME OVER SCREEN
+═══════════════════════════════════════════════ */
+#screen-gameover {
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px 30px;
+  gap: 10px;
+  overflow-y: auto;
+}
+.go-icon  { font-size: 4em; }
+.go-title { font-size: 1.9em; font-weight: 900; text-align: center; }
+.go-subtitle { color: var(--muted); font-size: 0.85em; text-align: center; }
+
+.go-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  width: 100%;
+  max-width: 320px;
+}
+.go-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px;
+  text-align: center;
+}
+.go-stat .val { font-size: 1.35em; font-weight: 900; color: var(--accent); }
+.go-stat .lbl { font-size: 0.68em; color: var(--muted); }
+.go-stat.full-row { grid-column: span 2; }
+.go-best { background: linear-gradient(135deg,rgba(255,215,0,0.08),rgba(255,140,0,0.08)); border-color: rgba(255,215,0,0.3) !important; }
+.go-best .val { color: #ffd700 !important; }
+
+/* ═══════════════════════════════════════════════
+   TOAST NOTIFICATIONS
+═══════════════════════════════════════════════ */
+#toast-container {
+  position: fixed;
+  top: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8000;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  pointer-events: none;
+  width: 100%;
+  max-width: 380px;
+  padding: 0 14px;
+}
+.toast {
+  background: rgba(14,14,34,0.96);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 0.82em;
+  font-weight: 600;
+  text-align: center;
+  animation: toastIn 0.25s ease-out, toastOut 0.3s ease-in var(--dur, 1.7s) forwards;
+}
+@keyframes toastIn  { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes toastOut { from { opacity:1; } to { opacity:0; } }
+.toast.good { border-color: rgba(0,255,136,0.4); color: var(--accent); }
+.toast.bad  { border-color: rgba(255,107,107,0.4); color: #ff6b6b; }
+.toast.info { border-color: rgba(88,166,255,0.4);  color: var(--accent2); }
+.toast.gold { border-color: rgba(255,215,0,0.4);   color: #ffd700; }
+
+/* ═══════════════════════════════════════════════
+   JELLYBOLT MONETIZATION BAR (inline)
+═══════════════════════════════════════════════ */
+.jb-monetization-bar {
+  position: fixed;
+  bottom: 62px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: rgba(6,6,20,0.98);
+  border-top: 1px solid #16163a;
+  z-index: 185;
+  flex-wrap: wrap;
+}
+.jb-monetization-bar a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform .15s;
+}
+.jb-monetization-bar a:hover { transform: scale(1.05); }
+.jb-btn-coffee { background: linear-gradient(135deg,#ffdd00,#ff8800); color: #000; }
+.jb-btn-games  { background: linear-gradient(135deg,#00ff88,#00ccff); color: #000; }
+.jb-btn-share  { background: linear-gradient(135deg,#1da1f2,#0d8ecf); color: #fff; }
+
+/* JB interstitial override so it stacks above shop */
+.jb-ad-interstitial { z-index: 10000 !important; }
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE TWEAKS
+═══════════════════════════════════════════════ */
+@media (max-width: 360px) {
+  :root { --gap: 5px; --radius: 9px; }
+  .mm-title { font-size: 2.2em; }
+}
+@media (max-height: 640px) {
+  #grid-wrap { padding: 6px 10px; }
+  .tier-preview { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     JELLYBOLT TOP BAR
+══════════════════════════════════════════ -->
+<div id="jb-topbar">
+  <span class="jb-brand">⚡ JellyBolt</span>
+  <span id="hud-score-top"></span>
+  <span id="hud-coins-top"></span>
+</div>
+
+<!-- Extra Space Timer Bar -->
+<div id="extra-timer-bar"><div id="extra-timer-fill"></div></div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Drag Ghost -->
+<div id="drag-ghost"></div>
+
+<!-- ══════════════════════════════════════════
+     MENU SCREEN
+══════════════════════════════════════════ -->
+<div id="screen-menu" class="screen active">
+  <div class="mm-title">🏆 Merge Master</div>
+  <div class="mm-subtitle">Merge items · Climb tiers · Master the grid</div>
+
+  <div class="menu-stats">
+    <div class="stat-badge">
+      <div class="val" id="menu-highscore">—</div>
+      <div class="lbl">Best Score</div>
+    </div>
+    <div class="stat-badge">
+      <div class="val" id="menu-best-tier">—</div>
+      <div class="lbl">Best Tier</div>
+    </div>
+    <div class="stat-badge">
+      <div class="val" id="menu-daily-best">—</div>
+      <div class="lbl">Daily Best</div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary"    onclick="startGame(false)">▶ Play</button>
+  <button class="btn btn-daily"      onclick="startGame(true)">📅 Daily Challenge</button>
+  <div class="daily-badge" id="daily-info">📅 Today's Daily Challenge — same board for everyone!</div>
+
+  <div class="tier-preview" id="tier-preview"></div>
+
+  <div class="menu-hint">Drag a matching item onto another of the same type to merge them.<br>Reach Tier 12 🏆 to become Merge Master!</div>
+  <div class="credit">⚡ JellyBolt Games</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     GAME SCREEN
+══════════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+
+  <!-- HUD -->
+  <div id="game-hud">
+    <div class="hud-item">
+      <div class="hud-val" id="hud-score">0</div>
+      <div class="hud-lbl">Score</div>
+    </div>
+    <div class="hud-sep"></div>
+    <div class="hud-item">
+      <div class="hud-val" id="hud-merges">0</div>
+      <div class="hud-lbl">Merges</div>
+    </div>
+    <div class="hud-sep"></div>
+    <div class="hud-item">
+      <div class="hud-val" id="hud-max-tier">⚡1</div>
+      <div class="hud-lbl">Best Tier</div>
+    </div>
+    <div class="hud-sep"></div>
+    <div class="hud-item">
+      <div class="hud-val hud-coins-val" id="hud-coins">🪙 0</div>
+      <div class="hud-lbl">Coins</div>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div id="grid-wrap">
+    <div id="game-grid"></div>
+  </div>
+
+  <!-- Bottom Power-up Bar -->
+  <div id="bottom-bar">
+    <button class="pu-btn" id="btn-remove" onclick="activateRemove()">
+      <span class="pu-icon">🗑️</span>
+      <span>Remove</span>
+      <span class="pu-cost">50 🪙</span>
+    </button>
+    <button class="pu-btn" id="btn-shuffle" onclick="doShuffle()">
+      <span class="pu-icon">🔀</span>
+      <span>Shuffle</span>
+      <span class="pu-cost">100 🪙</span>
+    </button>
+    <button class="pu-btn" id="btn-extraspace" onclick="doExtraSpace()">
+      <span class="pu-icon">➕</span>
+      <span>Space</span>
+      <span class="pu-cost" id="pu-extra-label">75 🪙</span>
+    </button>
+    <button class="pu-btn pu-btn-quit" onclick="confirmQuit()">
+      <span class="pu-icon">🚪</span>
+      <span>Quit</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     GAME OVER SCREEN
+══════════════════════════════════════════ -->
+<div id="screen-gameover" class="screen">
+  <div class="go-icon"     id="go-icon">😵</div>
+  <div class="go-title"    id="go-title">BOARD FULL!</div>
+  <div class="go-subtitle" id="go-subtitle">No more merges possible</div>
+
+  <div class="go-stats">
+    <div class="go-stat">
+      <div class="val" id="go-score">0</div>
+      <div class="lbl">Final Score</div>
+    </div>
+    <div class="go-stat">
+      <div class="val" id="go-merges">0</div>
+      <div class="lbl">Merges Done</div>
+    </div>
+    <div class="go-stat">
+      <div class="val" id="go-tier">⚡1</div>
+      <div class="lbl">Best Tier</div>
+    </div>
+    <div class="go-stat">
+      <div class="val" id="go-coins">0</div>
+      <div class="lbl">Coins Earned</div>
+    </div>
+    <div class="go-stat full-row go-best">
+      <div class="val" id="go-highscore">0</div>
+      <div class="lbl">🏆 All-Time High Score</div>
+    </div>
+  </div>
+
+  <div id="go-daily-result" class="daily-badge" style="display:none;"></div>
+
+  <button class="btn btn-primary" onclick="startGame(false)">▶ Play Again</button>
+  <button class="btn btn-daily"   id="go-daily-btn" style="display:none;" onclick="startGame(true)">📅 Retry Daily</button>
+  <button class="btn btn-secondary btn-sm" onclick="showScreen('menu')">🏠 Menu</button>
+  <button class="btn btn-sm" style="background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff;max-width:180px;" onclick="shareScore()">🐦 Share Score</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SHOP OVERLAY
+══════════════════════════════════════════ -->
+<div id="shop-overlay">
+  <div class="shop-panel">
+    <div class="shop-title">🛒 Power-up Shop</div>
+    <div class="shop-coins" id="shop-coins-display">🪙 0 coins</div>
+    <div class="shop-items" id="shop-items"></div>
+    <button class="btn btn-secondary btn-sm" style="margin-top:14px;width:100%;" onclick="closeShop()">✕ Close</button>
+  </div>
+</div>
+
+<!-- JellyBolt Monetization Bar (menu / game-over) -->
+<div class="jb-monetization-bar" id="jb-monbar" style="display:none;">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">☕ Support</a>
+  <a class="jb-btn-games"  href="../../index.html">🎮 More Games</a>
+  <a class="jb-btn-share"  href="#" onclick="shareScore();return false;">🐦 Share</a>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+/** @type {Array<null|{emoji:string,label:string,bg:string,glow:string}>} */
+const TIERS = [
+  null, // index 0 unused — tiers are 1-based
+  { emoji: '⚡', label: 'Spark',   bg: 'linear-gradient(135deg,#555,#888)',           glow: '#aaa' },
+  { emoji: '🔥', label: 'Flame',   bg: 'linear-gradient(135deg,#bf360c,#e65100)',     glow: '#ff7043' },
+  { emoji: '💧', label: 'Drop',    bg: 'linear-gradient(135deg,#0d47a1,#1565c0)',     glow: '#42a5f5' },
+  { emoji: '🌿', label: 'Leaf',    bg: 'linear-gradient(135deg,#1b5e20,#388e3c)',     glow: '#66bb6a' },
+  { emoji: '💎', label: 'Gem',     bg: 'linear-gradient(135deg,#006064,#0097a7)',     glow: '#26c6da' },
+  { emoji: '⭐', label: 'Star',    bg: 'linear-gradient(135deg,#e65100,#ffa000)',     glow: '#ffd54f' },
+  { emoji: '🌙', label: 'Moon',    bg: 'linear-gradient(135deg,#1a237e,#3949ab)',     glow: '#7986cb' },
+  { emoji: '☀️', label: 'Sun',     bg: 'linear-gradient(135deg,#bf6900,#f9a825)',     glow: '#ffe082' },
+  { emoji: '🌊', label: 'Wave',    bg: 'linear-gradient(135deg,#004d40,#00796b)',     glow: '#4db6ac' },
+  { emoji: '🌋', label: 'Volcano', bg: 'linear-gradient(135deg,#b71c1c,#d32f2f)',     glow: '#ef5350' },
+  { emoji: '🌌', label: 'Cosmos',  bg: 'linear-gradient(135deg,#4a148c,#7b1fa2)',     glow: '#ce93d8' },
+  { emoji: '🏆', label: 'Master',  bg: 'linear-gradient(135deg,#ff6b35,#ffd700,#a8ff78,#78d3ff,#9f7aea)', glow: '#ffd700' },
+];
+
+const POWERUPS = [
+  { id: 'remove',     icon: '🗑️', name: 'Remove',      desc: 'Delete one item from the board.',            cost: 50  },
+  { id: 'shuffle',    icon: '🔀', name: 'Shuffle',     desc: 'Randomly rearrange all items.',              cost: 100 },
+  { id: 'extraspace', icon: '➕', name: 'Extra Space', desc: 'Adds a 6th column for 30 seconds.',          cost: 75  },
+];
+
+const COLS_NORMAL = 5;
+const COLS_EXTRA  = 6;
+const ROWS        = 5;
+const EXTRA_SPACE_DURATION = 30; // seconds
+
+const LS_HIGHSCORE = 'mm_highscore';
+const LS_BEST_TIER = 'mm_best_tier';
+const LS_DAILY     = 'mm_daily';
+
+// ═══════════════════════════════════════════════════════════════
+// SEEDED RNG — mulberry32 (fast, high-quality 32-bit)
+// ═══════════════════════════════════════════════════════════════
+
+function mulberry32(seed) {
+  return function () {
+    seed |= 0;
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function getDailySeed() {
+  const d = new Date();
+  return (d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()) | 0;
+}
+
+function getDailyDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════
+
+/** @type {Array<null|{tier:number}>} Flat row-major array */
+let grid       = [];
+let coins      = 0;
+let mergeCount = 0;
+let maxTierReached = 1;
+let gameOverCount  = 0;
+let coinsTotal     = 0; // lifetime coins in this run (for stats)
+
+let extraSpaceActive      = false;
+let extraSpaceSecondsLeft = 0;
+let extraSpaceIntervalId  = null;
+
+let powerupMode       = null; // 'remove' | null
+let isDailyChallenge  = false;
+let rng               = Math.random.bind(Math);
+
+// Drag state (pointer events)
+let drag = {
+  active: false,
+  fromIdx: -1,
+  currentTarget: -1,
+  moved: false,
+  startX: 0,
+  startY: 0,
+  pointerId: -1,
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SCREEN MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  const monbar = document.getElementById('jb-monbar');
+  monbar.style.display = (id === 'menu' || id === 'gameover') ? 'flex' : 'none';
+  if (id === 'menu') refreshMenuUI();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MENU UI
+// ═══════════════════════════════════════════════════════════════
+
+function refreshMenuUI() {
+  const hs  = parseInt(localStorage.getItem(LS_HIGHSCORE) || '0');
+  const bt  = parseInt(localStorage.getItem(LS_BEST_TIER) || '0');
+  const today = getDailyDateStr();
+  const daily = JSON.parse(localStorage.getItem(LS_DAILY) || '{}');
+
+  document.getElementById('menu-highscore').textContent = hs || '—';
+  document.getElementById('menu-best-tier').textContent = bt ? TIERS[bt].emoji + ' ' + TIERS[bt].label : '—';
+  document.getElementById('menu-daily-best').textContent = daily[today] ? String(daily[today]) : '—';
+
+  const info = document.getElementById('daily-info');
+  info.textContent = daily[today]
+    ? `📅 Daily best: ${daily[today]} — beat it today!`
+    : '📅 Daily Challenge — same board for everyone today!';
+
+  buildTierPreview();
+}
+
+function buildTierPreview() {
+  const container = document.getElementById('tier-preview');
+  container.innerHTML = '';
+  for (let t = 1; t <= 12; t++) {
+    const tier = TIERS[t];
+    const div  = document.createElement('div');
+    div.className = 'tier-thumb';
+    div.style.background = tier.bg;
+    div.style.boxShadow  = `0 0 8px ${tier.glow}44`;
+    div.innerHTML = `<span>${tier.emoji}</span><span class="tier-thumb-lbl">${tier.label}</span>`;
+    container.appendChild(div);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+
+function startGame(daily) {
+  isDailyChallenge = daily;
+  rng = daily ? mulberry32(getDailySeed()) : Math.random.bind(Math);
+
+  // Reset state
+  grid       = new Array(ROWS * COLS_NORMAL).fill(null);
+  coins      = 0;
+  coinsTotal = 0;
+  mergeCount = 0;
+  maxTierReached = 1;
+  powerupMode    = null;
+
+  if (extraSpaceActive) deactivateExtraSpace(true);
+
+  // Build grid DOM
+  buildGridDOM();
+
+  // Seed the board
+  const initCount = daily ? 5 : 3;
+  for (let i = 0; i < initCount; i++) spawnItem(true);
+
+  renderGrid();
+  updateHUD();
+  refreshPowerupBar();
+
+  showScreen('game');
+
+  if (daily) showToast('📅 Daily Challenge! Same board for everyone today.', 'info', 2800);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GRID DOM CONSTRUCTION
+// ═══════════════════════════════════════════════════════════════
+
+function buildGridDOM() {
+  const gridEl = document.getElementById('game-grid');
+  gridEl.innerHTML = '';
+  gridEl.style.gridTemplateColumns = `repeat(${COLS_NORMAL}, 1fr)`;
+  gridEl.classList.remove('extra-space');
+
+  for (let i = 0; i < ROWS * COLS_NORMAL; i++) {
+    gridEl.appendChild(makeCellEl(i, false));
+  }
+
+  attachGridPointerEvents(gridEl);
+}
+
+function rebuildGridDOM() {
+  const gridEl = document.getElementById('game-grid');
+  const cols   = getCols();
+  gridEl.innerHTML = '';
+  gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  gridEl.classList.toggle('extra-space', extraSpaceActive);
+
+  for (let i = 0; i < grid.length; i++) {
+    const isExtraCol = extraSpaceActive && (i % cols === cols - 1);
+    gridEl.appendChild(makeCellEl(i, isExtraCol));
+  }
+
+  attachGridPointerEvents(gridEl);
+}
+
+function makeCellEl(idx, isExtraCol) {
+  const el = document.createElement('div');
+  el.className = 'cell' + (isExtraCol ? ' extra-col' : '');
+  el.dataset.idx = idx;
+  return el;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GRID HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+function getCols() { return extraSpaceActive ? COLS_EXTRA : COLS_NORMAL; }
+
+function getNeighbors(idx) {
+  const cols = getCols();
+  const size = grid.length;
+  const row  = Math.floor(idx / cols);
+  const col  = idx % cols;
+  const out  = [];
+  if (row > 0 && idx - cols >= 0)            out.push(idx - cols);
+  if (row < ROWS - 1 && idx + cols < size)   out.push(idx + cols);
+  if (col > 0)                               out.push(idx - 1);
+  if (col < cols - 1 && idx + 1 < size)      out.push(idx + 1);
+  return out;
+}
+
+function getEmptyCells() {
+  return grid.reduce((acc, c, i) => { if (c === null) acc.push(i); return acc; }, []);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ITEM SPAWN
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Spawns a new item (tier 1 or 2) into a random empty cell.
+ * @param {boolean} [silent] - skip animation
+ * @returns {number|false} the index it was placed at, or false if board is full
+ */
+function spawnItem(silent) {
+  const empty = getEmptyCells();
+  if (empty.length === 0) return false;
+
+  const idx  = empty[Math.floor(rng() * empty.length)];
+  const tier = rng() < 0.72 ? 1 : 2;
+  grid[idx]  = { tier };
+
+  if (!silent) animateCell(idx, 'spawn');
+  return idx;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MERGE LOGIC
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Attempts to merge the item at fromIdx onto toIdx.
+ * Both cells must have items of the same tier.
+ */
+function tryMerge(fromIdx, toIdx) {
+  if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0) return false;
+
+  const from = grid[fromIdx];
+  const to   = grid[toIdx];
+
+  if (!from || !to) return false;
+
+  if (from.tier !== to.tier) {
+    shakeCells([fromIdx, toIdx]);
+    return false;
+  }
+
+  if (from.tier >= 12) {
+    showToast('🏆 Already at max tier!', 'info');
+    return false;
+  }
+
+  const newTier     = from.tier + 1;
+  const earnedCoins = from.tier * 10;
+
+  grid[fromIdx] = null;
+  grid[toIdx]   = { tier: newTier };
+
+  coins      += earnedCoins;
+  coinsTotal += earnedCoins;
+  mergeCount++;
+
+  if (newTier > maxTierReached) {
+    maxTierReached = newTier;
+    const t = TIERS[newTier];
+    showToast(`${t.emoji} New tier: ${t.label}!`, 'good', 1800);
+    if (newTier === 12) {
+      animateCell(toIdx, 'rainbow');
+      showToast('🏆 YOU REACHED MASTER TIER!', 'gold', 3500);
+    }
+  }
+
+  animateCell(toIdx, 'merge');
+  renderGrid();
+  updateHUD();
+  saveHighScore();
+
+  if (earnedCoins >= 60) showToast(`+${earnedCoins} 🪙`, 'gold', 900);
+
+  // Chain check then spawn (with slight delay for animation)
+  checkChain(toIdx, () => {
+    const spawned = spawnItem(false);
+    if (spawned !== false) {
+      requestAnimationFrame(() => renderCell(spawned));
+    }
+    renderGrid();
+    updateHUD();
+    refreshPowerupBar();
+    setTimeout(checkGameOver, 250);
+  });
+
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHAIN MERGE
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * BFS from `idx` to find all connected cells of the same tier.
+ * If the connected group is ≥ 3 cells, they all merge into one.
+ */
+function checkChain(idx, callback) {
+  if (!grid[idx] || grid[idx].tier >= 12) {
+    if (callback) callback();
+    return;
+  }
+
+  const tier = grid[idx].tier;
+  const visited = new Set([idx]);
+  const queue   = [idx];
+
+  while (queue.length > 0) {
+    const cur = queue.shift();
+    for (const n of getNeighbors(cur)) {
+      if (!visited.has(n) && grid[n] && grid[n].tier === tier) {
+        visited.add(n);
+        queue.push(n);
+      }
+    }
+  }
+
+  if (visited.size < 3) {
+    if (callback) callback();
+    return;
+  }
+
+  // Chain merge!
+  const group      = [...visited];
+  const bonusCoins = tier * 10 * (group.length - 1);
+  const newTier    = Math.min(12, tier + 1);
+
+  // Vanish all except anchor
+  group.forEach(i => {
+    if (i !== idx) {
+      animateCell(i, 'vanish');
+    }
+  });
+
+  setTimeout(() => {
+    // Clear group
+    group.forEach(i => { if (i !== idx) grid[i] = null; });
+
+    // Upgrade anchor
+    grid[idx] = { tier: newTier };
+    animateCell(idx, 'chain');
+
+    coins      += bonusCoins;
+    coinsTotal += bonusCoins;
+    mergeCount++;
+    if (newTier > maxTierReached) maxTierReached = newTier;
+
+    showToast(`⛓️ Chain ×${group.length}! +${bonusCoins} 🪙`, 'gold', 1600);
+    renderGrid();
+    updateHUD();
+    saveHighScore();
+
+    // Recurse to catch further chains
+    setTimeout(() => checkChain(idx, callback), 350);
+  }, 260);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME OVER DETECTION
+// ═══════════════════════════════════════════════════════════════
+
+function checkGameOver() {
+  if (getEmptyCells().length > 0) return; // Still has room
+
+  // No empty cells — check if any merge is possible
+  for (let i = 0; i < grid.length; i++) {
+    if (!grid[i]) continue;
+    for (const n of getNeighbors(i)) {
+      if (grid[n] && grid[n].tier === grid[i].tier && grid[i].tier < 12) return;
+    }
+  }
+
+  // Truly stuck
+  triggerGameOver();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME OVER
+// ═══════════════════════════════════════════════════════════════
+
+function triggerGameOver() {
+  gameOverCount++;
+  const finalScore = computeScore();
+
+  saveHighScore();
+
+  if (isDailyChallenge) {
+    const today = getDailyDateStr();
+    const daily = JSON.parse(localStorage.getItem(LS_DAILY) || '{}');
+    if (!daily[today] || finalScore > daily[today]) daily[today] = finalScore;
+    localStorage.setItem(LS_DAILY, JSON.stringify(daily));
+  }
+
+  if (gameOverCount % 3 === 0 && window.jbShowInterstitial) {
+    setTimeout(jbShowInterstitial, 400);
+  }
+
+  // Populate game-over screen
+  const hs = parseInt(localStorage.getItem(LS_HIGHSCORE) || '0');
+  document.getElementById('go-score').textContent    = finalScore;
+  document.getElementById('go-merges').textContent   = mergeCount;
+  document.getElementById('go-tier').textContent     = TIERS[maxTierReached].emoji + ' ' + TIERS[maxTierReached].label;
+  document.getElementById('go-coins').textContent    = coinsTotal;
+  document.getElementById('go-highscore').textContent = hs;
+
+  const isNewHS = finalScore >= hs;
+  document.getElementById('go-icon').textContent  = isNewHS ? '🏆' : '😵';
+  document.getElementById('go-title').textContent = isNewHS && hs > 0 ? '🎉 NEW HIGH SCORE!' : 'BOARD FULL!';
+
+  const goDaily    = document.getElementById('go-daily-result');
+  const goDailyBtn = document.getElementById('go-daily-btn');
+  if (isDailyChallenge) {
+    const daily = JSON.parse(localStorage.getItem(LS_DAILY) || '{}');
+    const today = getDailyDateStr();
+    goDaily.textContent    = `📅 Daily Score: ${finalScore} — Best Today: ${daily[today] || finalScore}`;
+    goDaily.style.display  = 'block';
+    goDailyBtn.style.display = 'block';
+  } else {
+    goDaily.style.display    = 'none';
+    goDailyBtn.style.display = 'none';
+  }
+
+  if (window.jbShareScore) setTimeout(() => jbShareScore(finalScore), 1800);
+
+  showScreen('gameover');
+}
+
+function computeScore() {
+  return maxTierReached * 100 + mergeCount * 10;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HIGH SCORE PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+
+function saveHighScore() {
+  const score = computeScore();
+  const prev  = parseInt(localStorage.getItem(LS_HIGHSCORE) || '0');
+  if (score > prev) localStorage.setItem(LS_HIGHSCORE, score);
+
+  const prevTier = parseInt(localStorage.getItem(LS_BEST_TIER) || '0');
+  if (maxTierReached > prevTier) localStorage.setItem(LS_BEST_TIER, maxTierReached);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// POWER-UPS
+// ═══════════════════════════════════════════════════════════════
+
+function activateRemove() {
+  if (powerupMode === 'remove') {
+    powerupMode = null;
+    renderGrid();
+    refreshPowerupBar();
+    showToast('Remove cancelled', 'info');
+    return;
+  }
+  if (coins < 50) { showToast('Need 50 🪙 to Remove!', 'bad'); return; }
+  powerupMode = 'remove';
+  renderGrid();
+  refreshPowerupBar();
+  showToast('🗑️ Tap any item to remove it', 'info', 2200);
+}
+
+function handleRemoveClick(idx) {
+  if (!grid[idx]) { showToast('Cell is empty!', 'bad'); return; }
+  coins -= 50;
+  animateCell(idx, 'vanish');
+  setTimeout(() => {
+    grid[idx] = null;
+    renderCell(idx);
+    renderGrid();
+  }, 260);
+  powerupMode = null;
+  updateHUD();
+  refreshPowerupBar();
+  showToast('Item removed!', 'good');
+}
+
+function doShuffle() {
+  if (coins < 100) { showToast('Need 100 🪙 to Shuffle!', 'bad'); return; }
+  coins -= 100;
+
+  const items = grid.filter(c => c !== null);
+  // Fisher-Yates shuffle using the current rng
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+
+  let itemIdx = 0;
+  for (let i = 0; i < grid.length; i++) {
+    grid[i] = itemIdx < items.length ? items[itemIdx++] : null;
+  }
+
+  updateHUD();
+  refreshPowerupBar();
+  renderGrid();
+  showToast('🔀 Board shuffled!', 'good');
+}
+
+function doExtraSpace() {
+  if (extraSpaceActive) { showToast('Extra Space already active!', 'info'); return; }
+  if (coins < 75) { showToast('Need 75 🪙 for Extra Space!', 'bad'); return; }
+  coins -= 75;
+  activateExtraSpace();
+  updateHUD();
+  refreshPowerupBar();
+}
+
+// ─── Extra Space: expand grid from 5×5 to 5×6 ─────────────────
+
+function activateExtraSpace() {
+  extraSpaceActive = true;
+
+  // Insert a null cell at the end of each row (from last row to first
+  // so that earlier insertions do not shift later indices).
+  for (let row = ROWS - 1; row >= 0; row--) {
+    grid.splice((row + 1) * COLS_NORMAL, 0, null);
+  }
+
+  rebuildGridDOM();
+  renderGrid();
+
+  // Countdown timer
+  extraSpaceSecondsLeft = EXTRA_SPACE_DURATION;
+  const bar  = document.getElementById('extra-timer-bar');
+  const fill = document.getElementById('extra-timer-fill');
+  bar.style.display  = 'block';
+  fill.style.width   = '100%';
+  fill.style.background = 'linear-gradient(90deg,#ffd700,#ff8c00)';
+
+  extraSpaceIntervalId = setInterval(() => {
+    extraSpaceSecondsLeft--;
+    const pct = (extraSpaceSecondsLeft / EXTRA_SPACE_DURATION) * 100;
+    fill.style.width = Math.max(0, pct) + '%';
+    if (extraSpaceSecondsLeft <= 5) {
+      fill.style.background = 'linear-gradient(90deg,#ff4444,#ff0000)';
+      if (extraSpaceSecondsLeft === 5) showToast('⏰ Extra Space expiring in 5s!', 'bad');
+    }
+    document.getElementById('pu-extra-label').textContent = extraSpaceSecondsLeft + 's left';
+    if (extraSpaceSecondsLeft <= 0) deactivateExtraSpace(false);
+  }, 1000);
+
+  showToast('➕ 6th column added for 30 seconds!', 'good', 2200);
+}
+
+function deactivateExtraSpace(silent) {
+  if (!extraSpaceActive) return;
+
+  clearInterval(extraSpaceIntervalId);
+  extraSpaceIntervalId = null;
+  extraSpaceActive     = false;
+
+  document.getElementById('extra-timer-bar').style.display = 'none';
+  document.getElementById('pu-extra-label').textContent    = '75 🪙';
+
+  // Remove 6th-column cells. In the 5×6 grid the extra column is at
+  // positions (col index 5): rows 0-4 → array indices 5, 11, 17, 23, 29.
+  for (let row = ROWS - 1; row >= 0; row--) {
+    grid.splice(row * COLS_EXTRA + (COLS_EXTRA - 1), 1);
+  }
+
+  rebuildGridDOM();
+  renderGrid();
+  refreshPowerupBar();
+
+  if (!silent) {
+    showToast('⌛ Extra Space expired!', 'bad');
+    setTimeout(checkGameOver, 200);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════════
+
+function renderGrid() {
+  const cells = document.querySelectorAll('#game-grid .cell');
+  cells.forEach((el, i) => { if (i < grid.length) renderCellEl(el, i); });
+}
+
+function renderCell(idx) {
+  const cells = document.querySelectorAll('#game-grid .cell');
+  if (cells[idx]) renderCellEl(cells[idx], idx);
+}
+
+function renderCellEl(el, idx) {
+  const item       = grid[idx];
+  const isExtra    = el.classList.contains('extra-col');
+  // Preserve any running animation classes
+  const ANIM_CLS   = ['anim-merge','anim-spawn','anim-chain','anim-vanish','anim-rainbow'];
+  const activeAnims = ANIM_CLS.filter(c => el.classList.contains(c));
+
+  el.className = 'cell' + (isExtra ? ' extra-col' : '');
+  activeAnims.forEach(c => el.classList.add(c));
+  el.dataset.idx = idx;
+
+  if (item) {
+    const tier = TIERS[item.tier];
+    el.classList.add('has-item');
+    if (powerupMode === 'remove') el.classList.add('remove-target');
+    el.style.background = tier.bg;
+    el.style.boxShadow  = `0 2px 14px ${tier.glow}55, inset 0 1px 0 rgba(255,255,255,0.1)`;
+    el.style.borderColor = `${tier.glow}66`;
+    el.innerHTML = `<span class="cell-emoji">${tier.emoji}</span><span class="cell-label">${tier.label}</span><span class="cell-tier">${item.tier}</span>`;
+  } else {
+    el.style.background  = '';
+    el.style.boxShadow   = '';
+    el.style.borderColor = '';
+    el.innerHTML         = '';
+  }
+}
+
+function updateHUD() {
+  const score = computeScore();
+  const tier  = TIERS[maxTierReached] || TIERS[1];
+
+  document.getElementById('hud-score').textContent    = score;
+  document.getElementById('hud-merges').textContent   = mergeCount;
+  document.getElementById('hud-max-tier').textContent = tier.emoji + maxTierReached;
+  document.getElementById('hud-coins').textContent    = '🪙 ' + coins;
+  document.getElementById('hud-score-top').textContent  = 'Score: ' + score;
+  document.getElementById('hud-coins-top').textContent  = '🪙 ' + coins;
+}
+
+function refreshPowerupBar() {
+  const btnRemove = document.getElementById('btn-remove');
+  const btnShuffle = document.getElementById('btn-shuffle');
+  const btnExtra   = document.getElementById('btn-extraspace');
+
+  btnRemove.disabled  = coins < 50 && powerupMode !== 'remove';
+  btnShuffle.disabled = coins < 100;
+  btnExtra.disabled   = extraSpaceActive || coins < 75;
+
+  btnRemove.classList.toggle('active-mode', powerupMode === 'remove');
+}
+
+function renderShop() {
+  document.getElementById('shop-coins-display').textContent = '🪙 ' + coins + ' coins';
+  const container = document.getElementById('shop-items');
+  container.innerHTML = '';
+
+  POWERUPS.forEach(pu => {
+    const active    = pu.id === 'extraspace' && extraSpaceActive;
+    const canAfford = coins >= pu.cost;
+    const disabled  = !canAfford || active;
+
+    const el   = document.createElement('div');
+    el.className = 'shop-item' + (disabled ? ' si-disabled' : '');
+    el.innerHTML = `
+      <span class="si-icon">${pu.icon}</span>
+      <div class="si-info">
+        <div class="si-name">${pu.name}</div>
+        <div class="si-desc">${pu.desc}${active ? ' <em>(Active!)</em>' : ''}</div>
+      </div>
+      <span class="si-cost">${pu.cost} 🪙</span>`;
+
+    if (!disabled) {
+      el.addEventListener('click', () => {
+        closeShop();
+        if (pu.id === 'remove')     activateRemove();
+        if (pu.id === 'shuffle')    doShuffle();
+        if (pu.id === 'extraspace') doExtraSpace();
+      });
+    }
+    container.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CELL ANIMATIONS
+// ═══════════════════════════════════════════════════════════════
+
+const ANIM_CLASS_MAP = {
+  merge:   'anim-merge',
+  spawn:   'anim-spawn',
+  chain:   'anim-chain',
+  vanish:  'anim-vanish',
+  rainbow: 'anim-rainbow',
+};
+
+function animateCell(idx, type) {
+  const cells = document.querySelectorAll('#game-grid .cell');
+  const el    = cells[idx];
+  if (!el) return;
+  const cls = ANIM_CLASS_MAP[type];
+  if (!cls) return;
+  el.classList.remove(...Object.values(ANIM_CLASS_MAP));
+  void el.offsetWidth; // force reflow
+  el.classList.add(cls);
+  el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+}
+
+function shakeCells(indices) {
+  const cells = document.querySelectorAll('#game-grid .cell');
+  indices.forEach(idx => {
+    const el = cells[idx];
+    if (!el) return;
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = 'shakeAnim 0.32s ease-in-out';
+    setTimeout(() => { el.style.animation = ''; }, 380);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAG & DROP — Unified Pointer Events (mouse + touch)
+// ═══════════════════════════════════════════════════════════════
+
+function attachGridPointerEvents(gridEl) {
+  // Remove previous listeners by cloning (simpler than keeping refs)
+  const fresh = gridEl.cloneNode(true);
+  gridEl.replaceWith(fresh);
+  const el = document.getElementById('game-grid');
+
+  el.addEventListener('pointerdown',   onPointerDown,   { passive: false });
+  el.addEventListener('pointermove',   onPointerMove,   { passive: false });
+  el.addEventListener('pointerup',     onPointerUp,     { passive: false });
+  el.addEventListener('pointercancel', onPointerCancel, { passive: false });
+}
+
+function cellFromPoint(x, y) {
+  const cells = document.querySelectorAll('#game-grid .cell');
+  for (let i = 0; i < cells.length; i++) {
+    const r = cells[i].getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return i;
+  }
+  return -1;
+}
+
+function onPointerDown(e) {
+  e.preventDefault();
+  if (drag.active) return;
+
+  const target = e.target.closest('.cell');
+  if (!target) return;
+  const idx = parseInt(target.dataset.idx);
+  if (isNaN(idx)) return;
+
+  // Remove-mode: single tap removes item
+  if (powerupMode === 'remove') {
+    if (grid[idx]) handleRemoveClick(idx);
+    return;
+  }
+
+  if (!grid[idx]) return; // nothing to drag
+
+  drag.active        = true;
+  drag.fromIdx       = idx;
+  drag.currentTarget = -1;
+  drag.moved         = false;
+  drag.startX        = e.clientX;
+  drag.startY        = e.clientY;
+  drag.pointerId     = e.pointerId;
+
+  // Capture so we keep getting events even outside the element
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+
+  // Show drag ghost
+  const tier  = TIERS[grid[idx].tier];
+  const ghost = document.getElementById('drag-ghost');
+  ghost.style.background  = tier.bg;
+  ghost.style.boxShadow   = `0 6px 24px ${tier.glow}88`;
+  ghost.innerHTML = `<span class="cell-emoji">${tier.emoji}</span><span class="cell-label">${tier.label}</span>`;
+  positionGhost(e.clientX, e.clientY);
+  ghost.classList.add('active');
+
+  // Mark source
+  const cells = document.querySelectorAll('#game-grid .cell');
+  if (cells[idx]) cells[idx].classList.add('drag-source');
+}
+
+function onPointerMove(e) {
+  if (!drag.active) return;
+  e.preventDefault();
+
+  if (Math.abs(e.clientX - drag.startX) > 4 || Math.abs(e.clientY - drag.startY) > 4) {
+    drag.moved = true;
+  }
+
+  positionGhost(e.clientX, e.clientY);
+
+  const targetIdx = cellFromPoint(e.clientX, e.clientY);
+  if (targetIdx === drag.currentTarget) return;
+
+  // Un-highlight old target
+  clearTargetHighlight(drag.currentTarget);
+  drag.currentTarget = targetIdx;
+
+  // Highlight new target if it's a valid merge partner
+  if (
+    targetIdx >= 0 &&
+    targetIdx !== drag.fromIdx &&
+    grid[targetIdx] &&
+    drag.fromIdx >= 0 &&
+    grid[drag.fromIdx] &&
+    grid[targetIdx].tier === grid[drag.fromIdx].tier
+  ) {
+    const cells = document.querySelectorAll('#game-grid .cell');
+    if (cells[targetIdx]) cells[targetIdx].classList.add('drag-over');
+  }
+}
+
+function onPointerUp(e) {
+  if (!drag.active) return;
+  e.preventDefault();
+  finishDrag(e.clientX, e.clientY);
+}
+
+function onPointerCancel(e) {
+  if (!drag.active) return;
+  cancelDrag();
+}
+
+function positionGhost(x, y) {
+  const ghost = document.getElementById('drag-ghost');
+  ghost.style.left = x + 'px';
+  ghost.style.top  = y + 'px';
+}
+
+function finishDrag(x, y) {
+  const ghost = document.getElementById('drag-ghost');
+  ghost.classList.remove('active');
+
+  const cells = document.querySelectorAll('#game-grid .cell');
+  if (drag.fromIdx >= 0 && cells[drag.fromIdx]) {
+    cells[drag.fromIdx].classList.remove('drag-source');
+  }
+  clearTargetHighlight(drag.currentTarget);
+
+  if (drag.moved) {
+    const targetIdx = cellFromPoint(x, y);
+    if (targetIdx >= 0 && targetIdx !== drag.fromIdx) {
+      tryMerge(drag.fromIdx, targetIdx);
+    }
+  }
+
+  resetDragState();
+}
+
+function cancelDrag() {
+  document.getElementById('drag-ghost').classList.remove('active');
+  const cells = document.querySelectorAll('#game-grid .cell');
+  if (drag.fromIdx >= 0 && cells[drag.fromIdx]) {
+    cells[drag.fromIdx].classList.remove('drag-source');
+  }
+  clearTargetHighlight(drag.currentTarget);
+  resetDragState();
+}
+
+function clearTargetHighlight(idx) {
+  if (idx < 0) return;
+  const cells = document.querySelectorAll('#game-grid .cell');
+  if (cells[idx]) cells[idx].classList.remove('drag-over');
+}
+
+function resetDragState() {
+  drag.active        = false;
+  drag.fromIdx       = -1;
+  drag.currentTarget = -1;
+  drag.moved         = false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════
+
+function showToast(msg, type, durationMs) {
+  const dur = durationMs || 2000;
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type || 'info'}`;
+  el.style.setProperty('--dur', (dur / 1000 - 0.3) + 's');
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), dur);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SHOP
+// ═══════════════════════════════════════════════════════════════
+
+function openShop() {
+  renderShop();
+  document.getElementById('shop-overlay').classList.add('active');
+}
+
+function closeShop() {
+  document.getElementById('shop-overlay').classList.remove('active');
+}
+
+document.getElementById('shop-overlay').addEventListener('click', function (e) {
+  if (e.target === this) closeShop();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// MISC HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+function confirmQuit() {
+  if (!confirm('Quit and return to menu?')) return;
+  if (extraSpaceActive) deactivateExtraSpace(true);
+  resetDragState();
+  document.getElementById('drag-ghost').classList.remove('active');
+  showScreen('menu');
+}
+
+function shareScore() {
+  const score = computeScore();
+  if (window.jbShareScore) {
+    jbShareScore(score);
+  } else {
+    const text = encodeURIComponent(
+      `I scored ${score} in Merge Master 🏆 by @JellyBoltGames! Play at: ${window.location.href}`
+    );
+    window.open(`https://x.com/intent/tweet?text=${text}`, '_blank', 'noopener');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DAILY CHALLENGE INFO
+// ═══════════════════════════════════════════════════════════════
+
+// The daily challenge uses mulberry32(getDailySeed()) for its RNG,
+// which guarantees all players on the same calendar day get the
+// identical item sequence (spawn positions + tiers).
+
+// ═══════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════
+
+window.addEventListener('DOMContentLoaded', function () {
+  refreshMenuUI();
+  showScreen('menu');
+});
+</script>
+
+<!-- JellyBolt Shared Monetization (cross-promo, interstitials, share) -->
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+</body>
+</html>

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Space Jump — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;touch-action:none;user-select:none;font-family:Arial,sans-serif}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+#ui{position:fixed;top:80px;left:20px;color:#fff;font-size:20px;z-index:999;text-shadow:2px 2px 4px #000}
+#ui div{margin-bottom:8px}
+#menu{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#fff;z-index:9999;background:rgba(10,10,26,.95);padding:40px;border-radius:20px;border:2px solid #00ff88}
+#menu h1{font-size:48px;margin-bottom:20px;text-shadow:0 0 20px #00ff88}
+#menu .btn{display:inline-block;margin:10px;padding:15px 40px;background:linear-gradient(135deg,#00ff88,#00ccff);color:#000;font-size:24px;font-weight:700;border-radius:12px;cursor:pointer;border:none;transition:transform .2s}
+#menu .btn:hover{transform:scale(1.1)}
+#menu .stats{margin-top:20px;font-size:16px;opacity:.8}
+#gameover{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#fff;z-index:9999;background:rgba(10,10,26,.95);padding:40px;border-radius:20px;border:2px solid #ff6b6b;display:none}
+#gameover h2{font-size:36px;margin-bottom:20px;color:#ff6b6b}
+#gameover .score{font-size:24px;margin:10px 0}
+#gameover .btn{display:inline-block;margin:10px;padding:12px 30px;background:linear-gradient(135deg,#00ff88,#00ccff);color:#000;font-size:20px;font-weight:700;border-radius:12px;cursor:pointer;border:none;transition:transform .2s}
+#gameover .btn:hover{transform:scale(1.1)}
+#milestone{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,10,26,.98);color:#fff;padding:30px 50px;border-radius:15px;border:3px solid #ffdd00;font-size:28px;font-weight:700;z-index:9997;display:none;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="menu">
+  <h1>🚀 SPACE JUMP</h1>
+  <button class="btn" onclick="startGame()">START</button>
+  <div class="stats">
+    High Score: <span id="highScoreTxt">0</span>m<br>
+    Total Coins: <span id="totalCoinsTxt">0</span>
+  </div>
+  <div style="margin-top:20px;font-size:14px;opacity:.7">
+    ← → or Swipe: Change Lane<br>
+    ↑ or Swipe Up: Jump
+  </div>
+</div>
+
+<div id="gameover">
+  <h2>GAME OVER</h2>
+  <div class="score">Distance: <span id="finalDist">0</span>m</div>
+  <div class="score">Coins: <span id="finalCoins">0</span></div>
+  <div class="score" style="color:#ffdd00">New Coins: +<span id="newCoins">0</span></div>
+  <button class="btn" onclick="restart()">PLAY AGAIN</button>
+  <button class="btn" onclick="toMenu()" style="background:linear-gradient(135deg,#666,#999)">MENU</button>
+</div>
+
+<div id="milestone">
+  🎉 MILESTONE! 🎉<br>
+  <span id="milestoneTxt"></span><br>
+  +<span id="milestoneCoins"></span> Coins!
+</div>
+
+<div id="ui" style="display:none">
+  <div>Distance: <span id="distTxt">0</span>m</div>
+  <div>Coins: <span id="coinsTxt">0</span></div>
+  <div id="powerupTxt" style="color:#ffdd00"></div>
+</div>
+
+<div id="container"></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank" class="jb-btn-coffee">☕ Buy Me a Coffee</a>
+  <a href="https://jellyboltgames.itch.io" target="_blank" class="jb-btn-games">🎮 More Games</a>
+  <a href="https://twitter.com/intent/tweet?text=Just%20played%20Space%20Jump!%20%F0%9F%9A%80&url=https://jellyboltgames.itch.io" target="_blank" class="jb-btn-share">🐦 Share</a>
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" class="jb-btn-share-fb">📘 Share</a>
+  <a href="https://wa.me/?text=Check%20out%20Space%20Jump!%20https://jellyboltgames.itch.io" target="_blank" class="jb-btn-share-wa">💬 WhatsApp</a>
+</div>
+
+<div id="jb-interstitial">
+  <div class="jb-interstitial-box">
+    <h2 style="color:#00ff88;margin-bottom:15px">Support JellyBolt Games!</h2>
+    <p style="color:#ccc;line-height:1.6">Enjoying the game? Consider buying us a coffee or checking out our other games!</p>
+    <button class="jb-interstitial-close" onclick="closeInterstitial()">Continue Playing</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+// Game State
+let scene, camera, renderer, player, lanes = [], obstacles = [], coins = [], powerups = [];
+let distance = 0, coinCount = 0, gameSpeed = 0.15, baseSpeed = 0.15;
+let isPlaying = false, isJumping = false, jumpVelocity = 0;
+let currentLane = 1, targetLane = 1;
+let touchStartX = 0, touchStartY = 0;
+let highScore = parseInt(localStorage.getItem('sj_high') || '0');
+let totalCoins = parseInt(localStorage.getItem('sj_coins') || '0');
+let lastMilestone = 0, activePowerup = null, powerupTimer = 0;
+let coinMultiplier = 1, hasShield = false, hasMagnet = false;
+let newCoinsThisRun = 0;
+
+const LANE_WIDTH = 3;
+const LANE_POSITIONS = [-LANE_WIDTH, 0, LANE_WIDTH];
+const JUMP_FORCE = 0.35;
+const GRAVITY = 0.018;
+const PLAYER_HEIGHT = 0.8;
+const SPAWN_DISTANCE = 80;
+const DESPAWN_DISTANCE = -10;
+
+// Initialize Three.js
+function initThree() {
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x000020, 20, 100);
+  
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 3, 5);
+  camera.lookAt(0, 1, -10);
+  
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000020);
+  document.getElementById('container').appendChild(renderer.domElement);
+  
+  // Lighting
+  const ambLight = new THREE.AmbientLight(0x404060, 1);
+  scene.add(ambLight);
+  
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(5, 10, 5);
+  scene.add(dirLight);
+  
+  // Create player
+  const playerGeom = new THREE.BoxGeometry(0.6, PLAYER_HEIGHT, 0.6);
+  const playerMat = new THREE.MeshPhongMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0.3 });
+  player = new THREE.Mesh(playerGeom, playerMat);
+  player.position.set(0, PLAYER_HEIGHT / 2, 0);
+  scene.add(player);
+  
+  // Create floor lanes
+  createLanes();
+  
+  // Create stars
+  createStars();
+  
+  window.addEventListener('resize', onResize);
+  document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('touchstart', onTouchStart);
+  document.addEventListener('touchend', onTouchEnd);
+}
+
+function createLanes() {
+  const laneGeom = new THREE.PlaneGeometry(LANE_WIDTH * 0.9, 200);
+  const laneMat = new THREE.MeshBasicMaterial({ 
+    color: 0x1a1a3a, 
+    transparent: true, 
+    opacity: 0.5,
+    side: THREE.DoubleSide 
+  });
+  
+  for (let i = 0; i < 3; i++) {
+    const lane = new THREE.Mesh(laneGeom, laneMat);
+    lane.rotation.x = -Math.PI / 2;
+    lane.position.set(LANE_POSITIONS[i], 0, -50);
+    scene.add(lane);
+    lanes.push(lane);
+  }
+  
+  // Lane dividers
+  for (let i = 0; i < 4; i++) {
+    const lineGeom = new THREE.PlaneGeometry(0.1, 200);
+    const lineMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.3 });
+    const line = new THREE.Mesh(lineGeom, lineMat);
+    line.rotation.x = -Math.PI / 2;
+    line.position.set(-LANE_WIDTH * 1.5 + i * LANE_WIDTH, 0.01, -50);
+    scene.add(line);
+  }
+}
+
+function createStars() {
+  const starGeom = new THREE.BufferGeometry();
+  const starVerts = [];
+  for (let i = 0; i < 500; i++) {
+    starVerts.push(
+      (Math.random() - 0.5) * 100,
+      Math.random() * 50 + 5,
+      (Math.random() - 0.5) * 200 - 50
+    );
+  }
+  starGeom.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+  const stars = new THREE.Points(starGeom, starMat);
+  scene.add(stars);
+}
+
+function startGame() {
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('ui').style.display = 'block';
+  isPlaying = true;
+  distance = 0;
+  coinCount = 0;
+  newCoinsThisRun = 0;
+  gameSpeed = baseSpeed;
+  currentLane = 1;
+  targetLane = 1;
+  lastMilestone = 0;
+  activePowerup = null;
+  powerupTimer = 0;
+  coinMultiplier = 1;
+  hasShield = false;
+  hasMagnet = false;
+  
+  player.position.set(LANE_POSITIONS[1], PLAYER_HEIGHT / 2, 0);
+  player.material.color.setHex(0x00ff88);
+  
+  obstacles.forEach(o => scene.remove(o.mesh));
+  coins.forEach(c => scene.remove(c.mesh));
+  powerups.forEach(p => scene.remove(p.mesh));
+  obstacles = [];
+  coins = [];
+  powerups = [];
+  
+  updateUI();
+  animate();
+}
+
+function updateUI() {
+  document.getElementById('distTxt').textContent = Math.floor(distance);
+  document.getElementById('coinsTxt').textContent = coinCount;
+  document.getElementById('highScoreTxt').textContent = highScore;
+  document.getElementById('totalCoinsTxt').textContent = totalCoins;
+  
+  if (activePowerup) {
+    const timeLeft = Math.ceil(powerupTimer / 60);
+    document.getElementById('powerupTxt').textContent = `${activePowerup.toUpperCase()} (${timeLeft}s)`;
+  } else {
+    document.getElementById('powerupTxt').textContent = '';
+  }
+}
+
+function spawnObstacle() {
+  if (Math.random() < 0.7) {
+    const type = ['barrier', 'beam', 'gap'][Math.floor(Math.random() * 3)];
+    const lane = Math.floor(Math.random() * 3);
+    const z = -SPAWN_DISTANCE;
+    
+    if (type === 'barrier') {
+      const geom = new THREE.BoxGeometry(LANE_WIDTH * 0.8, 1.5, 0.5);
+      const mat = new THREE.MeshPhongMaterial({ color: 0xff3333, emissive: 0xff0000, emissiveIntensity: 0.5 });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set(LANE_POSITIONS[lane], 0.75, z);
+      scene.add(mesh);
+      obstacles.push({ mesh, type: 'barrier', lane, z, height: 1.5 });
+    } else if (type === 'beam') {
+      const geom = new THREE.CylinderGeometry(0.2, 0.2, LANE_WIDTH * 0.8, 8);
+      const mat = new THREE.MeshPhongMaterial({ color: 0xff6600, emissive: 0xff3300, emissiveIntensity: 0.5 });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set(LANE_POSITIONS[lane], 0.75, z);
+      mesh.rotation.z = Math.PI / 2;
+      scene.add(mesh);
+      obstacles.push({ mesh, type: 'beam', lane, z, rotation: 0, height: 1.5 });
+    } else if (type === 'gap') {
+      const geom = new THREE.PlaneGeometry(LANE_WIDTH * 0.9, 3);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(LANE_POSITIONS[lane], 0.01, z);
+      scene.add(mesh);
+      obstacles.push({ mesh, type: 'gap', lane, z, height: 0 });
+    }
+  }
+}
+
+function spawnCoin() {
+  if (Math.random() < 0.6) {
+    const pattern = Math.random();
+    if (pattern < 0.4) {
+      // Single lane
+      const lane = Math.floor(Math.random() * 3);
+      for (let i = 0; i < 5; i++) {
+        createCoin(LANE_POSITIONS[lane], -SPAWN_DISTANCE + i * 2);
+      }
+    } else if (pattern < 0.7) {
+      // All lanes
+      const z = -SPAWN_DISTANCE;
+      for (let i = 0; i < 3; i++) {
+        createCoin(LANE_POSITIONS[i], z);
+      }
+    } else {
+      // Zigzag
+      for (let i = 0; i < 3; i++) {
+        createCoin(LANE_POSITIONS[i % 3], -SPAWN_DISTANCE + i * 3);
+      }
+    }
+  }
+}
+
+function createCoin(x, z) {
+  const geom = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 16);
+  const mat = new THREE.MeshPhongMaterial({ color: 0xffdd00, emissive: 0xffdd00, emissiveIntensity: 0.5 });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.set(x, 1, z);
+  mesh.rotation.x = Math.PI / 2;
+  scene.add(mesh);
+  coins.push({ mesh, x, z, rotation: 0 });
+}
+
+function spawnPowerup() {
+  if (Math.random() < 0.1) {
+    const types = ['magnet', 'shield', 'speed', 'multiplier'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    const lane = Math.floor(Math.random() * 3);
+    const z = -SPAWN_DISTANCE;
+    
+    const colors = { magnet: 0xff00ff, shield: 0x00ffff, speed: 0xff8800, multiplier: 0xffdd00 };
+    const geom = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+    const mat = new THREE.MeshPhongMaterial({ 
+      color: colors[type], 
+      emissive: colors[type], 
+      emissiveIntensity: 0.7,
+      transparent: true,
+      opacity: 0.8
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(LANE_POSITIONS[lane], 1, z);
+    scene.add(mesh);
+    powerups.push({ mesh, type, lane, z, rotation: 0 });
+  }
+}
+
+function collectCoin(coin) {
+  const amount = coinMultiplier;
+  coinCount += amount;
+  newCoinsThisRun += amount;
+  scene.remove(coin.mesh);
+  coins.splice(coins.indexOf(coin), 1);
+}
+
+function collectPowerup(powerup) {
+  activePowerup = powerup.type;
+  powerupTimer = 300; // 5 seconds at 60fps
+  
+  if (powerup.type === 'magnet') {
+    hasMagnet = true;
+  } else if (powerup.type === 'shield') {
+    hasShield = true;
+    player.material.color.setHex(0x00ffff);
+  } else if (powerup.type === 'speed') {
+    gameSpeed = baseSpeed * 1.5;
+  } else if (powerup.type === 'multiplier') {
+    coinMultiplier = 2;
+  }
+  
+  scene.remove(powerup.mesh);
+  powerups.splice(powerups.indexOf(powerup), 1);
+}
+
+function checkCollisions() {
+  const playerBox = new THREE.Box3().setFromObject(player);
+  
+  // Coins
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const coin = coins[i];
+    const coinBox = new THREE.Box3().setFromObject(coin.mesh);
+    
+    if (hasMagnet) {
+      const dx = player.position.x - coin.mesh.position.x;
+      const dz = player.position.z - coin.mesh.position.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < 5) {
+        coin.mesh.position.x += dx * 0.1;
+        coin.mesh.position.z += dz * 0.1;
+      }
+    }
+    
+    if (playerBox.intersectsBox(coinBox)) {
+      collectCoin(coin);
+    }
+  }
+  
+  // Powerups
+  for (let i = powerups.length - 1; i >= 0; i--) {
+    const powerup = powerups[i];
+    const powerupBox = new THREE.Box3().setFromObject(powerup.mesh);
+    if (playerBox.intersectsBox(powerupBox)) {
+      collectPowerup(powerup);
+    }
+  }
+  
+  // Obstacles
+  if (!hasShield) {
+    for (let obstacle of obstacles) {
+      if (Math.abs(obstacle.z - player.position.z) < 1.5) {
+        const sameLane = Math.abs(player.position.x - LANE_POSITIONS[obstacle.lane]) < LANE_WIDTH * 0.4;
+        
+        if (obstacle.type === 'gap') {
+          if (sameLane && player.position.y < 0.5) {
+            gameOver();
+            return;
+          }
+        } else {
+          if (sameLane && player.position.y < obstacle.height) {
+            gameOver();
+            return;
+          }
+        }
+      }
+    }
+  }
+}
+
+function updatePowerups() {
+  if (powerupTimer > 0) {
+    powerupTimer--;
+    if (powerupTimer === 0) {
+      activePowerup = null;
+      hasMagnet = false;
+      hasShield = false;
+      gameSpeed = baseSpeed;
+      coinMultiplier = 1;
+      player.material.color.setHex(0x00ff88);
+    }
+  }
+}
+
+function checkMilestone() {
+  const currentMilestone = Math.floor(distance / 1000);
+  if (currentMilestone > lastMilestone) {
+    lastMilestone = currentMilestone;
+    const bonus = 100;
+    coinCount += bonus;
+    newCoinsThisRun += bonus;
+    totalCoins += bonus;
+    localStorage.setItem('sj_coins', totalCoins);
+    
+    document.getElementById('milestoneTxt').textContent = (currentMilestone * 1000) + 'm';
+    document.getElementById('milestoneCoins').textContent = bonus;
+    document.getElementById('milestone').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('milestone').style.display = 'none';
+    }, 2000);
+  }
+}
+
+function animate() {
+  if (!isPlaying) return;
+  
+  requestAnimationFrame(animate);
+  
+  // Update distance and speed
+  distance += gameSpeed;
+  baseSpeed = 0.15 + distance * 0.00001;
+  if (!activePowerup || activePowerup !== 'speed') {
+    gameSpeed = baseSpeed;
+  }
+  
+  // Player lane movement
+  const targetX = LANE_POSITIONS[targetLane];
+  player.position.x += (targetX - player.position.x) * 0.15;
+  
+  // Jumping
+  if (isJumping) {
+    player.position.y += jumpVelocity;
+    jumpVelocity -= GRAVITY;
+    
+    if (player.position.y <= PLAYER_HEIGHT / 2) {
+      player.position.y = PLAYER_HEIGHT / 2;
+      isJumping = false;
+      jumpVelocity = 0;
+    }
+  }
+  
+  // Update obstacles
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const obs = obstacles[i];
+    obs.z += gameSpeed;
+    obs.mesh.position.z = obs.z;
+    
+    if (obs.type === 'beam') {
+      obs.rotation += 0.05;
+      obs.mesh.rotation.y = obs.rotation;
+    }
+    
+    if (obs.z > DESPAWN_DISTANCE) {
+      scene.remove(obs.mesh);
+      obstacles.splice(i, 1);
+    }
+  }
+  
+  // Update coins
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const coin = coins[i];
+    coin.z += gameSpeed;
+    coin.mesh.position.z = coin.z;
+    coin.rotation += 0.05;
+    coin.mesh.rotation.y = coin.rotation;
+    
+    if (coin.z > DESPAWN_DISTANCE) {
+      scene.remove(coin.mesh);
+      coins.splice(i, 1);
+    }
+  }
+  
+  // Update powerups
+  for (let i = powerups.length - 1; i >= 0; i--) {
+    const powerup = powerups[i];
+    powerup.z += gameSpeed;
+    powerup.mesh.position.z = powerup.z;
+    powerup.rotation += 0.03;
+    powerup.mesh.rotation.x = powerup.rotation;
+    powerup.mesh.rotation.y = powerup.rotation;
+    
+    if (powerup.z > DESPAWN_DISTANCE) {
+      scene.remove(powerup.mesh);
+      powerups.splice(i, 1);
+    }
+  }
+  
+  // Spawn new objects
+  if (Math.random() < 0.02) spawnObstacle();
+  if (Math.random() < 0.03) spawnCoin();
+  if (Math.random() < 0.005) spawnPowerup();
+  
+  checkCollisions();
+  updatePowerups();
+  checkMilestone();
+  updateUI();
+  
+  renderer.render(scene, camera);
+}
+
+function gameOver() {
+  isPlaying = false;
+  
+  if (distance > highScore) {
+    highScore = Math.floor(distance);
+    localStorage.setItem('sj_high', highScore);
+  }
+  
+  totalCoins += newCoinsThisRun;
+  localStorage.setItem('sj_coins', totalCoins);
+  
+  document.getElementById('finalDist').textContent = Math.floor(distance);
+  document.getElementById('finalCoins').textContent = coinCount;
+  document.getElementById('newCoins').textContent = newCoinsThisRun;
+  document.getElementById('gameover').style.display = 'block';
+  
+  // Show interstitial every 3rd game
+  const gameCount = parseInt(localStorage.getItem('sj_games') || '0') + 1;
+  localStorage.setItem('sj_games', gameCount);
+  if (gameCount % 3 === 0) {
+    setTimeout(() => {
+      document.getElementById('jb-interstitial').style.display = 'flex';
+    }, 1000);
+  }
+}
+
+function restart() {
+  document.getElementById('gameover').style.display = 'none';
+  startGame();
+}
+
+function toMenu() {
+  document.getElementById('gameover').style.display = 'none';
+  document.getElementById('ui').style.display = 'none';
+  document.getElementById('menu').style.display = 'block';
+  updateUI();
+}
+
+function closeInterstitial() {
+  document.getElementById('jb-interstitial').style.display = 'none';
+}
+
+function onKeyDown(e) {
+  if (!isPlaying) return;
+  
+  if (e.key === 'ArrowLeft') {
+    targetLane = Math.max(0, targetLane - 1);
+  } else if (e.key === 'ArrowRight') {
+    targetLane = Math.min(2, targetLane + 1);
+  } else if (e.key === 'ArrowUp' || e.key === ' ') {
+    if (!isJumping) {
+      isJumping = true;
+      jumpVelocity = JUMP_FORCE;
+    }
+  }
+}
+
+function onTouchStart(e) {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}
+
+function onTouchEnd(e) {
+  if (!isPlaying) return;
+  
+  const touchEndX = e.changedTouches[0].clientX;
+  const touchEndY = e.changedTouches[0].clientY;
+  const dx = touchEndX - touchStartX;
+  const dy = touchEndY - touchStartY;
+  
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+    // Horizontal swipe
+    if (dx > 0) {
+      targetLane = Math.min(2, targetLane + 1);
+    } else {
+      targetLane = Math.max(0, targetLane - 1);
+    }
+  } else if (dy < -30) {
+    // Swipe up
+    if (!isJumping) {
+      isJumping = true;
+      jumpVelocity = JUMP_FORCE;
+    }
+  }
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Initialize
+initThree();
+updateUI();
+renderer.render(scene, camera);
+</script>
+</body>
+</html>

@@ -28,7 +28,7 @@
 This repo is forked into **github.com/jellybolt-games/jellybolt-games** — the brand's independent org.
 
 **Remotes:**
-- `origin` → tamirdresher/jellybolt-games (personal, legacy)
+- `origin` → tdsquadai/jellybolt-games (personal, legacy)
 - `org` → jellybolt-games/jellybolt-games (org, primary going forward)
 
 **Push to BOTH remotes:** `git push origin main && git push org main`
@@ -41,7 +41,7 @@ This repo is forked into **github.com/jellybolt-games/jellybolt-games** — the 
 
 **Pages URL:** jellybolt-games.github.io/jellybolt-games
 
-**⚠️ NEVER reference 'tamirdresher' or 'Tamir Dresher' in any public-facing content.**
+**⚠️ NEVER reference 'tdsquadai' or 'Tamir Dresher' in any public-facing content.**
 
 ## Credential Access (Cross-Machine)
 

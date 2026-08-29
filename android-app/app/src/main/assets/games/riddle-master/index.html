@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Riddle Master — JellyBolt Games</title>
+<meta name="description" content="Riddle Master — a brain-teasing puzzle game by JellyBolt Games. Solve 32+ riddles across Logic, Wordplay, Math, and Lateral Thinking!">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a1a;--card:rgba(255,255,255,0.05);--card-border:rgba(255,255,255,0.08);
+  --cyan:#00e5ff;--purple:#7c4dff;--green:#00e676;--red:#ff1744;
+  --text:#e0e0e0;--text-dim:#888;--font:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+html{font-size:16px}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── Utility ── */
+.hidden{display:none!important}
+.screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;gap:1.2rem;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px var(--cyan)}50%{box-shadow:0 0 22px var(--cyan),0 0 40px rgba(0,229,255,.25)}}
+@keyframes correctFlash{0%{background:rgba(0,230,118,.25)}100%{background:transparent}}
+@keyframes wrongFlash{0%{background:rgba(255,23,68,.25)}100%{background:transparent}}
+@keyframes streakPop{0%{transform:scale(1)}50%{transform:scale(1.35)}100%{transform:scale(1)}}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  min-height:48px;min-width:48px;padding:.65rem 1.6rem;border:none;border-radius:10px;
+  font-family:var(--font);font-size:1rem;font-weight:600;cursor:pointer;
+  transition:all .2s ease;user-select:none;-webkit-tap-highlight-color:transparent}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#fff;
+  box-shadow:0 0 12px rgba(0,229,255,.3)}
+.btn-primary:hover{box-shadow:0 0 24px rgba(0,229,255,.5);transform:translateY(-2px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{background:var(--card);color:var(--cyan);border:1px solid var(--card-border)}
+.btn-secondary:hover{background:rgba(255,255,255,.1)}
+.btn-hint{background:rgba(124,77,255,.15);color:var(--purple);border:1px solid rgba(124,77,255,.3)}
+.btn-hint:hover{background:rgba(124,77,255,.25)}
+.btn-hint:disabled{opacity:.4;cursor:not-allowed}
+.btn-small{min-height:40px;padding:.45rem 1rem;font-size:.85rem;border-radius:8px}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:1.5rem;width:100%;max-width:560px}
+
+/* ── Start Screen ── */
+#start-screen .logo{font-size:3rem;margin-bottom:.2rem}
+#start-screen h1{font-size:2.2rem;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center}
+#start-screen .subtitle{color:var(--text-dim);font-size:1rem;text-align:center;max-width:400px;line-height:1.5}
+.category-filters{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:.5rem}
+.cat-btn{padding:.4rem .9rem;border-radius:20px;font-size:.82rem;font-weight:600;border:1px solid;cursor:pointer;transition:all .2s;background:transparent;min-height:36px}
+.cat-btn.active{color:#fff}
+.cat-btn[data-cat="Logic"]{color:#42a5f5;border-color:#42a5f5}.cat-btn[data-cat="Logic"].active{background:#42a5f5}
+.cat-btn[data-cat="Wordplay"]{color:#ab47bc;border-color:#ab47bc}.cat-btn[data-cat="Wordplay"].active{background:#ab47bc}
+.cat-btn[data-cat="Math"]{color:#66bb6a;border-color:#66bb6a}.cat-btn[data-cat="Math"].active{background:#66bb6a}
+.cat-btn[data-cat="Lateral"]{color:#ffa726;border-color:#ffa726}.cat-btn[data-cat="Lateral"].active{background:#ffa726}
+.cat-btn[data-cat="All"]{color:var(--cyan);border-color:var(--cyan)}.cat-btn[data-cat="All"].active{background:var(--cyan);color:#000}
+
+/* ── Game Screen ── */
+#game-screen{justify-content:flex-start;padding-top:1rem}
+.top-bar{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:560px;flex-wrap:wrap;gap:.5rem}
+.stat{display:flex;flex-direction:column;align-items:center;font-size:.75rem;color:var(--text-dim)}
+.stat .val{font-size:1.3rem;font-weight:700;color:var(--text)}
+.stat .val.streak{color:var(--purple)}
+.timer-ring{position:relative;width:56px;height:56px}
+.timer-ring svg{transform:rotate(-90deg)}
+.timer-ring circle{fill:none;stroke-width:4}
+.timer-ring .bg{stroke:rgba(255,255,255,.08)}
+.timer-ring .fg{stroke:var(--cyan);stroke-linecap:round;transition:stroke-dashoffset .3s linear,stroke .3s}
+.timer-ring .fg.warn{stroke:#ffa726}
+.timer-ring .fg.danger{stroke:var(--red)}
+.timer-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700}
+
+.riddle-card{text-align:center}
+.riddle-card .cat-badge{display:inline-block;padding:.25rem .7rem;border-radius:12px;font-size:.75rem;font-weight:600;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.5px}
+.cat-badge.Logic{background:rgba(66,165,245,.15);color:#42a5f5}
+.cat-badge.Wordplay{background:rgba(171,71,188,.15);color:#ab47bc}
+.cat-badge.Math{background:rgba(102,187,106,.15);color:#66bb6a}
+.cat-badge.Lateral{background:rgba(255,167,38,.15);color:#ffa726}
+.diff-badge{font-size:.7rem;color:var(--text-dim);margin-bottom:.8rem}
+.diff-badge .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.diff-badge .dot.Easy{background:var(--green)}.diff-badge .dot.Medium{background:#ffa726}.diff-badge .dot.Hard{background:var(--red)}
+.riddle-text{font-size:1.2rem;line-height:1.6;margin-bottom:1rem;min-height:3.5rem}
+.hint-text{font-size:.9rem;color:var(--purple);font-style:italic;min-height:1.4rem;margin-bottom:.5rem}
+
+.answer-row{display:flex;gap:.5rem;width:100%;max-width:560px}
+.answer-input{flex:1;min-height:48px;padding:.6rem 1rem;border-radius:10px;border:2px solid var(--card-border);background:rgba(255,255,255,.06);color:var(--text);font-size:1rem;font-family:var(--font);outline:none;transition:border-color .2s}
+.answer-input:focus{border-color:var(--cyan)}
+.answer-input.correct{border-color:var(--green);animation:correctFlash .5s}
+.answer-input.wrong{border-color:var(--red);animation:shake .4s,wrongFlash .5s}
+
+.action-row{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;width:100%;max-width:560px}
+.feedback{font-size:1rem;font-weight:600;min-height:1.5rem;text-align:center}
+.feedback.correct{color:var(--green)}.feedback.wrong{color:var(--red)}
+
+.progress-bar{width:100%;max-width:560px;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:.5rem}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));transition:width .4s ease;border-radius:3px}
+
+/* ── End Screen ── */
+#end-screen h2{font-size:1.8rem;text-align:center;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;width:100%;max-width:400px}
+.stat-card{background:var(--card);border:1px solid var(--card-border);border-radius:12px;padding:1rem;text-align:center}
+.stat-card .label{font-size:.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem}
+.stat-card .value{font-size:1.5rem;font-weight:700}
+.share-row{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center}
+.share-btn{min-height:44px;padding:.45rem 1rem;border-radius:8px;border:none;font-size:.85rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;transition:all .2s}
+.share-btn.twitter{background:#1da1f2;color:#fff}.share-btn.facebook{background:#1877f2;color:#fff}
+.share-btn.whatsapp{background:#25d366;color:#fff}.share-btn.copy{background:var(--card);color:var(--cyan);border:1px solid var(--card-border)}
+.share-btn:hover{transform:translateY(-2px);filter:brightness(1.15)}
+.toast{position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);background:var(--green);color:#000;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;font-size:.9rem;z-index:100;animation:fadeIn .3s ease}
+
+/* ── Footer ── */
+.site-footer{background:rgba(255,255,255,.03);border-top:1px solid var(--card-border);padding:1.5rem;text-align:center;margin-top:auto}
+.footer-links{display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;margin-bottom:.8rem}
+.footer-links a{display:inline-flex;align-items:center;gap:.3rem;font-size:.9rem}
+.footer-brand{font-size:.8rem;color:var(--text-dim)}
+
+/* ── Responsive ── */
+@media(max-width:480px){
+  #start-screen h1{font-size:1.6rem}
+  .riddle-text{font-size:1.05rem}
+  .top-bar{gap:.3rem}
+  .stat .val{font-size:1.1rem}
+  .timer-ring{width:48px;height:48px}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .card{padding:1rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ START SCREEN ═══════════ -->
+<div id="start-screen" class="screen">
+  <div class="logo">🧩</div>
+  <h1>Riddle Master</h1>
+  <p class="subtitle">Test your wits with 32 brain-bending riddles across Logic, Wordplay, Math &amp; Lateral Thinking. How far can you go?</p>
+  <div class="category-filters">
+    <button class="cat-btn active" data-cat="All" onclick="setFilter('All')">All</button>
+    <button class="cat-btn" data-cat="Logic" onclick="setFilter('Logic')">🧠 Logic</button>
+    <button class="cat-btn" data-cat="Wordplay" onclick="setFilter('Wordplay')">✏️ Wordplay</button>
+    <button class="cat-btn" data-cat="Math" onclick="setFilter('Math')">🔢 Math</button>
+    <button class="cat-btn" data-cat="Lateral" onclick="setFilter('Lateral')">💡 Lateral</button>
+  </div>
+  <button class="btn btn-primary" onclick="startGame()" style="margin-top:.8rem;font-size:1.1rem;padding:.8rem 2.5rem;animation:glow 2s infinite">
+    ▶ Start Game
+  </button>
+</div>
+
+<!-- ═══════════ GAME SCREEN ═══════════ -->
+<div id="game-screen" class="screen hidden">
+  <div class="top-bar">
+    <div class="stat"><span class="val" id="score-val">0</span>Score</div>
+    <div class="stat"><span class="val streak" id="streak-val">0🔥</span>Streak</div>
+    <div class="timer-ring" id="timer-ring">
+      <svg viewBox="0 0 56 56"><circle class="bg" cx="28" cy="28" r="24"/><circle class="fg" id="timer-fg" cx="28" cy="28" r="24"/></svg>
+      <span class="timer-text" id="timer-text">30</span>
+    </div>
+    <div class="stat"><span class="val" id="riddle-num">1/32</span>Riddle</div>
+  </div>
+
+  <div class="card riddle-card" id="riddle-card">
+    <span class="cat-badge" id="cat-badge">Logic</span>
+    <div class="diff-badge"><span class="dot" id="diff-dot"></span><span id="diff-label">Easy</span></div>
+    <p class="riddle-text" id="riddle-text"></p>
+    <p class="hint-text" id="hint-text">&nbsp;</p>
+  </div>
+
+  <div class="answer-row">
+    <input type="text" class="answer-input" id="answer-input" placeholder="Type your answer…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="btn btn-primary" id="submit-btn" onclick="submitAnswer()">→</button>
+  </div>
+
+  <div class="action-row">
+    <button class="btn btn-hint btn-small" id="hint-btn" onclick="useHint()">💡 Hint (<span id="hints-left">3</span>)</button>
+    <button class="btn btn-secondary btn-small" onclick="skipRiddle()">Skip ⏭</button>
+  </div>
+
+  <div class="feedback" id="feedback">&nbsp;</div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+</div>
+
+<!-- ═══════════ END SCREEN ═══════════ -->
+<div id="end-screen" class="screen hidden">
+  <div style="font-size:3rem">🏆</div>
+  <h2>Game Over!</h2>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="label">Final Score</div><div class="value" id="final-score" style="color:var(--cyan)">0</div></div>
+    <div class="stat-card"><div class="label">Best Streak</div><div class="value" id="final-streak" style="color:var(--purple)">0🔥</div></div>
+    <div class="stat-card"><div class="label">Accuracy</div><div class="value" id="final-accuracy" style="color:var(--green)">0%</div></div>
+    <div class="stat-card"><div class="label">Avg Time</div><div class="value" id="final-time" style="color:var(--text)">0s</div></div>
+  </div>
+  <div class="share-row">
+    <button class="share-btn copy" onclick="shareScore('copy')">📋 Copy Score</button>
+    <button class="share-btn twitter" onclick="shareScore('twitter')">𝕏 Tweet</button>
+    <button class="share-btn facebook" onclick="shareScore('facebook')">f Share</button>
+    <button class="share-btn whatsapp" onclick="shareScore('whatsapp')">💬 WhatsApp</button>
+  </div>
+  <button class="btn btn-primary" onclick="startGame()" style="margin-top:.5rem">🔄 Play Again</button>
+</div>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="site-footer">
+  <div class="footer-links">
+    <a href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">☕ Support JellyBolt</a>
+    <a href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">🎮 More Games</a>
+  </div>
+  <div class="footer-brand">Made with ⚡ by JellyBolt Games</div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════
+   RIDDLE MASTER — JellyBolt Games
+   ═══════════════════════════════════════════ */
+
+// ── Riddle Bank (32 riddles) ──
+const RIDDLES = [
+  // ── LOGIC (8) ──
+  {q:"I have cities, but no houses. I have mountains, but no trees. I have water, but no fish. What am I?",a:["a map","map"],cat:"Logic",diff:"Easy",hint:"You'd find me folded in a glove compartment."},
+  {q:"The more you take, the more you leave behind. What am I?",a:["footsteps","footprints","steps"],cat:"Logic",diff:"Easy",hint:"Think about walking on a sandy beach."},
+  {q:"I speak without a mouth and hear without ears. I have no body, but I come alive with the wind. What am I?",a:["an echo","echo"],cat:"Logic",diff:"Medium",hint:"Shout in a canyon and you'll meet me."},
+  {q:"What can travel around the world while staying in a corner?",a:["a stamp","stamp","postage stamp"],cat:"Logic",diff:"Easy",hint:"You lick me and stick me on an envelope."},
+  {q:"I have keys but no locks. I have space but no room. You can enter but you can't go inside. What am I?",a:["a keyboard","keyboard"],cat:"Logic",diff:"Medium",hint:"You're probably using me right now."},
+  {q:"A man is looking at a photograph. Someone asks, 'Whose picture is that?' He replies: 'Brothers and sisters I have none, but that man's father is my father's son.' Who is in the photo?",a:["his son","the man's son","son"],cat:"Logic",diff:"Hard",hint:"'My father's son' is himself — now figure out the relationship."},
+  {q:"You see a house with two doors. Behind one door is a room full of fire. Behind the other is a room full of lions that haven't eaten in three years. Which door do you choose?",a:["the lions","lions","lion door","the lion door","lion","room with lions"],cat:"Logic",diff:"Medium",hint:"Think about how long something can survive without food."},
+  {q:"If five machines take five minutes to make five widgets, how long would it take 100 machines to make 100 widgets?",a:["5 minutes","five minutes","5"],cat:"Logic",diff:"Hard",hint:"Each machine makes one widget in five minutes."},
+
+  // ── WORDPLAY (8) ──
+  {q:"What has a head and a tail but no body?",a:["a coin","coin"],cat:"Wordplay",diff:"Easy",hint:"You flip me to make a decision."},
+  {q:"What word becomes shorter when you add two letters to it?",a:["short"],cat:"Wordplay",diff:"Medium",hint:"Read the riddle very literally."},
+  {q:"I am a word of letters three. Add two and fewer there will be. What word am I?",a:["few"],cat:"Wordplay",diff:"Medium",hint:"What's a three-letter word meaning 'not many'?"},
+  {q:"What disappears as soon as you say its name?",a:["silence","quiet"],cat:"Wordplay",diff:"Easy",hint:"Shhh…"},
+  {q:"What five-letter word typed in all capital letters can be read the same upside down?",a:["swims","SWIMS"],cat:"Wordplay",diff:"Hard",hint:"It's something a fish does."},
+  {q:"What English word has three consecutive double letters?",a:["bookkeeper","book-keeper"],cat:"Wordplay",diff:"Hard",hint:"This person keeps track of finances."},
+  {q:"Forward I'm heavy; backward I'm not. What am I?",a:["ton","a ton"],cat:"Wordplay",diff:"Medium",hint:"Reverse the word and you get the opposite."},
+  {q:"What word in the English language does the following: the first two letters signify a male, the first three letters signify a female, the first four letters signify a great person, while the entire word signifies a great woman?",a:["heroine"],cat:"Wordplay",diff:"Hard",hint:"He → Her → Hero → ???"},
+
+  // ── MATH (8) ──
+  {q:"If you have 6 apples and you take away 4, how many do you have?",a:["4","four"],cat:"Math",diff:"Easy",hint:"You TOOK them — so how many do YOU have?"},
+  {q:"A farmer has 17 sheep. All but 9 run away. How many does the farmer have left?",a:["9","nine"],cat:"Math",diff:"Easy",hint:"Read it again — 'all BUT 9'."},
+  {q:"What three positive numbers give the same result when multiplied together as when added together?",a:["1 2 3","1, 2, 3","1,2,3"],cat:"Math",diff:"Medium",hint:"1 × 2 × 3 = ?"},
+  {q:"A bat and a ball together cost $1.10. The bat costs $1.00 more than the ball. How much does the ball cost?",a:["5 cents","$0.05","0.05","five cents"],cat:"Math",diff:"Medium",hint:"It's not 10 cents — check the math!"},
+  {q:"How many times can you subtract 5 from 25?",a:["1","one","once"],cat:"Math",diff:"Medium",hint:"After the first subtraction, it's no longer 25."},
+  {q:"I am an odd number. Take away one letter and I become even. What number am I?",a:["seven","7"],cat:"Math",diff:"Easy",hint:"Remove the 's' and see what's left."},
+  {q:"If two's company and three's a crowd, what are four and five?",a:["9","nine"],cat:"Math",diff:"Hard",hint:"Don't overthink it — just do the arithmetic."},
+  {q:"A clock strikes 6 in 5 seconds. How long does it take to strike 12?",a:["11 seconds","11"],cat:"Math",diff:"Hard",hint:"Count the gaps between strikes, not the strikes themselves."},
+
+  // ── LATERAL THINKING (8) ──
+  {q:"A man pushes his car to a hotel and tells the owner he's bankrupt. Why?",a:["he's playing monopoly","monopoly","he is playing monopoly"],cat:"Lateral",diff:"Easy",hint:"It's not a real car or a real hotel."},
+  {q:"A woman shoots her husband, then holds him under water for five minutes. Next, she hangs him. But ten minutes later they go out and enjoy a wonderful dinner together. How?",a:["she's a photographer","photographer","she took a photo","photograph","she photographed him"],cat:"Lateral",diff:"Medium",hint:"Shoot, develop, hang — think darkroom."},
+  {q:"A man walked into a bar and asked the bartender for a glass of water. The bartender pulled out a gun and pointed it at the man. The man said 'Thank you' and walked out. Why?",a:["he had hiccups","hiccups","the man had hiccups","he had the hiccups"],cat:"Lateral",diff:"Medium",hint:"The man needed a cure for something."},
+  {q:"How can you throw a ball as hard as you can and have it come back to you, even if it doesn't bounce off anything and no one throws it back?",a:["throw it up","throw it straight up","throw it in the air","up","straight up"],cat:"Lateral",diff:"Easy",hint:"Gravity always wins."},
+  {q:"What can you hold in your right hand but never in your left hand?",a:["your left hand","left hand","your left elbow","left elbow"],cat:"Lateral",diff:"Medium",hint:"Look down at your own body."},
+  {q:"A truck driver is going the wrong way down a one-way street. He passes at least ten cops. Why doesn't he get a ticket?",a:["he's walking","he is walking","walking","he was walking"],cat:"Lateral",diff:"Medium",hint:"Re-read: 'a truck driver is going' — not 'a truck is going'."},
+  {q:"A man lives on the 10th floor and takes the elevator down to the ground floor every day to go to work. When he returns, he takes the elevator to the 7th floor and walks up the stairs. Why?",a:["he's short","he is short","he is too short","he can't reach the button","too short to reach","short","he can only reach the 7th floor button"],cat:"Lateral",diff:"Hard",hint:"He can't reach all the buttons by himself."},
+  {q:"A man is found dead in a field. He has an unopened package next to him. There are no other people or animals around. How did he die?",a:["parachute didn't open","failed parachute","his parachute failed","parachute","the parachute didn't open"],cat:"Lateral",diff:"Hard",hint:"The unopened package was supposed to save his life."}
+];
+
+// ── Game State ──
+let state = {};
+const C = 150.8; // circumference of timer circle (2πr, r=24)
+
+function resetState() {
+  state = {
+    score: 0, streak: 0, bestStreak: 0, hints: 3,
+    current: 0, correctCount: 0, totalAnswered: 0,
+    totalTime: 0, timer: 30, timerInterval: null,
+    filter: state.filter || 'All',
+    riddleQueue: [], answered: false, gameOver: false
+  };
+}
+
+// ── Category Filter ──
+function setFilter(cat) {
+  state.filter = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+}
+
+// ── Build Queue ──
+function buildQueue() {
+  let pool = state.filter === 'All' ? [...RIDDLES] : RIDDLES.filter(r => r.cat === state.filter);
+  // Shuffle
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[pool[i], pool[j]] = [pool[j], pool[i]]; }
+  // Sort by difficulty order
+  const order = { Easy: 0, Medium: 1, Hard: 2 };
+  pool.sort((a, b) => order[a.diff] - order[b.diff]);
+  return pool;
+}
+
+// ── Difficulty Gate ──
+function unlockedDifficulty() {
+  if (state.correctCount >= 10) return 'Hard';
+  if (state.correctCount >= 5) return 'Medium';
+  return 'Easy';
+}
+
+function filterByUnlocked(queue, idx) {
+  const maxDiff = unlockedDifficulty();
+  const order = { Easy: 0, Medium: 1, Hard: 2 };
+  // Allow riddles up to unlocked difficulty
+  return queue.filter(r => order[r.diff] <= order[maxDiff]);
+}
+
+// ── Start Game ──
+function startGame() {
+  resetState();
+  state.riddleQueue = buildQueue();
+  showScreen('game-screen');
+  loadRiddle();
+}
+
+function showScreen(id) {
+  ['start-screen', 'game-screen', 'end-screen'].forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id));
+}
+
+// ── Load Riddle ──
+function loadRiddle() {
+  if (state.current >= state.riddleQueue.length) { endGame(); return; }
+
+  // Difficulty gate: skip riddles above unlocked level
+  const order = { Easy: 0, Medium: 1, Hard: 2 };
+  const maxOrder = order[unlockedDifficulty()];
+  while (state.current < state.riddleQueue.length && order[state.riddleQueue[state.current].diff] > maxOrder) {
+    // Move hard riddles to end for later
+    state.riddleQueue.push(state.riddleQueue.splice(state.current, 1)[0]);
+    if (state.current >= state.riddleQueue.length) { endGame(); return; }
+  }
+
+  const r = state.riddleQueue[state.current];
+  state.answered = false;
+
+  // UI
+  document.getElementById('riddle-text').textContent = r.q;
+  const badge = document.getElementById('cat-badge');
+  badge.textContent = r.cat;
+  badge.className = 'cat-badge ' + r.cat;
+  const dot = document.getElementById('diff-dot');
+  dot.className = 'dot ' + r.diff;
+  document.getElementById('diff-label').textContent = r.diff;
+  document.getElementById('hint-text').innerHTML = '&nbsp;';
+  document.getElementById('feedback').innerHTML = '&nbsp;';
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('riddle-num').textContent = `${state.current + 1}/${state.riddleQueue.length}`;
+  document.getElementById('progress-fill').style.width = `${(state.current / state.riddleQueue.length) * 100}%`;
+
+  const input = document.getElementById('answer-input');
+  input.value = '';
+  input.className = 'answer-input';
+  input.disabled = false;
+  input.focus();
+
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('hints-left').textContent = state.hints;
+  document.getElementById('hint-btn').disabled = state.hints <= 0;
+
+  startTimer();
+}
+
+// ── Timer ──
+function startTimer() {
+  clearInterval(state.timerInterval);
+  state.timer = 30;
+  updateTimerUI();
+  state.timerInterval = setInterval(() => {
+    state.timer--;
+    updateTimerUI();
+    if (state.timer <= 0) {
+      clearInterval(state.timerInterval);
+      timeUp();
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const pct = state.timer / 30;
+  const offset = C * (1 - pct);
+  const fg = document.getElementById('timer-fg');
+  fg.style.strokeDasharray = C;
+  fg.style.strokeDashoffset = offset;
+  fg.className = 'fg' + (state.timer <= 5 ? ' danger' : state.timer <= 10 ? ' warn' : '');
+  const tt = document.getElementById('timer-text');
+  tt.textContent = state.timer;
+  tt.style.color = state.timer <= 5 ? 'var(--red)' : state.timer <= 10 ? '#ffa726' : 'var(--text)';
+}
+
+function timeUp() {
+  if (state.answered) return;
+  state.answered = true;
+  const r = state.riddleQueue[state.current];
+  state.streak = 0;
+  state.totalAnswered++;
+  document.getElementById('answer-input').disabled = true;
+  document.getElementById('submit-btn').disabled = true;
+  showFeedback(false, r.a[0]);
+  setTimeout(() => { state.current++; loadRiddle(); }, 2200);
+}
+
+// ── Submit Answer ──
+function submitAnswer() {
+  if (state.answered) return;
+  const input = document.getElementById('answer-input');
+  const val = input.value.trim().toLowerCase();
+  if (!val) return;
+
+  clearInterval(state.timerInterval);
+  state.answered = true;
+  const r = state.riddleQueue[state.current];
+  const timeUsed = 30 - state.timer;
+  state.totalTime += timeUsed;
+  state.totalAnswered++;
+
+  const correct = r.a.some(ans => normalize(val) === normalize(ans));
+
+  input.disabled = true;
+  document.getElementById('submit-btn').disabled = true;
+
+  if (correct) {
+    input.className = 'answer-input correct';
+    state.streak++;
+    if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+    const multiplier = state.streak >= 5 ? 2 : state.streak >= 3 ? 1.5 : 1;
+    const base = r.diff === 'Hard' ? 30 : r.diff === 'Medium' ? 20 : 10;
+    const earned = Math.round(base * multiplier);
+    state.score += earned;
+    state.correctCount++;
+    showFeedback(true, null, earned, multiplier);
+  } else {
+    input.className = 'answer-input wrong';
+    state.streak = 0;
+    showFeedback(false, r.a[0]);
+  }
+
+  updateScoreboard();
+  setTimeout(() => { state.current++; loadRiddle(); }, 2200);
+}
+
+function normalize(s) {
+  return s.replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function showFeedback(correct, answer, pts, mult) {
+  const fb = document.getElementById('feedback');
+  if (correct) {
+    fb.className = 'feedback correct';
+    fb.innerHTML = `✅ Correct! +${pts} pts` + (mult > 1 ? ` <small>(×${mult} streak bonus!)</small>` : '');
+  } else {
+    fb.className = 'feedback wrong';
+    fb.innerHTML = `❌ Answer: <strong>${answer}</strong>`;
+  }
+}
+
+function updateScoreboard() {
+  document.getElementById('score-val').textContent = state.score;
+  const sv = document.getElementById('streak-val');
+  sv.textContent = state.streak + '🔥';
+  if (state.streak >= 3) sv.style.animation = 'streakPop .4s ease';
+  else sv.style.animation = 'none';
+}
+
+// ── Hint ──
+function useHint() {
+  if (state.hints <= 0 || state.answered) return;
+  state.hints--;
+  document.getElementById('hints-left').textContent = state.hints;
+  document.getElementById('hint-btn').disabled = state.hints <= 0;
+  const r = state.riddleQueue[state.current];
+  document.getElementById('hint-text').textContent = '💡 ' + r.hint;
+}
+
+// ── Skip ──
+function skipRiddle() {
+  if (state.answered) return;
+  clearInterval(state.timerInterval);
+  state.answered = true;
+  state.streak = 0;
+  state.totalAnswered++;
+  const r = state.riddleQueue[state.current];
+  document.getElementById('answer-input').disabled = true;
+  document.getElementById('submit-btn').disabled = true;
+  showFeedback(false, r.a[0]);
+  updateScoreboard();
+  setTimeout(() => { state.current++; loadRiddle(); }, 1500);
+}
+
+// ── End Game ──
+function endGame() {
+  clearInterval(state.timerInterval);
+  state.gameOver = true;
+  showScreen('end-screen');
+  document.getElementById('final-score').textContent = state.score;
+  document.getElementById('final-streak').textContent = state.bestStreak + '🔥';
+  const acc = state.totalAnswered > 0 ? Math.round((state.correctCount / state.totalAnswered) * 100) : 0;
+  document.getElementById('final-accuracy').textContent = acc + '%';
+  const avg = state.totalAnswered > 0 ? Math.round(state.totalTime / state.totalAnswered) : 0;
+  document.getElementById('final-time').textContent = avg + 's';
+}
+
+// ── Share ──
+function shareScore(platform) {
+  const text = `🧩 Riddle Master | Score: ${state.score} | Streak: ${state.bestStreak} | Play at jellyboltgames.itch.io`;
+  const url = 'https://jellyboltgames.itch.io';
+  switch (platform) {
+    case 'copy':
+      navigator.clipboard.writeText(text).then(() => showToast('Score copied!')).catch(() => showToast('Could not copy'));
+      break;
+    case 'twitter':
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+      break;
+    case 'facebook':
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
+      break;
+    case 'whatsapp':
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      break;
+  }
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+// ── Keyboard shortcut ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const gameVisible = !document.getElementById('game-screen').classList.contains('hidden');
+    if (gameVisible && !state.answered) submitAnswer();
+  }
+});
+
+// Initialize filter state
+(function init() { state = { filter: 'All' }; })();
+</script>
+</body>
+</html>

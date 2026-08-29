@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>More Games — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
+h1{font-size:2rem;margin:20px 0;background:linear-gradient(135deg,#00ff88,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;width:100%;max-width:900px;padding:20px}
+.game-card{background:linear-gradient(145deg,#1a1a3a,#12122a);border:1px solid #2a2a4a;border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .2s;text-decoration:none;color:#e0e0e0}
+.game-card:hover{transform:translateY(-4px);border-color:#00ff88;box-shadow:0 8px 25px rgba(0,255,136,.15)}
+.game-card .emoji{font-size:2.5rem;margin-bottom:8px;display:block}
+.game-card .name{font-weight:700;font-size:1rem;color:#fff}
+.game-card .genre{font-size:.75rem;color:#888;margin-top:4px}
+.back-btn{margin:20px;padding:10px 24px;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;text-decoration:none}
+.back-btn:hover{transform:scale(1.05)}
+</style>
+</head>
+<body>
+<h1>⚡ JellyBolt Games</h1>
+<div class="games-grid" id="gamesGrid"></div>
+<a class="back-btn" href="javascript:history.back()">← Back to Game</a>
+<script>
+const GAMES=[
+{id:'asteroid-dash',name:'Asteroid Dash',emoji:'🚀',genre:'Space Shooter'},
+{id:'bolt-breaker',name:'Bolt Breaker',emoji:'⚡',genre:'Breakout'},
+{id:'bounce-blitz',name:'Bounce Blitz',emoji:'🏐',genre:'Arcade'},
+{id:'brainrot-quiz-battle',name:'BrainRot Quiz Battle',emoji:'🧠',genre:'Trivia'},
+{id:'card-clash',name:'Card Clash',emoji:'🃏',genre:'Card Battle'},
+{id:'code-conquest',name:'Code Conquest',emoji:'💻',genre:'Strategy'},
+{id:'dungeon-bolt',name:'Dungeon Bolt',emoji:'⚔️',genre:'Roguelike'},
+{id:'gravity-dash',name:'Gravity Dash',emoji:'🌀',genre:'Platformer'},
+{id:'hex-match',name:'Hex Match',emoji:'🔷',genre:'Puzzle'},
+{id:'light-trail',name:'Light Trail',emoji:'💡',genre:'Arcade'},
+{id:'memory-matrix',name:'Memory Matrix',emoji:'🧩',genre:'Memory'},
+{id:'neon-snake',name:'Neon Snake',emoji:'🐍',genre:'Classic'},
+{id:'pixel-tower',name:'Pixel Tower',emoji:'🏗️',genre:'Stacking'},
+{id:'rhythm-tap',name:'Rhythm Tap',emoji:'🎵',genre:'Rhythm'},
+{id:'space-trader',name:'Space Trader',emoji:'🛸',genre:'Trading'},
+{id:'word-rush',name:'Word Rush',emoji:'⌨️',genre:'Typing'}
+];
+const grid=document.getElementById('gamesGrid');
+const current=window.location.pathname.split('/').filter(Boolean);
+const currentGame=current.find(p=>GAMES.some(g=>g.id===p))||'';
+GAMES.forEach(g=>{
+if(g.id===currentGame)return;
+const a=document.createElement('a');
+a.className='game-card';
+a.href='../'+g.id+'/index.html';
+a.innerHTML=`<span class="emoji">${g.emoji}</span><div class="name">${g.name}</div><div class="genre">${g.genre}</div>`;
+grid.appendChild(a);
+});
+</script>
+</body>
+</html>

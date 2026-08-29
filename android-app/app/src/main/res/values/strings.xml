@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">JellyBolt Games</string>
+    <!-- AdMob IDs: Production IDs for JellyBolt Games (tdsquadai@gmail.com) -->
+    <string name="admob_app_id">ca-app-pub-8350556723025693~3277051594</string>
+    <string name="banner_ad_unit_id">ca-app-pub-8350556723025693/8171848729</string>
+    <string name="interstitial_ad_unit_id">ca-app-pub-8350556723025693/5123448325</string>
 </resources>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dungeon Bolt — JellyBolt Games</title>
+<!-- Google AdSense — uncomment and add your publisher ID when approved -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8350556723025693" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0d8c8;font-family:'Segoe UI',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;touch-action:none}
+#app{width:100%;max-width:600px;height:100vh;position:relative;overflow:hidden}
+.screen{display:none;position:absolute;top:0;left:0;width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center}
+.screen.active{display:flex}
+.title{font-size:2.8em;font-weight:900;background:linear-gradient(135deg,#ffcc00,#ff9f43);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.title-sub{font-size:1.1em;color:#8b8070;margin-bottom:20px}
+.btn{padding:14px 40px;font-size:1.15em;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:all .2s;margin:5px}
+.btn:hover{transform:translateY(-2px)}
+.btn-play{background:linear-gradient(135deg,#ffcc00,#ff9f43);color:#1a1000;box-shadow:0 4px 20px #ffcc0044}
+.btn-next{background:linear-gradient(135deg,#238636,#2ea043);color:#fff}
+.credit{color:#484038;font-size:.8em;margin-top:20px}
+/* HUD */
+.hud{position:absolute;top:0;left:0;width:100%;padding:8px 12px;display:flex;justify-content:space-between;background:rgba(10,10,10,.92);z-index:10;font-size:.85em;border-bottom:1px solid #2a2520}
+.hud span{font-weight:700}
+.hp-bar{width:80px;height:10px;background:#2a1a1a;border-radius:5px;display:inline-block;vertical-align:middle}
+.hp-fill{height:100%;border-radius:5px;transition:width .3s}
+/* Room */
+.room{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 15px 15px;text-align:center}
+.room-title{font-size:1.5em;font-weight:900;margin-bottom:8px}
+.room-desc{color:#8b8070;margin-bottom:15px;font-size:.95em;min-height:40px}
+.room-icon{font-size:4em;margin:10px 0}
+.enemy-card{background:#1a1210;border:2px solid #3a2a20;border-radius:12px;padding:15px;margin:10px 0;width:90%;max-width:300px}
+.enemy-name{font-size:1.2em;font-weight:900;color:#ff6b6b}
+.enemy-hp{color:#8b8070;font-size:.85em;margin-top:5px}
+.loot-card{background:#1a1a10;border:2px solid #3a3a20;border-radius:12px;padding:12px;margin:8px 0;width:85%;max-width:280px}
+.loot-name{font-weight:700;color:#ffcc00}
+.loot-desc{color:#8b8070;font-size:.8em}
+.choices{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.choice{padding:10px 20px;font-size:1em;font-weight:700;border:2px solid #3a2a20;border-radius:10px;background:#1a1210;color:#e0d8c8;cursor:pointer;transition:all .15s}
+.choice:hover{border-color:#ffcc00;background:#2a2010;transform:translateY(-2px)}
+.choice.attack{border-color:#ff6b6b55}
+.choice.heal{border-color:#00ff8855}
+.choice.flee{border-color:#58a6ff55}
+.log{font-size:.85em;color:#8b8070;margin:8px 0;min-height:25px}
+.floor-label{color:#ffcc00;font-size:.9em;font-weight:700;margin-bottom:5px}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="app">
+  <div id="menu" class="screen active">
+    <div class="title">⚡ Dungeon Bolt</div>
+    <div class="title-sub">A roguelite dungeon crawler by JellyBolt Games</div>
+    <button class="btn btn-play" onclick="startRun()">⚔️ ENTER DUNGEON</button>
+    <div style="margin-top:15px;color:#8b8070;font-size:.85em;max-width:350px;text-align:center">
+      <p>Descend 5 floors. Fight monsters. Collect loot.</p>
+      <p>Each room is a choice — fight, loot, rest, or shop.</p>
+      <p>Permadeath: if you die, start over!</p>
+    </div>
+    <div class="credit">⚡ JellyBolt Games — Flagship Title</div>
+  </div>
+
+  <div id="game" class="screen">
+    <div class="hud">
+      <div>❤️ <span id="hp">20</span>/<span id="maxhp">20</span> <div class="hp-bar"><div class="hp-fill" id="hp-bar" style="width:100%;background:#00ff88"></div></div></div>
+      <div>⚔️ <span id="atk">3</span></div>
+      <div>🛡️ <span id="def">1</span></div>
+      <div>💰 <span id="gold">0</span></div>
+    </div>
+    <div class="room" id="room"></div>
+  </div>
+
+  <div id="victory" class="screen">
+    <div style="font-size:3.5em">🏆</div>
+    <div style="font-size:2em;font-weight:900;color:#ffcc00;margin:10px">DUNGEON CLEARED!</div>
+    <div style="color:#8b8070" id="v-stats"></div>
+    <button class="btn btn-play" onclick="startRun()">🔄 New Run</button>
+    <button class="btn btn-next" onclick="showScreen('menu')" style="font-size:.95em;padding:10px 20px">🏠 Menu</button>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+
+  <div id="death" class="screen">
+    <div style="font-size:3.5em">💀</div>
+    <div style="font-size:2em;font-weight:900;color:#ff6b6b;margin:10px">YOU DIED</div>
+    <div style="color:#8b8070" id="d-stats"></div>
+    <button class="btn btn-play" onclick="startRun()">⚡ Try Again</button>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+</div>
+
+<!-- Google AdSense Banner Ad — paste your ad unit code below -->
+</div>
+
+<!-- Interstitial Ad — shown between rounds/deaths -->
+<script>
+// === JellyBolt Ad Management ===
+let _adInterstitialCount = 0;
+function showInterstitialAd() {
+  _adInterstitialCount++;
+  // Show interstitial ad every 2nd death/game-over
+  if (_adInterstitialCount % 2 === 0) {
+    document.getElementById('ad-interstitial').style.display = 'flex';
+    // When real AdSense is set up, uncomment:
+    // (adsbygoogle = window.adsbygoogle || []).push({});
+  }
+}
+function closeInterstitialAd() {
+  document.getElementById('ad-interstitial').style.display = 'none';
+}
+</script>
+
+<script>
+let player,floor,roomNum,totalRooms,enemiesKilled,goldCollected;
+
+const ENEMIES=[
+  {name:'Slime',icon:'🟢',hp:8,atk:2,gold:5,floors:[1,2]},
+  {name:'Rat Swarm',icon:'🐀',hp:6,atk:3,gold:4,floors:[1,2]},
+  {name:'Skeleton',icon:'💀',hp:12,atk:4,gold:8,floors:[1,2,3]},
+  {name:'Dark Bat',icon:'🦇',hp:10,atk:3,gold:6,floors:[1,2,3]},
+  {name:'Goblin',icon:'👺',hp:15,atk:5,gold:10,floors:[2,3,4]},
+  {name:'Spider Queen',icon:'🕷️',hp:18,atk:6,gold:12,floors:[2,3,4]},
+  {name:'Fire Elemental',icon:'🔥',hp:20,atk:7,gold:15,floors:[3,4,5]},
+  {name:'Shadow Knight',icon:'⚔️',hp:25,atk:8,gold:18,floors:[3,4,5]},
+  {name:'Frost Giant',icon:'🧊',hp:30,atk:9,gold:20,floors:[4,5]},
+  {name:'Demon Lord',icon:'👿',hp:40,atk:12,gold:30,floors:[5]},
+  {name:'Dragon',icon:'🐉',hp:50,atk:15,gold:50,floors:[5]},
+];
+
+const LOOT=[
+  {name:'Rusty Sword',desc:'+1 Attack',effect:p=>{p.atk+=1},floors:[1,2]},
+  {name:'Leather Shield',desc:'+1 Defense',effect:p=>{p.def+=1},floors:[1,2]},
+  {name:'Health Potion',desc:'Heal 10 HP',effect:p=>{p.hp=Math.min(p.maxHp,p.hp+10)},floors:[1,2,3]},
+  {name:'Iron Blade',desc:'+2 Attack',effect:p=>{p.atk+=2},floors:[2,3,4]},
+  {name:'Steel Armor',desc:'+2 Defense',effect:p=>{p.def+=2},floors:[2,3,4]},
+  {name:'Big Health Potion',desc:'Heal 20 HP',effect:p=>{p.hp=Math.min(p.maxHp,p.hp+20)},floors:[3,4,5]},
+  {name:'Heart Crystal',desc:'+10 Max HP',effect:p=>{p.maxHp+=10;p.hp+=10},floors:[2,3,4,5]},
+  {name:'Thunder Blade',desc:'+4 Attack',effect:p=>{p.atk+=4},floors:[4,5]},
+  {name:'Dragon Shield',desc:'+3 Defense',effect:p=>{p.def+=3},floors:[4,5]},
+  {name:'Phoenix Feather',desc:'Full Heal + 5 Max HP',effect:p=>{p.maxHp+=5;p.hp=p.maxHp},floors:[5]},
+];
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+function startRun(){
+  player={hp:20,maxHp:20,atk:3,def:1,gold:0};
+  floor=1;roomNum=0;totalRooms=0;enemiesKilled=0;goldCollected=0;
+  showScreen('game');
+  enterRoom();
+}
+
+function updateHUD(){
+  document.getElementById('hp').textContent=player.hp;
+  document.getElementById('maxhp').textContent=player.maxHp;
+  document.getElementById('atk').textContent=player.atk;
+  document.getElementById('def').textContent=player.def;
+  document.getElementById('gold').textContent=player.gold;
+  const pct=Math.max(0,player.hp/player.maxHp*100);
+  const bar=document.getElementById('hp-bar');
+  bar.style.width=pct+'%';
+  bar.style.background=pct>50?'#00ff88':pct>25?'#ffcc00':'#ff6b6b';
+}
+
+function enterRoom(){
+  roomNum++;totalRooms++;
+  if(roomNum>4){
+    if(floor>=5){winGame();return}
+    floor++;roomNum=1;
+    showFloorTransition();return;
+  }
+  // Room types: fight(50%), loot(25%), rest(15%), shop(10%)
+  const roll=Math.random();
+  if(roomNum===4)generateFight(true); // Boss room
+  else if(roll<0.5)generateFight(false);
+  else if(roll<0.75)generateLoot();
+  else if(roll<0.9)generateRest();
+  else generateShop();
+  updateHUD();
+}
+
+function showFloorTransition(){
+  const room=document.getElementById('room');
+  room.innerHTML=`
+    <div class="floor-label">FLOOR ${floor-1} CLEARED</div>
+    <div class="room-icon">🏰</div>
+    <div class="room-title">Descending to Floor ${floor}...</div>
+    <div class="room-desc">Enemies grow stronger. Rewards grow richer.</div>
+    <div class="choices"><button class="choice" onclick="enterRoom()">⬇️ Continue Descent</button></div>`;
+  updateHUD();
+}
+
+function getEnemyForFloor(boss){
+  const pool=ENEMIES.filter(e=>e.floors.includes(floor));
+  if(boss){
+    // Pick strongest available
+    pool.sort((a,b)=>b.hp-a.hp);
+    const e={...pool[0]};
+    e.name='⭐ '+e.name+' (Boss)';
+    e.hp=Math.ceil(e.hp*1.5);e.atk=Math.ceil(e.atk*1.3);e.gold=Math.ceil(e.gold*2);
+    return e;
+  }
+  return{...pool[Math.floor(Math.random()*pool.length)]};
+}
+
+function generateFight(boss){
+  const enemy=getEnemyForFloor(boss);
+  const room=document.getElementById('room');
+  room.innerHTML=`
+    <div class="floor-label">Floor ${floor} — Room ${roomNum}</div>
+    <div class="room-icon">${enemy.icon}</div>
+    <div class="enemy-card">
+      <div class="enemy-name">${enemy.name}</div>
+      <div class="enemy-hp">HP: <span id="enemy-hp">${enemy.hp}</span>/${enemy.hp} — ATK: ${enemy.atk}</div>
+    </div>
+    <div class="log" id="battle-log">A wild ${enemy.name} appears!</div>
+    <div class="choices" id="fight-choices">
+      <button class="choice attack" onclick="doAttack()">⚔️ Attack</button>
+      <button class="choice heal" onclick="doHeal()">🧪 Heal (5 HP)</button>
+      ${!boss?'<button class="choice flee" onclick="doFlee()">🏃 Flee</button>':''}
+    </div>`;
+  window._enemy=enemy;
+}
+
+function doAttack(){
+  const e=window._enemy;
+  const pDmg=Math.max(1,player.atk-Math.floor(Math.random()*2));
+  const crit=Math.random()<0.15;
+  const actualDmg=crit?pDmg*2:pDmg;
+  e.hp-=actualDmg;
+  let log=crit?`💥 CRITICAL HIT! You deal ${actualDmg} damage!`:`You strike for ${actualDmg} damage.`;
+  if(e.hp<=0){
+    enemiesKilled++;player.gold+=e.gold;goldCollected+=e.gold;
+    log+=` ${e.name} defeated! +${e.gold} gold 💰`;
+    document.getElementById('battle-log').textContent=log;
+    document.getElementById('enemy-hp').textContent='0';
+    document.getElementById('fight-choices').innerHTML='<button class="choice" onclick="enterRoom()">➡️ Next Room</button>';
+    updateHUD();return;
+  }
+  // Enemy attacks back
+  const eDmg=Math.max(1,e.atk-player.def);
+  player.hp-=eDmg;
+  log+=` Enemy hits you for ${eDmg}!`;
+  document.getElementById('enemy-hp').textContent=Math.max(0,e.hp);
+  document.getElementById('battle-log').textContent=log;
+  updateHUD();
+  if(player.hp<=0){die();return}
+}
+
+function doHeal(){
+  const e=window._enemy;
+  const heal=Math.min(5,player.maxHp-player.hp);
+  player.hp+=heal;
+  let log=`You heal ${heal} HP.`;
+  const eDmg=Math.max(1,e.atk-player.def);
+  player.hp-=eDmg;
+  log+=` Enemy hits you for ${eDmg}!`;
+  document.getElementById('battle-log').textContent=log;
+  updateHUD();
+  if(player.hp<=0){die();return}
+}
+
+function doFlee(){
+  if(Math.random()<0.6){
+    document.getElementById('battle-log').textContent='You flee successfully! 🏃';
+    document.getElementById('fight-choices').innerHTML='<button class="choice" onclick="enterRoom()">➡️ Next Room</button>';
+  }else{
+    const e=window._enemy;
+    const eDmg=Math.max(1,e.atk-player.def);
+    player.hp-=eDmg;
+    document.getElementById('battle-log').textContent=`Failed to flee! Enemy hits you for ${eDmg}!`;
+    updateHUD();
+    if(player.hp<=0)die();
+  }
+}
+
+function generateLoot(){
+  const pool=LOOT.filter(l=>l.floors.includes(floor));
+  const items=[pool[Math.floor(Math.random()*pool.length)],pool[Math.floor(Math.random()*pool.length)]];
+  const room=document.getElementById('room');
+  room.innerHTML=`
+    <div class="floor-label">Floor ${floor} — Room ${roomNum}</div>
+    <div class="room-icon">🎁</div>
+    <div class="room-title">Treasure Room!</div>
+    <div class="room-desc">Choose one item:</div>
+    <div class="choices" id="loot-choices">${items.map((item,i)=>
+      `<button class="choice" onclick="takeLoot(${i})"><div class="loot-name">${item.name}</div><div class="loot-desc">${item.desc}</div></button>`
+    ).join('')}</div>`;
+  window._lootItems=items;
+}
+
+function takeLoot(idx){
+  const item=window._lootItems[idx];
+  item.effect(player);
+  const room=document.getElementById('room');
+  room.innerHTML=`
+    <div class="room-icon">✨</div>
+    <div class="room-title">Acquired: ${item.name}</div>
+    <div class="room-desc">${item.desc}</div>
+    <div class="choices"><button class="choice" onclick="enterRoom()">➡️ Next Room</button></div>`;
+  updateHUD();
+}
+
+function generateRest(){
+  const heal=Math.ceil(player.maxHp*0.3);
+  const room=document.getElementById('room');
+  room.innerHTML=`
+    <div class="floor-label">Floor ${floor} — Room ${roomNum}</div>
+    <div class="room-icon">🏕️</div>
+    <div class="room-title">Campfire Rest</div>
+    <div class="room-desc">A warm fire flickers in the darkness.</div>
+    <div class="choices">
+      <button class="choice heal" onclick="doRest(${heal})">🔥 Rest (+${heal} HP)</button>
+      <button class="choice" onclick="doSharpen()">⚔️ Sharpen Blade (+1 ATK)</button>
+    </div>`;
+}
+
+function doRest(heal){
+  player.hp=Math.min(player.maxHp,player.hp+heal);
+  updateHUD();
+  document.getElementById('room').innerHTML=`
+    <div class="room-icon">💤</div>
+    <div class="room-title">Well Rested</div>
+    <div class="room-desc">You feel refreshed. +${heal} HP</div>
+    <div class="choices"><button class="choice" onclick="enterRoom()">➡️ Next Room</button></div>`;
+}
+
+function doSharpen(){
+  player.atk+=1;updateHUD();
+  document.getElementById('room').innerHTML=`
+    <div class="room-icon">⚔️</div>
+    <div class="room-title">Blade Sharpened</div>
+    <div class="room-desc">Your weapon gleams. +1 Attack</div>
+    <div class="choices"><button class="choice" onclick="enterRoom()">➡️ Next Room</button></div>`;
+}
+
+function generateShop(){
+  const items=LOOT.filter(l=>l.floors.includes(floor)).slice(0,3);
+  const prices=items.map(()=>5+floor*3+Math.floor(Math.random()*5));
+  const room=document.getElementById('room');
+  room.innerHTML=`
+    <div class="floor-label">Floor ${floor} — Room ${roomNum}</div>
+    <div class="room-icon">🏪</div>
+    <div class="room-title">Merchant</div>
+    <div class="room-desc">"What'll it be, adventurer?"</div>
+    <div class="choices" id="shop-items">${items.map((item,i)=>
+      `<button class="choice" onclick="buyItem(${i})" ${player.gold<prices[i]?'style="opacity:0.4"':''}><div class="loot-name">${item.name} — ${prices[i]}💰</div><div class="loot-desc">${item.desc}</div></button>`
+    ).join('')}
+    <button class="choice flee" onclick="enterRoom()">🚪 Leave Shop</button></div>`;
+  window._shopItems=items;
+  window._shopPrices=prices;
+}
+
+function buyItem(idx){
+  const item=window._shopItems[idx];
+  const price=window._shopPrices[idx];
+  if(player.gold<price)return;
+  player.gold-=price;
+  item.effect(player);
+  updateHUD();
+  document.getElementById('room').innerHTML=`
+    <div class="room-icon">💎</div>
+    <div class="room-title">Purchased: ${item.name}</div>
+    <div class="room-desc">${item.desc}</div>
+    <div class="choices"><button class="choice" onclick="enterRoom()">➡️ Next Room</button></div>`;
+}
+
+function die(){
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(goldCollected)},2000);
+  document.getElementById('d-stats').textContent=`Floor ${floor} Room ${roomNum} | ${enemiesKilled} kills | ${goldCollected} gold earned | ${totalRooms} rooms explored`;
+  showScreen('death');
+}
+
+function winGame(){
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(goldCollected)},2000);
+  document.getElementById('v-stats').textContent=`${enemiesKilled} enemies slain | ${goldCollected} gold earned | ${totalRooms} rooms explored | ${player.hp}/${player.maxHp} HP remaining`;
+  showScreen('victory');
+}
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Dungeon Bolt',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Dungeon%20Bolt%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

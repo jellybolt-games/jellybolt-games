@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Block Storm — JellyBolt Games</title>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8350556723025693" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  width:100%;height:100%;
+  background:#0d1117;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  overflow:hidden;
+  touch-action:none;
+  font-family:'Segoe UI',system-ui,sans-serif;
+  user-select:none;-webkit-user-select:none;
+}
+#game-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  flex:1;
+}
+canvas{
+  display:block;
+  touch-action:none;
+  cursor:default;
+}
+/* Game Over Overlay */
+#game-over{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:100;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .35s ease;
+}
+#game-over.visible{
+  background:rgba(0,0,0,0.82);
+  opacity:1;
+  pointer-events:auto;
+}
+.go-panel{
+  background:#0f1520;
+  border:2px solid #ff6b6b;
+  border-radius:18px;
+  padding:28px 36px;
+  text-align:center;
+  min-width:230px;
+  box-shadow:0 0 40px rgba(255,107,107,0.25);
+}
+.go-icon{font-size:2.6em;margin-bottom:6px}
+.go-title{font-size:1.9em;font-weight:900;color:#ff6b6b;margin-bottom:10px}
+.go-score{font-size:1.5em;font-weight:700;color:#ffd700;margin-bottom:5px}
+.go-best{font-size:.95em;color:#555;margin-bottom:22px}
+.go-btn{
+  display:block;width:100%;
+  padding:13px 0;
+  background:linear-gradient(135deg,#00d4ff,#a855f7);
+  color:#000;font-weight:900;font-size:1.1em;
+  border:none;border-radius:10px;
+  cursor:pointer;transition:transform .15s,box-shadow .15s;
+  margin-bottom:8px;
+}
+.go-btn:hover{transform:scale(1.05);box-shadow:0 4px 20px rgba(0,212,255,0.35)}
+.go-share{
+  display:block;width:100%;
+  padding:10px 0;
+  background:#1a1a3a;color:#aaa;
+  font-weight:600;font-size:.88em;
+  border:1px solid #2a2a4a;border-radius:10px;
+  cursor:pointer;transition:background .15s;
+}
+.go-share:hover{background:#222244;color:#ccc}
+
+/* JellyBolt Monetization (inline mirror of shared styles) */
+.jb-ad-banner{text-align:center;padding:4px 0;background:#080c14;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{
+  position:fixed;bottom:0;left:0;width:100%;
+  display:flex;justify-content:center;align-items:center;gap:8px;
+  padding:7px 10px;
+  background:rgba(8,12,20,.96);
+  border-top:1px solid #1a2235;
+  z-index:9998;flex-wrap:wrap;
+}
+.jb-monetization-bar a{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:6px 12px;border-radius:8px;
+  font-size:.8rem;font-weight:600;
+  text-decoration:none;transition:transform .15s;
+}
+.jb-monetization-bar a:hover{transform:scale(1.06)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+#jb-interstitial{
+  display:none;position:fixed;
+  top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.88);
+  z-index:99999;
+  justify-content:center;align-items:center;flex-direction:column;
+}
+#jb-interstitial .jb-interstitial-box{
+  background:#0f1520;border:1px solid #2a2a4a;
+  border-radius:14px;padding:28px;
+  text-align:center;max-width:360px;
+}
+#jb-interstitial .jb-interstitial-close{
+  margin-top:14px;padding:9px 28px;
+  background:linear-gradient(135deg,#00ff88,#00cc6a);
+  color:#000;border:none;border-radius:8px;
+  font-weight:700;cursor:pointer;font-size:.9rem;
+}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Top Banner Ad -->
+<div class="jb-ad-banner" id="ad-top">
+  <ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693"
+       data-ad-slot="BLOCK_STORM_TOP" style="display:inline-block;width:728px;height:90px"></ins>
+</div>
+
+<div id="game-wrap">
+  <canvas id="canvas"></canvas>
+
+  <!-- Game Over Overlay -->
+  <div id="game-over">
+    <div class="go-panel">
+      <div class="go-icon">💥</div>
+      <div class="go-title">GAME OVER</div>
+      <div class="go-score" id="go-score">Score: 0</div>
+      <div class="go-best"  id="go-best">Best: 0</div>
+      <button class="go-btn"   id="go-play-btn">▶ Play Again</button>
+      <button class="go-share" id="go-share-btn">📤 Share Score</button>
+    </div>
+  </div>
+</div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames"
+     target="_blank" rel="noopener noreferrer">☕ Support</a>
+  <a class="jb-btn-games" href="../../index.html">🎮 More Games</a>
+  <a class="jb-btn-share" id="jb-bar-share" href="#">📤 Share</a>
+</div>
+
+<!-- Interstitial Ad -->
+<div id="jb-interstitial">
+  <div class="jb-interstitial-box">
+    <div style="color:#888;font-size:.75rem;letter-spacing:1px;margin-bottom:12px">ADVERTISEMENT</div>
+    <ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px"
+         data-ad-client="ca-pub-8350556723025693" data-ad-slot="BLOCK_STORM_INTER"></ins>
+    <div style="color:#555;font-size:.8rem;margin-top:10px" id="jb-inter-timer"></div>
+    <button class="jb-interstitial-close" id="jb-inter-close"
+            style="opacity:0;pointer-events:none">Continue Playing ▶</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// =====================================================================
+// CONSTANTS
+// =====================================================================
+const GRID_ROWS  = 10;
+const GRID_COLS  = 10;
+const TRAY_SLOTS = 3;
+
+/** 6 distinct piece colours */
+const COLORS = [
+  '#00d4ff', // 0  cyan
+  '#ff6b6b', // 1  coral
+  '#ffd700', // 2  gold
+  '#00ff88', // 3  green
+  '#ff69b4', // 4  pink
+  '#a855f7', // 5  purple
+];
+
+const GHOST_ALPHA  = 0.32;
+const FLASH_FRAMES = 12;
+const FADE_FRAMES  = 9;
+
+// =====================================================================
+// PIECE DEFINITIONS
+// cells: [row, col] offsets, all normalised so minRow=0, minCol=0
+// =====================================================================
+const PIECE_DEFS = [
+  // ── Singles & doubles ──────────────────────────────────────────────
+  { cells: [[0,0]],                         color: 0 }, // 1×1 dot
+  { cells: [[0,0],[0,1]],                   color: 1 }, // 1×2 H
+  { cells: [[0,0],[1,0]],                   color: 2 }, // 2×1 V
+  // ── Squares ────────────────────────────────────────────────────────
+  { cells: [[0,0],[0,1],[1,0],[1,1]],       color: 3 }, // 2×2
+  // ── Straight bars ──────────────────────────────────────────────────
+  { cells: [[0,0],[0,1],[0,2]],             color: 4 }, // 1×3 H
+  { cells: [[0,0],[1,0],[2,0]],             color: 5 }, // 3×1 V
+  { cells: [[0,0],[0,1],[0,2],[0,3]],       color: 0 }, // 1×4 H
+  { cells: [[0,0],[1,0],[2,0],[3,0]],       color: 1 }, // 4×1 V
+  // ── Corner / elbow 3-cell ──────────────────────────────────────────
+  { cells: [[0,0],[0,1],[1,0]],             color: 2 }, // corner TL
+  { cells: [[0,0],[0,1],[1,1]],             color: 3 }, // corner TR
+  { cells: [[0,0],[1,0],[1,1]],             color: 4 }, // corner BL
+  { cells: [[0,1],[1,0],[1,1]],             color: 5 }, // corner BR
+  // ── L shapes ───────────────────────────────────────────────────────
+  { cells: [[0,0],[1,0],[2,0],[2,1]],       color: 0 }, // L
+  { cells: [[0,1],[1,1],[2,0],[2,1]],       color: 1 }, // J
+  { cells: [[0,0],[0,1],[0,2],[1,0]],       color: 2 }, // L rot-CW
+  { cells: [[0,0],[0,1],[0,2],[1,2]],       color: 3 }, // J rot-CW
+  { cells: [[0,0],[1,0],[1,1],[1,2]],       color: 4 }, // L rot-180
+  { cells: [[0,2],[1,0],[1,1],[1,2]],       color: 5 }, // J rot-180
+  // ── S / Z shapes ───────────────────────────────────────────────────
+  { cells: [[0,0],[1,0],[1,1],[2,1]],       color: 0 }, // S
+  { cells: [[0,1],[1,0],[1,1],[2,0]],       color: 1 }, // Z
+  // ── T shapes ───────────────────────────────────────────────────────
+  { cells: [[0,0],[0,1],[0,2],[1,1]],       color: 2 }, // T down
+  { cells: [[0,1],[1,0],[1,1],[1,2]],       color: 3 }, // T up
+  { cells: [[0,0],[1,0],[1,1],[2,0]],       color: 4 }, // T right
+  { cells: [[0,0],[0,1],[1,0],[2,0]],       color: 5 }, // T left
+  // ── Big rectangles ─────────────────────────────────────────────────
+  { cells: [[0,0],[0,1],[1,0],[1,1],[2,0],[2,1]],                       color: 0 }, // 2×3
+  { cells: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],                       color: 1 }, // 3×2
+  // ── 3×3 full block ─────────────────────────────────────────────────
+  {
+    cells: [[0,0],[0,1],[0,2],
+            [1,0],[1,1],[1,2],
+            [2,0],[2,1],[2,2]],
+    color: 2,
+  },
+];
+
+// =====================================================================
+// STATE
+// =====================================================================
+let grid;          // GRID_ROWS × GRID_COLS; 0 = empty, 1-6 = colorIdx+1
+let tray;          // [piece|null, piece|null, piece|null]
+let score;
+let bestScore;
+let selectedSlot;  // 0-2 or null
+let ghostRow, ghostCol, hasGhost;
+let isGameOver;
+let gameOverCount;
+
+// Clear animation
+let animPhase;     // 'idle' | 'flash' | 'fade'
+let animTick;
+let animRows;      // Set<number> — row indices being cleared
+let animCols;      // Set<number> — col indices being cleared
+let animPendingPts;
+let animDoneCB;
+
+// Drag / input
+let isDragging;
+let dragSlot;
+let pointerX, pointerY;
+
+// Combo text display
+let comboText;
+let comboFadeId;
+
+// Score-pop animation ("+N" flying text)
+let pops;          // [{x,y,text,alpha,dy}]
+
+// =====================================================================
+// LAYOUT (recomputed on resize)
+// =====================================================================
+let CELL, BOARD_X, BOARD_Y, TRAY_Y, TRAY_H, HEADER_H, PAD;
+
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+
+// =====================================================================
+// UTIL — rounded-rectangle path helper
+// =====================================================================
+function rrect(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y,     x + w, y + r,     r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x,     y + h, x, y + h - r,     r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x,     y,     x + r, y,         r);
+  ctx.closePath();
+}
+
+// =====================================================================
+// LAYOUT COMPUTATION
+// =====================================================================
+function computeLayout() {
+  const TRAY_MIN_H = 120;
+  HEADER_H = 54;
+  PAD      = 8;
+
+  // Viewport minus top-ad-banner height (90px) that monetization.js injects
+  const availW = Math.min(window.innerWidth, 520);
+  const availH = window.innerHeight - 90;
+
+  const cellFromW = Math.floor((availW - PAD * 2) / GRID_COLS);
+  const cellFromH = Math.floor(
+    (availH - HEADER_H - TRAY_MIN_H - PAD * 4) / GRID_ROWS
+  );
+
+  CELL = Math.min(cellFromW, cellFromH);
+  CELL = Math.max(CELL, 22);
+  CELL = Math.min(CELL, 48);
+
+  const boardPx = CELL * GRID_COLS;
+  TRAY_H = Math.max(TRAY_MIN_H, CELL * 3 + PAD * 2);
+
+  canvas.width  = boardPx + PAD * 2;
+  canvas.height = HEADER_H + PAD + CELL * GRID_ROWS + PAD + TRAY_H + PAD;
+
+  BOARD_X = PAD;
+  BOARD_Y = HEADER_H + PAD;
+  TRAY_Y  = BOARD_Y + CELL * GRID_ROWS + PAD;
+}
+
+// =====================================================================
+// PIECE HELPERS
+// =====================================================================
+
+/** Bounding box of a piece's cells (normalised coords). */
+function pieceBounds(piece) {
+  let minR = Infinity, maxR = -Infinity;
+  let minC = Infinity, maxC = -Infinity;
+  for (const [r, c] of piece.cells) {
+    if (r < minR) minR = r;  if (r > maxR) maxR = r;
+    if (c < minC) minC = c;  if (c > maxC) maxC = c;
+  }
+  return { minR, maxR, minC, maxC,
+           rows: maxR - minR + 1, cols: maxC - minC + 1 };
+}
+
+// =====================================================================
+// generatePiece() — pick a random shape, clone its cells
+// =====================================================================
+function generatePiece() {
+  const def = PIECE_DEFS[Math.floor(Math.random() * PIECE_DEFS.length)];
+  return { cells: def.cells.map(([r, c]) => [r, c]), color: def.color };
+}
+
+// =====================================================================
+// canPlace(piece, row, col)
+// True if every cell (row+dr, col+dc) is in-bounds and empty.
+// =====================================================================
+function canPlace(piece, row, col) {
+  for (const [dr, dc] of piece.cells) {
+    const r = row + dr;
+    const c = col + dc;
+    if (r < 0 || r >= GRID_ROWS) return false;
+    if (c < 0 || c >= GRID_COLS) return false;
+    if (grid[r][c] !== 0)        return false;
+  }
+  return true;
+}
+
+// =====================================================================
+// placePiece(slot, anchorRow, anchorCol)
+// Stamps the tray piece onto the grid at the given anchor, triggers clears.
+// =====================================================================
+function placePiece(slot, anchorRow, anchorCol) {
+  const piece = tray[slot];
+  if (!piece)                             return false;
+  if (!canPlace(piece, anchorRow, anchorCol)) return false;
+
+  // Stamp cells
+  for (const [dr, dc] of piece.cells) {
+    grid[anchorRow + dr][anchorCol + dc] = piece.color + 1;
+  }
+
+  // +1 per cell placed
+  const placePts = piece.cells.length;
+  addScore(placePts);
+  spawnPop(
+    BOARD_X + (anchorCol + (pieceBounds(piece).cols - 1) / 2) * CELL,
+    BOARD_Y + anchorRow * CELL - 4,
+    '+' + placePts
+  );
+
+  // Remove from tray; refill all when all 3 are used
+  tray[slot] = null;
+  if (tray.every(p => p === null)) {
+    tray[0] = generatePiece();
+    tray[1] = generatePiece();
+    tray[2] = generatePiece();
+  }
+
+  selectedSlot = null;
+  hasGhost     = false;
+  isDragging   = false;
+  dragSlot     = -1;
+
+  // Check line clears, then check game-over
+  checkClears(() => {
+    if (checkGameOver()) {
+      triggerGameOver();
+    } else {
+      renderAll();
+    }
+  });
+
+  return true;
+}
+
+// =====================================================================
+// checkClears()
+// Detects full rows / columns, starts flash→fade animation, adds score.
+// =====================================================================
+function checkClears(callback) {
+  const rowsToClear = [];
+  const colsToClear = [];
+
+  for (let r = 0; r < GRID_ROWS; r++) {
+    if (grid[r].every(v => v !== 0)) rowsToClear.push(r);
+  }
+  for (let c = 0; c < GRID_COLS; c++) {
+    let full = true;
+    for (let r = 0; r < GRID_ROWS; r++) { if (grid[r][c] === 0) { full = false; break; } }
+    if (full) colsToClear.push(c);
+  }
+
+  if (rowsToClear.length === 0 && colsToClear.length === 0) {
+    renderAll();
+    if (callback) callback();
+    return;
+  }
+
+  // Score: 10 × cells per line × combo multiplier
+  const totalLines = rowsToClear.length + colsToClear.length;
+  let pts = 0;
+  rowsToClear.forEach(() => { pts += GRID_COLS * 10; });
+  colsToClear.forEach(() => { pts += GRID_ROWS * 10; });
+  pts *= totalLines;
+
+  // Combo banner
+  if (totalLines > 1) {
+    comboText = 'COMBO ×' + totalLines + '!';
+    if (comboFadeId) clearTimeout(comboFadeId);
+    comboFadeId = setTimeout(() => { comboText = ''; renderAll(); }, 1600);
+  }
+
+  // Score pop centred on cleared region
+  const midRow = rowsToClear.length
+    ? rowsToClear[Math.floor(rowsToClear.length / 2)]
+    : Math.floor(GRID_ROWS / 2);
+  const midCol = colsToClear.length
+    ? colsToClear[Math.floor(colsToClear.length / 2)]
+    : Math.floor(GRID_COLS / 2);
+  spawnPop(
+    BOARD_X + midCol * CELL + CELL / 2,
+    BOARD_Y + midRow * CELL,
+    '+' + pts + (totalLines > 1 ? ' ×' + totalLines : '')
+  );
+
+  // Start animation
+  animRows       = new Set(rowsToClear);
+  animCols       = new Set(colsToClear);
+  animPendingPts = pts;
+  animPhase      = 'flash';
+  animTick       = 0;
+
+  animDoneCB = () => {
+    for (const r of animRows) { for (let c = 0; c < GRID_COLS; c++) grid[r][c] = 0; }
+    for (const col of animCols) { for (let r = 0; r < GRID_ROWS; r++) grid[r][col] = 0; }
+    addScore(animPendingPts);
+    animRows  = new Set();
+    animCols  = new Set();
+    animPhase = 'idle';
+    if (callback) callback();
+  };
+
+  requestAnimationFrame(doAnimFrame);
+}
+
+/** Single animation frame step for line-clear flash → fade. */
+function doAnimFrame() {
+  animTick++;
+  if (animPhase === 'flash' && animTick >= FLASH_FRAMES) animPhase = 'fade';
+
+  renderAll();
+
+  if (animTick >= FLASH_FRAMES + FADE_FRAMES) {
+    const cb = animDoneCB;
+    animDoneCB = null;
+    if (cb) cb();
+    return;
+  }
+  requestAnimationFrame(doAnimFrame);
+}
+
+// =====================================================================
+// checkGameOver()
+// Returns true when no remaining tray piece can fit anywhere on the grid.
+// =====================================================================
+function checkGameOver() {
+  const live = tray.filter(p => p !== null);
+  if (live.length === 0) return false;
+
+  for (const piece of live) {
+    for (let r = 0; r < GRID_ROWS; r++) {
+      for (let c = 0; c < GRID_COLS; c++) {
+        if (canPlace(piece, r, c)) return false;
+      }
+    }
+  }
+  return true;
+}
+
+// =====================================================================
+// SCORE helpers
+// =====================================================================
+function addScore(pts) {
+  score += pts;
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem('blockstorm_best', String(bestScore));
+  }
+}
+
+// =====================================================================
+// SCORE-POP (flying "+N" text)
+// =====================================================================
+function spawnPop(x, y, text) {
+  if (!pops) pops = [];
+  pops.push({ x, y, text, alpha: 1, dy: -1.4 });
+  if (!popLoopActive) { popLoopActive = true; requestAnimationFrame(popFrame); }
+}
+let popLoopActive = false;
+function popFrame() {
+  pops = pops.filter(p => p.alpha > 0.02);
+  pops.forEach(p => { p.y += p.dy; p.alpha -= 0.025; });
+  renderAll();
+  if (pops.length > 0) { requestAnimationFrame(popFrame); }
+  else { popLoopActive = false; }
+}
+
+// =====================================================================
+// TRIGGER GAME OVER
+// =====================================================================
+function triggerGameOver() {
+  isGameOver = true;
+  gameOverCount++;
+  renderAll();
+
+  // Update DOM overlay
+  document.getElementById('go-score').textContent = 'Score: ' + score;
+  document.getElementById('go-best').textContent  = 'Best: '  + bestScore;
+  document.getElementById('game-over').classList.add('visible');
+
+  // Interstitial every 5 game-overs
+  if (gameOverCount % 5 === 0) {
+    setTimeout(showInterstitial, 600);
+  }
+
+  // Auto-trigger share after a delay
+  setTimeout(() => {
+    if (typeof window.jbShareScore === 'function') window.jbShareScore(score);
+  }, 1800);
+}
+
+// =====================================================================
+// INTERSTITIAL AD logic
+// =====================================================================
+function showInterstitial() {
+  const el = document.getElementById('jb-interstitial');
+  if (!el) return;
+  el.style.display = 'flex';
+  const closeBtn = document.getElementById('jb-inter-close');
+  const timerEl  = document.getElementById('jb-inter-timer');
+  if (closeBtn) { closeBtn.style.opacity = '0'; closeBtn.style.pointerEvents = 'none'; }
+  let t = 4;
+  if (timerEl) timerEl.textContent = 'Continue in ' + t + 's…';
+  const iv = setInterval(() => {
+    t--;
+    if (t <= 0) {
+      clearInterval(iv);
+      if (timerEl)  timerEl.textContent = '';
+      if (closeBtn) { closeBtn.style.opacity = '1'; closeBtn.style.pointerEvents = 'auto'; }
+    } else {
+      if (timerEl) timerEl.textContent = 'Continue in ' + t + 's…';
+    }
+  }, 1000);
+}
+document.getElementById('jb-inter-close').addEventListener('click', () => {
+  document.getElementById('jb-interstitial').style.display = 'none';
+});
+
+// =====================================================================
+// INIT / RESTART
+// =====================================================================
+function initGame() {
+  grid = Array.from({ length: GRID_ROWS }, () => new Array(GRID_COLS).fill(0));
+  tray = [generatePiece(), generatePiece(), generatePiece()];
+
+  score        = 0;
+  bestScore    = parseInt(localStorage.getItem('blockstorm_best') || '0');
+  selectedSlot = null;
+  ghostRow = ghostCol = -1;
+  hasGhost  = false;
+  isGameOver = false;
+
+  animPhase = 'idle';
+  animRows  = new Set();
+  animCols  = new Set();
+
+  isDragging = false;
+  dragSlot   = -1;
+  comboText  = '';
+  pops       = [];
+
+  document.getElementById('game-over').classList.remove('visible');
+  computeLayout();
+  renderAll();
+}
+
+// =====================================================================
+// RENDERING — master call
+// =====================================================================
+function renderAll() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  renderHeader();
+  renderBoard();
+  renderTray();
+
+  // Dragged piece floats above everything
+  if (isDragging && dragSlot >= 0 && tray[dragSlot]) renderDragPiece();
+
+  // Combo banner
+  if (comboText) renderComboText();
+
+  // Score pops
+  if (pops && pops.length) renderPops();
+}
+
+// ── Header ────────────────────────────────────────────────────────────
+function renderHeader() {
+  ctx.fillStyle = '#090d16';
+  ctx.fillRect(0, 0, canvas.width, HEADER_H);
+
+  ctx.fillStyle = '#1a2235';
+  ctx.fillRect(0, HEADER_H - 1, canvas.width, 1);
+
+  // Title gradient
+  const tg = ctx.createLinearGradient(0, 0, 180, 0);
+  tg.addColorStop(0, '#00d4ff');
+  tg.addColorStop(1, '#a855f7');
+  ctx.fillStyle = tg;
+  ctx.font      = 'bold 21px "Segoe UI",system-ui,sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.fillText('⚡ Block Storm', PAD + 2, 8);
+
+  ctx.fillStyle = '#2e3a55';
+  ctx.font      = '10px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText('JellyBolt Games', PAD + 2, 32);
+
+  // Score (right column)
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#ffd700';
+  ctx.font      = 'bold 18px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(score, canvas.width - PAD, 6);
+
+  ctx.fillStyle = '#3a4a65';
+  ctx.font      = '9px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText('SCORE', canvas.width - PAD, 27);
+
+  // Best score (left of the score column)
+  const bx = canvas.width - PAD - 64;
+  ctx.fillStyle = '#5a6a85';
+  ctx.font      = 'bold 14px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(bestScore, bx, 8);
+
+  ctx.fillStyle = '#3a4a65';
+  ctx.font      = '9px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText('BEST', bx, 27);
+
+  ctx.textAlign    = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+// ── Board ─────────────────────────────────────────────────────────────
+function renderBoard() {
+  const bw = CELL * GRID_COLS;
+  const bh = CELL * GRID_ROWS;
+
+  // Outer border / shadow
+  ctx.fillStyle = '#1a2235';
+  ctx.fillRect(BOARD_X - 2, BOARD_Y - 2, bw + 4, bh + 4);
+
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      const px  = BOARD_X + c * CELL;
+      const py  = BOARD_Y + r * CELL;
+      const val = grid[r][c];
+
+      const clearing = animRows.has(r) || animCols.has(c);
+
+      if (val === 0) {
+        // Empty cell
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
+        // Subtle dot
+        ctx.fillStyle = '#26264a';
+        const ds = Math.max(1, Math.floor(CELL / 12));
+        ctx.fillRect(px + CELL / 2 - ds / 2, py + CELL / 2 - ds / 2, ds, ds);
+      } else {
+        const baseColor = COLORS[val - 1];
+        let alpha    = 1;
+        let useWhite = false;
+
+        if (clearing && animPhase !== 'idle') {
+          if (animPhase === 'flash') {
+            useWhite = Math.floor((animTick / FLASH_FRAMES) * 6) % 2 === 0;
+          } else {
+            alpha = Math.max(0, 1 - (animTick - FLASH_FRAMES) / FADE_FRAMES);
+          }
+        }
+
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle   = useWhite ? '#ffffff' : baseColor;
+        ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
+
+        if (!useWhite) {
+          // Highlight shine at top edge
+          ctx.fillStyle = 'rgba(255,255,255,0.22)';
+          ctx.fillRect(px + 2, py + 2, CELL - 4, Math.max(2, Math.floor((CELL - 4) / 3)));
+          // Dark shadow at bottom edge
+          ctx.fillStyle = 'rgba(0,0,0,0.18)';
+          const sh = Math.max(2, Math.floor((CELL - 4) / 4));
+          ctx.fillRect(px + 2, py + CELL - 2 - sh, CELL - 4, sh);
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  // Ghost overlay (only when animation is idle)
+  if (hasGhost && selectedSlot !== null && tray[selectedSlot] &&
+      !isGameOver && animPhase === 'idle') {
+    const piece   = tray[selectedSlot];
+    const valid   = canPlace(piece, ghostRow, ghostCol);
+    ctx.globalAlpha = valid ? GHOST_ALPHA : 0.18;
+    ctx.fillStyle   = valid ? COLORS[piece.color] : '#ff4444';
+
+    for (const [dr, dc] of piece.cells) {
+      const gr = ghostRow + dr;
+      const gc = ghostCol + dc;
+      if (gr >= 0 && gr < GRID_ROWS && gc >= 0 && gc < GRID_COLS) {
+        ctx.fillRect(BOARD_X + gc * CELL + 1, BOARD_Y + gr * CELL + 1,
+                     CELL - 2, CELL - 2);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── Tray ──────────────────────────────────────────────────────────────
+function renderTray() {
+  const slotW = canvas.width / TRAY_SLOTS;
+
+  // Tray background
+  ctx.fillStyle = '#080c14';
+  ctx.fillRect(0, TRAY_Y, canvas.width, TRAY_H + PAD);
+
+  ctx.fillStyle = '#1a2235';
+  ctx.fillRect(0, TRAY_Y, canvas.width, 1);
+
+  for (let i = 0; i < TRAY_SLOTS; i++) {
+    const sx      = i * slotW;
+    const piece   = tray[i];
+    const isSel   = selectedSlot === i;
+    const isDrag  = isDragging && dragSlot === i;
+
+    // Slot background
+    ctx.fillStyle = isSel ? '#14203a' : '#0d1220';
+    rrect(sx + 5, TRAY_Y + 5, slotW - 10, TRAY_H - 10, 10);
+    ctx.fill();
+
+    // Slot border
+    ctx.lineWidth = isSel ? 2 : 1;
+    ctx.strokeStyle = isSel && piece ? COLORS[piece.color] : '#1e2d44';
+    rrect(sx + 5, TRAY_Y + 5, slotW - 10, TRAY_H - 10, 10);
+    ctx.stroke();
+
+    if (!piece) {
+      // Used-slot checkmark
+      ctx.fillStyle    = '#2e3a55';
+      ctx.font         = 'bold 16px sans-serif';
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('✓', sx + slotW / 2, TRAY_Y + TRAY_H / 2);
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'alphabetic';
+      continue;
+    }
+
+    // Fade piece in tray when it is being dragged
+    if (isDrag) ctx.globalAlpha = 0.25;
+
+    // Scale piece to fill slot nicely (never upscale beyond CELL size)
+    const b      = pieceBounds(piece);
+    const innerW = slotW - 26;
+    const innerH = TRAY_H - 26;
+    const pxW    = b.cols * CELL;
+    const pxH    = b.rows * CELL;
+    const scale  = Math.min(innerW / pxW, innerH / pxH, 1.15);
+    const sc     = Math.max(Math.floor(CELL * scale), 10);
+
+    const tw = b.cols * sc;
+    const th = b.rows * sc;
+    const ox = sx + (slotW - tw) / 2 - b.minC * sc;
+    const oy = TRAY_Y + (TRAY_H - th) / 2 - b.minR * sc;
+
+    for (const [r, c] of piece.cells) {
+      const px = ox + c * sc;
+      const py = oy + r * sc;
+      ctx.fillStyle = COLORS[piece.color];
+      ctx.fillRect(px + 1, py + 1, sc - 2, sc - 2);
+      // Shine
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      ctx.fillRect(px + 2, py + 2, sc - 4, Math.max(2, Math.floor((sc - 4) / 3)));
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── Dragged piece floating under pointer ──────────────────────────────
+function renderDragPiece() {
+  const piece = tray[dragSlot];
+  if (!piece) return;
+  const b  = pieceBounds(piece);
+  const sc = CELL;
+  const tw = b.cols * sc;
+  const th = b.rows * sc;
+  const ox = pointerX - tw / 2 - b.minC * sc;
+  const oy = pointerY - th / 2 - b.minR * sc;
+
+  ctx.globalAlpha = 0.88;
+  for (const [r, c] of piece.cells) {
+    const px = ox + c * sc;
+    const py = oy + r * sc;
+    ctx.fillStyle = COLORS[piece.color];
+    ctx.fillRect(px + 1, py + 1, sc - 2, sc - 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.fillRect(px + 2, py + 2, sc - 4, Math.max(2, Math.floor((sc - 4) / 3)));
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── Combo banner ──────────────────────────────────────────────────────
+function renderComboText() {
+  const cx = canvas.width  / 2;
+  const cy = BOARD_Y + CELL * GRID_ROWS / 2;
+
+  ctx.save();
+  ctx.font      = 'bold 30px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Drop shadow
+  ctx.globalAlpha = 0.75;
+  ctx.fillStyle   = 'rgba(0,0,0,0.9)';
+  ctx.fillText(comboText, cx + 2, cy + 2);
+
+  ctx.globalAlpha = 1;
+  const cg = ctx.createLinearGradient(cx - 100, cy, cx + 100, cy);
+  cg.addColorStop(0, '#ffd700');
+  cg.addColorStop(1, '#ff69b4');
+  ctx.fillStyle = cg;
+  ctx.fillText(comboText, cx, cy);
+
+  ctx.restore();
+}
+
+// ── Score pops ────────────────────────────────────────────────────────
+function renderPops() {
+  ctx.save();
+  ctx.font         = 'bold 14px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  for (const p of pops) {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle   = '#ffd700';
+    ctx.fillText(p.text, p.x, p.y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// =====================================================================
+// GHOST POSITIONING
+// Centres the piece's bounding box on the pointer.
+// =====================================================================
+function computeGhost(piece, px, py) {
+  const b = pieceBounds(piece);
+
+  // Grid row/col under pointer (fractional)
+  const gridR = (py - BOARD_Y) / CELL;
+  const gridC = (px - BOARD_X) / CELL;
+
+  // Anchor of bounding-box top-left, clamped to keep piece inside grid
+  let bbR = Math.round(gridR - (b.rows - 1) / 2);
+  let bbC = Math.round(gridC - (b.cols - 1) / 2);
+  bbR = Math.max(0, Math.min(bbR, GRID_ROWS - b.rows));
+  bbC = Math.max(0, Math.min(bbC, GRID_COLS - b.cols));
+
+  // Convert from bounding-box top-left to piece anchor
+  ghostRow = bbR - b.minR;
+  ghostCol = bbC - b.minC;
+  hasGhost = true;
+}
+
+// =====================================================================
+// COORDINATE HELPERS
+// =====================================================================
+function getCanvasPos(e) {
+  const rect   = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  let cx, cy;
+  if (e.touches || e.changedTouches) {
+    const t = e.touches ? e.touches[0] : e.changedTouches[0];
+    cx = t.clientX; cy = t.clientY;
+  } else {
+    cx = e.clientX; cy = e.clientY;
+  }
+  return { x: (cx - rect.left) * scaleX, y: (cy - rect.top) * scaleY };
+}
+
+function getTraySlot(x, y) {
+  if (y < TRAY_Y || y > TRAY_Y + TRAY_H) return -1;
+  const slot = Math.floor(x / (canvas.width / TRAY_SLOTS));
+  return (slot >= 0 && slot < TRAY_SLOTS) ? slot : -1;
+}
+
+function isOverBoard(x, y) {
+  return x >= BOARD_X && x < BOARD_X + CELL * GRID_COLS &&
+         y >= BOARD_Y && y < BOARD_Y + CELL * GRID_ROWS;
+}
+
+// =====================================================================
+// UNIFIED INPUT HANDLERS
+// =====================================================================
+function onDown(x, y) {
+  if (isGameOver || animPhase !== 'idle') return;
+
+  const slot = getTraySlot(x, y);
+  if (slot >= 0 && tray[slot]) {
+    // Start drag from tray
+    isDragging   = true;
+    dragSlot     = slot;
+    selectedSlot = slot;
+    pointerX     = x;
+    pointerY     = y;
+    computeGhost(tray[slot], x, y);
+    renderAll();
+    return;
+  }
+
+  // Tap on board while a piece is selected → place it
+  if (isOverBoard(x, y) && selectedSlot !== null && tray[selectedSlot]) {
+    computeGhost(tray[selectedSlot], x, y);
+    if (canPlace(tray[selectedSlot], ghostRow, ghostCol)) {
+      placePiece(selectedSlot, ghostRow, ghostCol);
+    } else {
+      renderAll(); // show red ghost briefly
+    }
+    return;
+  }
+
+  // Tap elsewhere: deselect
+  if (getTraySlot(x, y) < 0) {
+    selectedSlot = null;
+    hasGhost     = false;
+    renderAll();
+  }
+}
+
+function onMove(x, y) {
+  if (isGameOver) return;
+  pointerX = x;
+  pointerY = y;
+
+  const activePiece = isDragging && dragSlot >= 0 ? tray[dragSlot]
+                    : selectedSlot !== null       ? tray[selectedSlot]
+                    : null;
+
+  if (activePiece) {
+    if (isOverBoard(x, y)) {
+      computeGhost(activePiece, x, y);
+    } else {
+      hasGhost = false;
+    }
+    renderAll();
+  }
+}
+
+function onUp(x, y) {
+  if (isGameOver) return;
+
+  if (isDragging && dragSlot >= 0 && tray[dragSlot]) {
+    if (isOverBoard(x, y) && hasGhost) {
+      const slot = dragSlot;
+      isDragging = false;
+      dragSlot   = -1;
+      if (!placePiece(slot, ghostRow, ghostCol)) {
+        // Invalid spot — keep piece selected so player can try again
+        selectedSlot = slot;
+        isDragging   = false;
+        dragSlot     = -1;
+        renderAll();
+      }
+    } else {
+      // Dropped off-board: treat as tap-to-select
+      selectedSlot = dragSlot;
+      isDragging   = false;
+      dragSlot     = -1;
+      hasGhost     = false;
+      renderAll();
+    }
+  }
+}
+
+// ── Mouse ─────────────────────────────────────────────────────────────
+canvas.addEventListener('mousedown',  e => { e.preventDefault(); const p = getCanvasPos(e); onDown(p.x, p.y); });
+canvas.addEventListener('mousemove',  e => { const p = getCanvasPos(e); onMove(p.x, p.y); });
+canvas.addEventListener('mouseup',    e => { const p = getCanvasPos(e); onUp(p.x, p.y); });
+canvas.addEventListener('mouseleave', () => {
+  if (isDragging) { isDragging = false; dragSlot = -1; hasGhost = false; renderAll(); }
+});
+
+// ── Touch ─────────────────────────────────────────────────────────────
+canvas.addEventListener('touchstart', e => { e.preventDefault(); const p = getCanvasPos(e); onDown(p.x, p.y); }, { passive: false });
+canvas.addEventListener('touchmove',  e => { e.preventDefault(); const p = getCanvasPos(e); onMove(p.x, p.y); }, { passive: false });
+canvas.addEventListener('touchend',   e => { e.preventDefault(); const p = getCanvasPos(e); onUp(p.x, p.y);  }, { passive: false });
+
+// ── DOM buttons ───────────────────────────────────────────────────────
+document.getElementById('go-play-btn').addEventListener('click', initGame);
+document.getElementById('go-share-btn').addEventListener('click', () => {
+  if (typeof window.jbShareScore === 'function') window.jbShareScore(score);
+});
+document.getElementById('jb-bar-share').addEventListener('click', e => {
+  e.preventDefault();
+  if (typeof window.jbShareScore === 'function') window.jbShareScore(score);
+});
+
+// ── Responsive resize ─────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  if (!isGameOver) { computeLayout(); renderAll(); }
+});
+
+// =====================================================================
+// BOOT
+// =====================================================================
+gameOverCount = 0;
+initGame();
+
+</script>
+
+<!-- Shared JellyBolt monetization: injects more-games modal, share overlay, etc. -->
+<script src="../shared/monetization.js"></script>
+</body>
+</html>

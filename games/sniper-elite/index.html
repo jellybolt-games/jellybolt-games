@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sniper Elite — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:none;user-select:none;font-family:system-ui,-apple-system,sans-serif}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<canvas id="c"></canvas>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+<a href="https://buymeacoffee.com/jellyboltgames" target="_blank" class="jb-btn-coffee">☕ Buy me a coffee</a>
+<a href="https://jellybolt-games.github.io/jellybolt-games" target="_blank" class="jb-btn-games">🎮 More Games</a>
+<a href="https://twitter.com/intent/tweet?text=Just%20played%20Sniper%20Elite%20on%20JellyBolt!&url=https://jellybolt-games.github.io/jellybolt-games" target="_blank" class="jb-btn-share">🐦 Share</a>
+<a href="https://www.facebook.com/sharer/sharer.php?u=https://jellybolt-games.github.io/jellybolt-games" target="_blank" class="jb-btn-share-fb">📘 Facebook</a>
+<a href="https://wa.me/?text=Check%20out%20Sniper%20Elite%20https://jellybolt-games.github.io/jellybolt-games" target="_blank" class="jb-btn-share-wa">💬 WhatsApp</a>
+</div>
+
+<!-- Interstitial Ad -->
+<div id="jb-interstitial">
+<div class="jb-interstitial-box">
+<h2 style="color:#00ff88;margin-bottom:10px">🎯 Nice Shot!</h2>
+<p style="color:#ccc">Support JellyBolt Games</p>
+<button class="jb-interstitial-close" onclick="closeInterstitial()">Continue</button>
+</div>
+</div>
+
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;
+function resize(){
+  W=canvas.width=window.innerWidth;
+  H=canvas.height=window.innerHeight-90-50;
+  canvas.style.marginTop='90px';
+}
+resize();
+window.addEventListener('resize',resize);
+
+// Game States
+const STATE={MENU:0,MISSION_SELECT:1,PLAYING:2,MISSION_COMPLETE:3,GAME_OVER:4};
+let gameState=STATE.MENU;
+
+// Game variables
+let currentMission=0;
+let scopeX=W/2,scopeY=H/2;
+let zoom=1;
+let targets=[];
+let shots=0,hits=0,headshots=0;
+let missionTime=0;
+let stealthMeter=100;
+let breathHolding=false,breathRemaining=3000;
+let scopeSway={x:0,y:0};
+let wind={x:0,y:0};
+let missionStartTime=0;
+let gameScore=0;
+
+// Input
+let keys={};
+let mouseDown=false;
+let touchStartX=0,touchStartY=0;
+
+// Mission definitions
+const MISSIONS=[
+  {name:"Training Day",desc:"Hit 5 targets at 100m",distance:100,targetCount:5,timeLimit:90,objective:"basic",moveTargets:false},
+  {name:"Headshot Only",desc:"3 headshots at 300m",distance:300,targetCount:3,timeLimit:60,objective:"headshot",moveTargets:false},
+  {name:"Long Range",desc:"5 targets at 500m",distance:500,targetCount:5,timeLimit:120,objective:"basic",moveTargets:false},
+  {name:"Moving Targets",desc:"Hit 4 moving targets",distance:300,targetCount:4,timeLimit:90,objective:"basic",moveTargets:true},
+  {name:"Time Pressure",desc:"8 targets in 60 seconds",distance:200,targetCount:8,timeLimit:60,objective:"basic",moveTargets:false},
+  {name:"Extreme Range",desc:"3 targets at 800m",distance:800,targetCount:3,timeLimit:120,objective:"basic",moveTargets:false},
+  {name:"No Misses",desc:"5 targets, 100% accuracy",distance:300,targetCount:5,timeLimit:90,objective:"perfect",moveTargets:false},
+  {name:"Stealth Op",desc:"5 targets, stay hidden",distance:400,targetCount:5,timeLimit:90,objective:"stealth",moveTargets:false},
+  {name:"Elite Sniper",desc:"Headshots only at 500m",distance:500,targetCount:4,timeLimit:90,objective:"headshot",moveTargets:false},
+  {name:"Moving Elite",desc:"Moving targets at 400m",distance:400,targetCount:5,timeLimit:120,objective:"basic",moveTargets:true},
+  {name:"Windy Day",desc:"5 targets, high wind",distance:300,targetCount:5,timeLimit:90,objective:"basic",moveTargets:false,windyMultiplier:2},
+  {name:"Speed Run",desc:"10 targets in 45 seconds",distance:250,targetCount:10,timeLimit:45,objective:"basic",moveTargets:false},
+  {name:"Patience Test",desc:"3 headshots at 800m",distance:800,targetCount:3,timeLimit:180,objective:"headshot",moveTargets:false},
+  {name:"Perfect Storm",desc:"Moving targets, headshots",distance:500,targetCount:5,timeLimit:120,objective:"headshot",moveTargets:true},
+  {name:"Master Sniper",desc:"No misses at 800m",distance:800,targetCount:5,timeLimit:150,objective:"perfect",moveTargets:false}
+];
+
+// Load progress
+let missionProgress=JSON.parse(localStorage.getItem('se_progress')||'{}');
+let bestScores=JSON.parse(localStorage.getItem('se_scores')||'{}');
+
+function saveMissionComplete(missionIndex,score){
+  missionProgress[missionIndex]=true;
+  if(!bestScores[missionIndex]||score>bestScores[missionIndex]){
+    bestScores[missionIndex]=score;
+  }
+  localStorage.setItem('se_progress',JSON.stringify(missionProgress));
+  localStorage.setItem('se_scores',JSON.stringify(bestScores));
+}
+
+// Initialize mission
+function initMission(missionIndex){
+  currentMission=missionIndex;
+  const mission=MISSIONS[missionIndex];
+  targets=[];
+  shots=0;hits=0;headshots=0;
+  missionTime=0;
+  stealthMeter=100;
+  breathRemaining=3000;
+  breathHolding=false;
+  scopeX=W/2;scopeY=H/2;
+  zoom=1;
+  wind={x:(Math.random()-0.5)*2*(mission.windyMultiplier||1),y:(Math.random()-0.5)*0.5*(mission.windyMultiplier||1)};
+  missionStartTime=Date.now();
+  gameScore=0;
+  
+  // Spawn targets
+  for(let i=0;i<mission.targetCount;i++){
+    spawnTarget(mission);
+  }
+  
+  gameState=STATE.PLAYING;
+}
+
+function spawnTarget(mission){
+  const sizeBase=mission.distance===100?80:mission.distance===300?50:mission.distance===500?35:mission.distance===800?25:40;
+  const target={
+    x:200+Math.random()*(W-400),
+    y:150+Math.random()*(H-300),
+    size:sizeBase,
+    distance:mission.distance,
+    headSize:sizeBase*0.3,
+    active:true,
+    moveVel:mission.moveTargets?{x:(Math.random()-0.5)*2,y:(Math.random()-0.5)*1}:null
+  };
+  targets.push(target);
+}
+
+// Update
+function update(dt){
+  if(gameState===STATE.PLAYING){
+    const mission=MISSIONS[currentMission];
+    missionTime+=(dt/1000);
+    
+    // Check time limit
+    if(missionTime>=mission.timeLimit){
+      gameState=STATE.GAME_OVER;
+      return;
+    }
+    
+    // Stealth recovery
+    if(stealthMeter<100)stealthMeter+=dt*0.01;
+    
+    // Breath mechanics
+    if(breathHolding&&breathRemaining>0){
+      breathRemaining-=dt;
+      if(breathRemaining<=0){
+        breathHolding=false;
+      }
+    }else if(!breathHolding&&breathRemaining<3000){
+      breathRemaining+=dt*0.5;
+    }
+    
+    // Scope sway
+    const swayAmount=breathHolding?0.3:2;
+    const swaySpeed=breathHolding?0.001:0.003;
+    scopeSway.x=Math.sin(Date.now()*swaySpeed)*swayAmount;
+    scopeSway.y=Math.cos(Date.now()*swaySpeed*1.3)*swayAmount;
+    
+    // Move targets
+    targets.forEach(t=>{
+      if(t.moveVel&&t.active){
+        t.x+=t.moveVel.x;
+        t.y+=t.moveVel.y;
+        if(t.x<100||t.x>W-100)t.moveVel.x*=-1;
+        if(t.y<100||t.y>H-100)t.moveVel.y*=-1;
+      }
+    });
+    
+    // Check mission complete
+    const activeTargets=targets.filter(t=>t.active).length;
+    if(activeTargets===0&&hits>0){
+      calculateScore();
+      gameState=STATE.MISSION_COMPLETE;
+      showInterstitial();
+    }
+  }
+}
+
+function calculateScore(){
+  const mission=MISSIONS[currentMission];
+  const accuracy=shots>0?(hits/shots)*100:0;
+  const timeBonus=Math.max(0,mission.timeLimit-missionTime)*10;
+  const headshotBonus=headshots*100;
+  const stealthBonus=Math.floor(stealthMeter);
+  gameScore=Math.floor(accuracy*10+timeBonus+headshotBonus+stealthBonus);
+  saveMissionComplete(currentMission,gameScore);
+}
+
+// Shoot
+function shoot(){
+  if(gameState!==STATE.PLAYING)return;
+  
+  shots++;
+  stealthMeter-=10;
+  if(stealthMeter<0)stealthMeter=0;
+  
+  const mission=MISSIONS[currentMission];
+  const bulletDrop=mission.distance*0.15/zoom;
+  const windDrift=wind.x*mission.distance*0.1/zoom;
+  
+  const actualX=scopeX+scopeSway.x+windDrift;
+  const actualY=scopeY+scopeSway.y+bulletDrop;
+  
+  let hitTarget=false;
+  let wasHeadshot=false;
+  
+  targets.forEach(t=>{
+    if(!t.active)return;
+    const dx=actualX-t.x;
+    const dy=actualY-t.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    
+    // Check headshot
+    const headDist=Math.sqrt(dx*dx+(dy-(t.size*0.35))**2);
+    if(headDist<t.headSize/2){
+      hits++;
+      headshots++;
+      t.active=false;
+      hitTarget=true;
+      wasHeadshot=true;
+      createHitEffect(t.x,t.y,true);
+    }else if(dist<t.size/2){
+      hits++;
+      t.active=false;
+      hitTarget=true;
+      createHitEffect(t.x,t.y,false);
+    }
+  });
+  
+  if(!hitTarget){
+    // Miss
+    const objective=mission.objective;
+    if(objective==="perfect"){
+      gameState=STATE.GAME_OVER;
+    }
+  }
+}
+
+let hitEffects=[];
+function createHitEffect(x,y,isHeadshot){
+  hitEffects.push({x,y,time:500,isHeadshot});
+}
+
+// Input handlers
+document.addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(e.key.toLowerCase()==='b'){
+    if(!breathHolding&&breathRemaining>0){
+      breathHolding=true;
+    }
+  }
+  if(e.key===' '&&gameState===STATE.PLAYING){
+    shoot();
+  }
+  if(e.key==='Enter'){
+    if(gameState===STATE.MENU)gameState=STATE.MISSION_SELECT;
+  }
+});
+
+document.addEventListener('keyup',e=>{
+  keys[e.key.toLowerCase()]=false;
+  if(e.key.toLowerCase()==='b'){
+    breathHolding=false;
+  }
+});
+
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  if(gameState===STATE.PLAYING){
+    zoom+=e.deltaY>0?-0.2:0.2;
+    zoom=Math.max(1,Math.min(4,zoom));
+  }
+});
+
+canvas.addEventListener('mousedown',e=>{
+  mouseDown=true;
+  if(gameState===STATE.PLAYING){
+    shoot();
+  }else if(gameState===STATE.MENU){
+    gameState=STATE.MISSION_SELECT;
+  }else if(gameState===STATE.MISSION_SELECT){
+    handleMissionSelect(e.clientX,e.clientY-90);
+  }else if(gameState===STATE.MISSION_COMPLETE||gameState===STATE.GAME_OVER){
+    gameState=STATE.MISSION_SELECT;
+  }
+});
+
+canvas.addEventListener('mouseup',()=>mouseDown=false);
+
+canvas.addEventListener('mousemove',e=>{
+  if(gameState===STATE.PLAYING){
+    scopeX=e.clientX;
+    scopeY=e.clientY-90;
+  }
+});
+
+// Touch controls
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const touch=e.touches[0];
+  touchStartX=touch.clientX;
+  touchStartY=touch.clientY-90;
+  
+  if(gameState===STATE.PLAYING){
+    const tx=touch.clientX;
+    const ty=touch.clientY-90;
+    
+    // Check zoom buttons
+    if(tx>=10&&tx<=60){
+      if(ty>=H-100&&ty<=H-60){
+        zoom=Math.min(4,zoom+0.5);
+        return;
+      }else if(ty>=H-50&&ty<=H-10){
+        zoom=Math.max(1,zoom-0.5);
+        return;
+      }
+    }
+    
+    // Check fire button
+    if(tx>W-120&&ty>H-120){
+      shoot();
+    }
+  }else if(gameState===STATE.MENU){
+    gameState=STATE.MISSION_SELECT;
+  }else if(gameState===STATE.MISSION_SELECT){
+    handleMissionSelect(touch.clientX,touch.clientY-90);
+  }else if(gameState===STATE.MISSION_COMPLETE||gameState===STATE.GAME_OVER){
+    gameState=STATE.MISSION_SELECT;
+  }
+},{passive:false});
+
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(gameState===STATE.PLAYING){
+    const touch=e.touches[0];
+    scopeX=touch.clientX;
+    scopeY=touch.clientY-90;
+  }
+},{passive:false});
+
+function handleMissionSelect(mx,my){
+  const cols=3;
+  const boxW=Math.min(250,W/cols-20);
+  const boxH=120;
+  const startX=(W-cols*boxW-(cols-1)*10)/2;
+  
+  MISSIONS.forEach((m,i)=>{
+    const row=Math.floor(i/cols);
+    const col=i%cols;
+    const x=startX+col*(boxW+10);
+    const y=80+row*(boxH+10);
+    
+    if(mx>=x&&mx<=x+boxW&&my>=y&&my<=y+boxH){
+      // Check if mission unlocked
+      if(i===0||missionProgress[i-1]){
+        initMission(i);
+      }
+    }
+  });
+}
+
+// Render
+function render(){
+  ctx.fillStyle='#1a1a2e';
+  ctx.fillRect(0,0,W,H);
+  
+  if(gameState===STATE.MENU){
+    renderMenu();
+  }else if(gameState===STATE.MISSION_SELECT){
+    renderMissionSelect();
+  }else if(gameState===STATE.PLAYING){
+    renderGame();
+  }else if(gameState===STATE.MISSION_COMPLETE){
+    renderMissionComplete();
+  }else if(gameState===STATE.GAME_OVER){
+    renderGameOver();
+  }
+}
+
+function renderMenu(){
+  ctx.fillStyle='#fff';
+  ctx.font='bold 48px system-ui';
+  ctx.textAlign='center';
+  ctx.fillText('SNIPER ELITE',W/2,H/2-60);
+  
+  ctx.font='20px system-ui';
+  ctx.fillStyle='#00ff88';
+  ctx.fillText('Click or Press ENTER to Start',W/2,H/2+20);
+  
+  ctx.fillStyle='#aaa';
+  ctx.font='16px system-ui';
+  ctx.fillText('🎯 First-person sniper precision shooting',W/2,H/2+80);
+  ctx.fillText('⌨️ WASD/Arrow=Move Scope | B=Hold Breath | SPACE/Click=Shoot | Scroll=Zoom',W/2,H/2+110);
+  ctx.fillText('📱 Mobile: Drag to aim, tap Fire button',W/2,H/2+140);
+}
+
+function renderMissionSelect(){
+  ctx.fillStyle='#fff';
+  ctx.font='bold 32px system-ui';
+  ctx.textAlign='center';
+  ctx.fillText('SELECT MISSION',W/2,50);
+  
+  const cols=3;
+  const boxW=Math.min(250,W/cols-20);
+  const boxH=120;
+  const startX=(W-cols*boxW-(cols-1)*10)/2;
+  
+  MISSIONS.forEach((m,i)=>{
+    const row=Math.floor(i/cols);
+    const col=i%cols;
+    const x=startX+col*(boxW+10);
+    const y=80+row*(boxH+10);
+    
+    const unlocked=i===0||missionProgress[i-1];
+    const completed=missionProgress[i];
+    
+    ctx.fillStyle=unlocked?(completed?'#00ff88':'#2a2a4e'):'#1a1a2e';
+    ctx.fillRect(x,y,boxW,boxH);
+    
+    ctx.strokeStyle=unlocked?'#00ff88':'#444';
+    ctx.lineWidth=2;
+    ctx.strokeRect(x,y,boxW,boxH);
+    
+    ctx.fillStyle=unlocked?'#fff':'#666';
+    ctx.font='bold 16px system-ui';
+    ctx.textAlign='left';
+    ctx.fillText((i+1)+'. '+m.name,x+10,y+25);
+    
+    ctx.font='13px system-ui';
+    ctx.fillStyle=unlocked?'#ccc':'#555';
+    ctx.fillText(m.desc,x+10,y+50);
+    
+    ctx.fillText('Distance: '+m.distance+'m',x+10,y+75);
+    ctx.fillText('Time: '+m.timeLimit+'s',x+10,y+95);
+    
+    if(completed&&bestScores[i]){
+      ctx.fillStyle='#ffdd00';
+      ctx.font='bold 12px system-ui';
+      ctx.fillText('Best: '+bestScores[i],x+10,y+112);
+    }
+    
+    if(!unlocked){
+      ctx.fillStyle='#ff6b6b';
+      ctx.font='12px system-ui';
+      ctx.textAlign='center';
+      ctx.fillText('🔒 LOCKED',x+boxW/2,y+boxH/2);
+    }
+  });
+  
+  ctx.fillStyle='#888';
+  ctx.font='14px system-ui';
+  ctx.textAlign='center';
+  ctx.fillText('Click a mission to start',W/2,H-20);
+}
+
+function renderGame(){
+  const mission=MISSIONS[currentMission];
+  
+  // Environment
+  ctx.fillStyle='#87ceeb';
+  ctx.fillRect(0,0,W,H/2);
+  ctx.fillStyle='#8b7355';
+  ctx.fillRect(0,H/2,W,H/2);
+  
+  // Horizon
+  ctx.strokeStyle='#333';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(0,H/2);
+  ctx.lineTo(W,H/2);
+  ctx.stroke();
+  
+  // Targets
+  targets.forEach(t=>{
+    if(!t.active)return;
+    
+    // Body
+    ctx.fillStyle='#ff6b6b';
+    ctx.beginPath();
+    ctx.arc(t.x,t.y,t.size/2/zoom,0,Math.PI*2);
+    ctx.fill();
+    
+    // Head
+    ctx.fillStyle='#ffaa88';
+    ctx.beginPath();
+    ctx.arc(t.x,t.y-t.size*0.35,t.headSize/2/zoom,0,Math.PI*2);
+    ctx.fill();
+    
+    // Distance indicator
+    ctx.fillStyle='#fff';
+    ctx.font='12px system-ui';
+    ctx.textAlign='center';
+    ctx.fillText(t.distance+'m',t.x,t.y+t.size/2+15);
+  });
+  
+  // Hit effects
+  hitEffects=hitEffects.filter(e=>{
+    e.time-=16;
+    if(e.time>0){
+      ctx.fillStyle=e.isHeadshot?'rgba(255,215,0,'+(e.time/500)+')':'rgba(255,255,255,'+(e.time/500)+')';
+      ctx.font='bold 20px system-ui';
+      ctx.textAlign='center';
+      ctx.fillText(e.isHeadshot?'HEADSHOT!':'HIT',e.x,e.y-20);
+      return true;
+    }
+    return false;
+  });
+  
+  // Scope overlay
+  ctx.fillStyle='rgba(0,0,0,0.8)';
+  ctx.fillRect(0,0,W,H);
+  
+  // Scope circle
+  const scopeRadius=Math.min(W,H)*0.4/zoom;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(scopeX+scopeSway.x,scopeY+scopeSway.y,scopeRadius,0,Math.PI*2);
+  ctx.clip();
+  
+  // Clear scope area
+  ctx.fillStyle='#87ceeb';
+  ctx.fillRect(0,0,W,H/2);
+  ctx.fillStyle='#8b7355';
+  ctx.fillRect(0,H/2,W,H/2);
+  
+  ctx.strokeStyle='#333';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(0,H/2);
+  ctx.lineTo(W,H/2);
+  ctx.stroke();
+  
+  // Render targets in scope
+  targets.forEach(t=>{
+    if(!t.active)return;
+    ctx.fillStyle='#ff6b6b';
+    ctx.beginPath();
+    ctx.arc(t.x,t.y,t.size/2*zoom,0,Math.PI*2);
+    ctx.fill();
+    
+    ctx.fillStyle='#ffaa88';
+    ctx.beginPath();
+    ctx.arc(t.x,t.y-t.size*0.35*zoom,t.headSize/2*zoom,0,Math.PI*2);
+    ctx.fill();
+  });
+  
+  ctx.restore();
+  
+  // Scope ring
+  ctx.strokeStyle='#333';
+  ctx.lineWidth=8;
+  ctx.beginPath();
+  ctx.arc(scopeX+scopeSway.x,scopeY+scopeSway.y,scopeRadius,0,Math.PI*2);
+  ctx.stroke();
+  
+  // Crosshair
+  ctx.strokeStyle='#00ff88';
+  ctx.lineWidth=2;
+  const crossSize=20;
+  const cx=scopeX+scopeSway.x;
+  const cy=scopeY+scopeSway.y;
+  
+  ctx.beginPath();
+  ctx.moveTo(cx-crossSize,cy);
+  ctx.lineTo(cx-5,cy);
+  ctx.moveTo(cx+5,cy);
+  ctx.lineTo(cx+crossSize,cy);
+  ctx.moveTo(cx,cy-crossSize);
+  ctx.lineTo(cx,cy-5);
+  ctx.moveTo(cx,cy+5);
+  ctx.lineTo(cx,cy+crossSize);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.arc(cx,cy,2,0,Math.PI*2);
+  ctx.fill();
+  
+  // HUD
+  ctx.textAlign='left';
+  ctx.fillStyle='#fff';
+  ctx.font='bold 16px system-ui';
+  ctx.fillText('Mission '+(currentMission+1)+': '+mission.name,10,25);
+  
+  ctx.fillText('Targets: '+targets.filter(t=>t.active).length+'/'+mission.targetCount,10,50);
+  ctx.fillText('Accuracy: '+(shots>0?Math.round((hits/shots)*100):'100')+'%',10,75);
+  ctx.fillText('Headshots: '+headshots,10,100);
+  
+  const timeLeft=Math.max(0,mission.timeLimit-missionTime);
+  ctx.fillStyle=timeLeft<10?'#ff6b6b':'#fff';
+  ctx.fillText('Time: '+timeLeft.toFixed(1)+'s',10,125);
+  
+  // Stealth meter
+  ctx.fillText('Stealth:',10,150);
+  ctx.fillStyle='rgba(255,255,255,0.2)';
+  ctx.fillRect(80,135,100,15);
+  ctx.fillStyle=stealthMeter>50?'#00ff88':stealthMeter>25?'#ffaa00':'#ff6b6b';
+  ctx.fillRect(80,135,stealthMeter,15);
+  
+  // Breath indicator
+  ctx.fillStyle='#fff';
+  ctx.fillText('Breath:',10,175);
+  ctx.fillStyle='rgba(255,255,255,0.2)';
+  ctx.fillRect(80,160,100,15);
+  ctx.fillStyle=breathHolding?'#00ccff':'#88aaff';
+  ctx.fillRect(80,160,(breathRemaining/3000)*100,15);
+  
+  // Zoom indicator
+  ctx.textAlign='right';
+  ctx.fillStyle='#fff';
+  ctx.fillText('Zoom: '+zoom.toFixed(1)+'x',W-10,25);
+  
+  // Wind indicator
+  ctx.fillText('Wind: '+wind.x.toFixed(1)+' m/s',W-10,50);
+  
+  // Mobile fire button
+  if('ontouchstart'in window){
+    ctx.fillStyle='rgba(255,107,107,0.5)';
+    ctx.beginPath();
+    ctx.arc(W-70,H-70,50,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.font='bold 16px system-ui';
+    ctx.textAlign='center';
+    ctx.fillText('FIRE',W-70,H-65);
+  }
+  
+  // Mobile zoom buttons
+  if('ontouchstart'in window){
+    ctx.fillStyle='rgba(255,255,255,0.3)';
+    ctx.fillRect(10,H-100,50,40);
+    ctx.fillRect(10,H-50,50,40);
+    ctx.fillStyle='#fff';
+    ctx.font='bold 20px system-ui';
+    ctx.textAlign='center';
+    ctx.fillText('+',35,H-72);
+    ctx.fillText('-',35,H-22);
+  }
+}
+
+function renderMissionComplete(){
+  ctx.fillStyle='rgba(0,0,0,0.8)';
+  ctx.fillRect(0,0,W,H);
+  
+  ctx.fillStyle='#00ff88';
+  ctx.font='bold 42px system-ui';
+  ctx.textAlign='center';
+  ctx.fillText('MISSION COMPLETE!',W/2,H/2-100);
+  
+  const accuracy=shots>0?((hits/shots)*100):0;
+  
+  ctx.fillStyle='#fff';
+  ctx.font='20px system-ui';
+  ctx.fillText('Accuracy: '+accuracy.toFixed(1)+'%',W/2,H/2-30);
+  ctx.fillText('Headshots: '+headshots,W/2,H/2);
+  ctx.fillText('Time Bonus: '+Math.max(0,MISSIONS[currentMission].timeLimit-missionTime).toFixed(1)+'s',W/2,H/2+30);
+  ctx.fillText('Stealth: '+Math.floor(stealthMeter)+'%',W/2,H/2+60);
+  
+  ctx.fillStyle='#ffdd00';
+  ctx.font='bold 28px system-ui';
+  ctx.fillText('Score: '+gameScore,W/2,H/2+110);
+  
+  if(bestScores[currentMission]===gameScore){
+    ctx.fillStyle='#ff6b6b';
+    ctx.font='bold 18px system-ui';
+    ctx.fillText('🏆 NEW BEST SCORE!',W/2,H/2+145);
+  }
+  
+  ctx.fillStyle='#888';
+  ctx.font='16px system-ui';
+  ctx.fillText('Click to continue',W/2,H-50);
+}
+
+function renderGameOver(){
+  ctx.fillStyle='rgba(0,0,0,0.8)';
+  ctx.fillRect(0,0,W,H);
+  
+  ctx.fillStyle='#ff6b6b';
+  ctx.font='bold 42px system-ui';
+  ctx.textAlign='center';
+  ctx.fillText('MISSION FAILED',W/2,H/2-60);
+  
+  const mission=MISSIONS[currentMission];
+  ctx.fillStyle='#fff';
+  ctx.font='20px system-ui';
+  
+  if(mission.objective==='perfect'&&shots>hits){
+    ctx.fillText('Objective: No misses allowed',W/2,H/2);
+  }else if(missionTime>=mission.timeLimit){
+    ctx.fillText('Time limit exceeded',W/2,H/2);
+  }else{
+    ctx.fillText('Mission objectives not met',W/2,H/2);
+  }
+  
+  ctx.fillText('Accuracy: '+(shots>0?((hits/shots)*100).toFixed(1):'0')+'%',W/2,H/2+40);
+  
+  ctx.fillStyle='#888';
+  ctx.font='16px system-ui';
+  ctx.fillText('Click to retry',W/2,H-50);
+}
+
+// Interstitial ad
+let interstitialShown=false;
+function showInterstitial(){
+  if(!interstitialShown){
+    document.getElementById('jb-interstitial').style.display='flex';
+    interstitialShown=true;
+  }
+}
+
+function closeInterstitial(){
+  document.getElementById('jb-interstitial').style.display='none';
+}
+
+// Game loop
+let lastTime=Date.now();
+function gameLoop(){
+  const now=Date.now();
+  const dt=now-lastTime;
+  lastTime=now;
+  
+  update(dt);
+  render();
+  
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+</body>
+</html>

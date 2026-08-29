@@ -25,8 +25,9 @@ canvas{display:block;}
 .share-btn{display:inline-block;margin:0 6px;padding:4px 10px;border:1px solid #333;border-radius:4px;font-size:12px;color:#aaa;text-decoration:none;transition:all .2s;}
 .share-btn:hover{border-color:#0ff;color:#0ff;}
 </style>
-</head>
+<style>.jb-ad-banner{text-align:center;margin:4px auto;overflow:hidden;max-height:100px}#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}</style></head>
 <body>
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
 <div id="hud">
   <div id="score">0</div>
   <div id="speed-bar">SPEED ▸▸</div>
@@ -41,9 +42,9 @@ canvas{display:block;}
 <div id="footer">
   <span style="color:#555;">JellyBolt Games</span>
   <a href="https://buymeacoffee.com/jellyboltgames" target="_blank">☕ Support</a>
-  <a href="https://jellybolt.itch.io" target="_blank">🎮 More Games</a>
-  <a class="share-btn" href="https://twitter.com/intent/tweet?text=I%20scored%20in%20Cube%20Runner%20by%20JellyBolt%20Games!&url=https://jellybolt.itch.io" target="_blank">𝕏 Share</a>
-  <a class="share-btn" href="https://wa.me/?text=Play%20Cube%20Runner%20by%20JellyBolt%20Games!%20https://jellybolt.itch.io" target="_blank">WhatsApp</a>
+  <a href="https://jellyboltgames.itch.io" target="_blank">🎮 More Games</a>
+  <a class="share-btn" href="https://twitter.com/intent/tweet?text=I%20scored%20in%20Cube%20Runner%20by%20JellyBolt%20Games!&url=https://jellyboltgames.itch.io" target="_blank">𝕏 Share</a>
+  <a class="share-btn" href="https://wa.me/?text=Play%20Cube%20Runner%20by%20JellyBolt%20Games!%20https://jellyboltgames.itch.io" target="_blank">WhatsApp</a>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -331,5 +332,8 @@ window.addEventListener('resize',()=>{
 });
 })();
 </script>
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="5123448325" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
 </body>
 </html>

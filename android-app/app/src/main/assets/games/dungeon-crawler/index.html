@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dungeon Crawler Classic — JellyBolt Games</title>
+<meta name="description" content="Explore procedurally generated dungeons with fog of war, monsters, treasure, and permadeath. A classic tile-based dungeon crawler by JellyBolt Games.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0d8c8;font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;touch-action:none}
+canvas{display:block;image-rendering:pixelated;border:2px solid #2a2520;border-radius:4px}
+#ui{position:absolute;top:0;left:0;width:100%;pointer-events:none;z-index:10}
+.hud{display:flex;justify-content:space-between;padding:8px 14px;background:rgba(10,10,10,.92);font-size:.85em;border-bottom:1px solid #2a2520;flex-wrap:wrap;gap:4px}
+.hud span{font-weight:700}
+.hp-bar{width:80px;height:10px;background:#2a1a1a;border-radius:5px;display:inline-block;vertical-align:middle}
+.hp-fill{height:100%;border-radius:5px;transition:width .3s}
+#msg{text-align:center;padding:6px;font-size:.8em;color:#8b8070;background:rgba(10,10,10,.8);min-height:24px}
+.overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,.92);z-index:20;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+.overlay.active{display:flex}
+.title{font-size:2.6em;font-weight:900;background:linear-gradient(135deg,#00ff88,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{color:#8b8070;font-size:1.1em;margin:8px 0 20px}
+.btn{padding:14px 40px;font-size:1.15em;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:all .2s;margin:5px;pointer-events:auto}
+.btn:hover{transform:translateY(-2px)}
+.btn-play{background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;box-shadow:0 4px 20px rgba(0,255,136,.3)}
+.btn-retry{background:linear-gradient(135deg,#ffcc00,#ff9f43);color:#1a1000}
+.info{color:#8b8070;font-size:.85em;max-width:360px;margin-top:12px;line-height:1.6}
+.credit{color:#484038;font-size:.8em;margin-top:20px}
+.stats{color:#aaa;font-size:.95em;margin:12px 0;line-height:1.8}
+.stats b{color:#ffcc00}
+#touch-controls{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:15;pointer-events:auto}
+.dpad{display:grid;grid-template-columns:60px 60px 60px;grid-template-rows:60px 60px 60px;gap:4px}
+.dpad button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;font-size:1.4em;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.dpad button:active{background:rgba(0,255,136,.3)}
+.dpad .empty{background:none;border:none}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.minimap{position:fixed;top:44px;right:8px;border:1px solid #2a2520;border-radius:4px;z-index:11}
+</style>
+</head>
+<body>
+<div class="overlay active" id="menu">
+  <div class="title">&#x1F3F0; Dungeon Crawler</div>
+  <div class="subtitle">Classic — A JellyBolt Games Original</div>
+  <button class="btn btn-play" onclick="startGame()">&#x2694;&#xFE0F; ENTER THE DUNGEON</button>
+  <div class="info">
+    <p>Explore procedurally generated dungeons.</p>
+    <p>Uncover fog of war. Fight monsters. Collect treasure.</p>
+    <p>Reach the stairs on each floor to descend deeper.</p>
+    <p><b>Controls:</b> Arrow keys / WASD / Tap. Space to rest.</p>
+  </div>
+  <div class="credit">&#x26A1; JellyBolt Games</div>
+</div>
+<div class="overlay" id="victory">
+  <div style="font-size:3.5em">&#x1F3C6;</div>
+  <div style="font-size:2em;font-weight:900;color:#ffcc00;margin:10px">DUNGEON CONQUERED!</div>
+  <div class="stats" id="v-stats"></div>
+  <button class="btn btn-play" onclick="startGame()">&#x1F504; New Adventure</button>
+  <button class="btn btn-retry" onclick="showOverlay('menu')">&#x1F3E0; Menu</button>
+  <div class="credit">&#x26A1; JellyBolt Games</div>
+</div>
+<div class="overlay" id="death">
+  <div style="font-size:3.5em">&#x1F480;</div>
+  <div style="font-size:2em;font-weight:900;color:#ff6b6b;margin:10px">YOU HAVE FALLEN</div>
+  <div class="stats" id="d-stats"></div>
+  <button class="btn btn-retry" onclick="startGame()">&#x26A1; Try Again</button>
+  <button class="btn btn-play" onclick="showOverlay('menu')" style="font-size:.95em;padding:10px 20px">&#x1F3E0; Menu</button>
+  <div class="credit">&#x26A1; JellyBolt Games</div>
+</div>
+<div id="ui">
+  <div class="hud" id="hud" style="display:none">
+    <div>&#x2764;&#xFE0F; <span id="hp">0</span>/<span id="maxhp">0</span> <div class="hp-bar"><div class="hp-fill" id="hp-bar" style="width:100%;background:#00ff88"></div></div></div>
+    <div>&#x2694;&#xFE0F; <span id="atk">0</span></div>
+    <div>&#x1F6E1;&#xFE0F; <span id="def">0</span></div>
+    <div>&#x1F4B0; <span id="gold">0</span></div>
+    <div>Lv<span id="lvl">1</span></div>
+    <div>&#x1F3F0; F<span id="floor">1</span></div>
+  </div>
+  <div id="msg"></div>
+</div>
+<canvas id="game"></canvas>
+<canvas id="minimap" class="minimap" style="display:none"></canvas>
+<div id="touch-controls">
+  <div class="dpad">
+    <div class="empty"></div>
+    <button ontouchstart="move(0,-1);event.preventDefault()" onclick="move(0,-1)">&#x25B2;</button>
+    <div class="empty"></div>
+    <button ontouchstart="move(-1,0);event.preventDefault()" onclick="move(-1,0)">&#x25C4;</button>
+    <button ontouchstart="rest();event.preventDefault()" onclick="rest()">&#x23F8;</button>
+    <button ontouchstart="move(1,0);event.preventDefault()" onclick="move(1,0)">&#x25BA;</button>
+    <div class="empty"></div>
+    <button ontouchstart="move(0,1);event.preventDefault()" onclick="move(0,1)">&#x25BC;</button>
+    <div class="empty"></div>
+  </div>
+</div>
+<div class="jb-monetization-bar" id="jb-bar" style="display:none">
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank" class="jb-btn-coffee">&#x2615; Support Us</a>
+  <a href="https://jellyboltgames.itch.io" target="_blank" class="jb-btn-games">&#x1F3AE; More Games</a>
+  <a href="https://twitter.com/intent/tweet?text=Playing%20Dungeon%20Crawler%20Classic%20by%20JellyBolt%20Games!&url=https://jellybolt-games.github.io/jellybolt-games/games/dungeon-crawler/" target="_blank" class="jb-btn-share">&#x1D54F; Share</a>
+</div><script>
+const TS=32,MW=42,MH=32,VW=15,VH=11,FLOORS=5,SIGHT=4;
+const T={WALL:0,FLOOR:1,STAIRS:2,CHEST:3,POTION:4};
+const ENEMIES=[
+{name:'Rat',icon:'\u{1F400}',hp:4,atk:1,def:0,gold:2,xp:5,fl:[1,2]},
+{name:'Slime',icon:'\u{1F7E2}',hp:6,atk:2,def:0,gold:3,xp:8,fl:[1,2]},
+{name:'Bat',icon:'\u{1F987}',hp:5,atk:2,def:1,gold:3,xp:7,fl:[1,2,3]},
+{name:'Skeleton',icon:'\u{1F480}',hp:10,atk:3,def:1,gold:6,xp:15,fl:[2,3]},
+{name:'Goblin',icon:'\u{1F47A}',hp:12,atk:4,def:2,gold:8,xp:20,fl:[2,3,4]},
+{name:'Spider',icon:'\u{1F577}\uFE0F',hp:8,atk:5,def:1,gold:7,xp:18,fl:[2,3]},
+{name:'Orc',icon:'\u{1F479}',hp:18,atk:5,def:3,gold:12,xp:30,fl:[3,4]},
+{name:'Wraith',icon:'\u{1F47B}',hp:14,atk:6,def:2,gold:10,xp:28,fl:[3,4]},
+{name:'Golem',icon:'\u{1F5FF}',hp:25,atk:6,def:5,gold:15,xp:40,fl:[4,5]},
+{name:'Dark Knight',icon:'\u2694\uFE0F',hp:22,atk:8,def:4,gold:18,xp:45,fl:[4,5]},
+{name:'Dragon',icon:'\u{1F409}',hp:40,atk:10,def:6,gold:30,xp:80,fl:[5]},
+{name:'Demon Lord',icon:'\u{1F47F}',hp:50,atk:12,def:5,gold:50,xp:100,fl:[5]}];
+const LOOT=[{name:'Rusty Sword',stat:'atk',val:1,fl:[1,2]},{name:'Wooden Shield',stat:'def',val:1,fl:[1,2]},{name:'Iron Blade',stat:'atk',val:2,fl:[2,3]},{name:'Chainmail',stat:'def',val:2,fl:[2,3,4]},{name:'Battle Axe',stat:'atk',val:3,fl:[3,4]},{name:'Steel Plate',stat:'def',val:3,fl:[4,5]},{name:'Flame Sword',stat:'atk',val:4,fl:[4,5]},{name:'Dragon Armor',stat:'def',val:4,fl:[5]},{name:'Heart Gem',stat:'maxHp',val:10,fl:[2,3,4,5]}];
+let C,ctx,mmC,mmx,map,seen,mons,pl,cFloor,alive,st,msgTmr;
+function init(){C=document.getElementById('game');ctx=C.getContext('2d');mmC=document.getElementById('minimap');mmx=mmC.getContext('2d');resize();window.addEventListener('resize',resize);window.addEventListener('keydown',onKey);if('ontouchstart' in window)document.getElementById('touch-controls').style.display='block'}
+function resize(){const mxW=Math.min(window.innerWidth,VW*TS),mxH=Math.min(window.innerHeight-90,VH*TS),sc=Math.min(mxW/(VW*TS),mxH/(VH*TS));C.width=VW*TS;C.height=VH*TS;C.style.width=Math.floor(VW*TS*sc)+'px';C.style.height=Math.floor(VH*TS*sc)+'px';mmC.width=MW*3;mmC.height=MH*3;if(alive)render()}
+function showOverlay(id){document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function hideOverlays(){document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('active'))}
+function msg(t){document.getElementById('msg').textContent=t;clearTimeout(msgTmr);msgTmr=setTimeout(function(){document.getElementById('msg').textContent=''},3500)}
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function genMap(){map=Array.from({length:MH},function(){return Array(MW).fill(T.WALL)});seen=Array.from({length:MH},function(){return Array(MW).fill(false)});mons=[];var rooms=[];for(var i=0;i<100;i++){var w=rnd(4,9),h=rnd(4,7),x=rnd(1,MW-w-1),y=rnd(1,MH-h-1);if(!rooms.some(function(r){return x<r.x+r.w+1&&x+w+1>r.x&&y<r.y+r.h+1&&y+h+1>r.y}))rooms.push({x:x,y:y,w:w,h:h,cx:x+Math.floor(w/2),cy:y+Math.floor(h/2)})}for(var ri=0;ri<rooms.length;ri++){var r=rooms[ri];for(var ry=r.y;ry<r.y+r.h;ry++)for(var rx=r.x;rx<r.x+r.w;rx++)map[ry][rx]=T.FLOOR}for(var i2=1;i2<rooms.length;i2++){var a=rooms[i2-1],b=rooms[i2];if(Math.random()<.5){carvH(a.cy,a.cx,b.cx);carvV(b.cx,a.cy,b.cy)}else{carvV(a.cx,a.cy,b.cy);carvH(b.cy,a.cx,b.cx)}}var last=rooms[rooms.length-1];map[last.cy][last.cx]=T.STAIRS;pl.x=rooms[0].cx;pl.y=rooms[0].cy;for(var i3=1;i3<rooms.length;i3++){var r2=rooms[i3],n=rnd(1,Math.min(3,Math.ceil(cFloor/2)+1));for(var e=0;e<n;e++){var ex=rnd(r2.x+1,r2.x+r2.w-2),ey=rnd(r2.y+1,r2.y+r2.h-2);if(map[ey][ex]===T.FLOOR&&!(ex===last.cx&&ey===last.cy)){var pool=ENEMIES.filter(function(en){return en.fl.indexOf(cFloor)>=0}),tmpl=pool[rnd(0,pool.length-1)],s=1+(cFloor-1)*.12;mons.push(Object.assign({},tmpl,{x:ex,y:ey,hp:Math.ceil(tmpl.hp*s),mhp:Math.ceil(tmpl.hp*s)}))}}}for(var i4=1;i4<rooms.length-1;i4++){var r3=rooms[i4];if(Math.random()<.4){var cx2=rnd(r3.x+1,r3.x+r3.w-2),cy2=rnd(r3.y+1,r3.y+r3.h-2);if(map[cy2][cx2]===T.FLOOR&&!mons.some(function(m){return m.x===cx2&&m.y===cy2}))map[cy2][cx2]=T.CHEST}if(Math.random()<.35){var px2=rnd(r3.x+1,r3.x+r3.w-2),py2=rnd(r3.y+1,r3.y+r3.h-2);if(map[py2][px2]===T.FLOOR&&!mons.some(function(m){return m.x===px2&&m.y===py2}))map[py2][px2]=T.POTION}}reveal(pl.x,pl.y)}
+function carvH(y,x1,x2){for(var x=Math.min(x1,x2);x<=Math.max(x1,x2);x++)map[y][x]=T.FLOOR}
+function carvV(x,y1,y2){for(var y=Math.min(y1,y2);y<=Math.max(y1,y2);y++)map[y][x]=T.FLOOR}
+function reveal(px,py){for(var dy=-SIGHT;dy<=SIGHT;dy++)for(var dx=-SIGHT;dx<=SIGHT;dx++){var nx=px+dx,ny=py+dy;if(nx>=0&&nx<MW&&ny>=0&&ny<MH&&dx*dx+dy*dy<=SIGHT*SIGHT&&los(px,py,nx,ny))seen[ny][nx]=true}}
+function los(x0,y0,x1,y1){var dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,e=dx-dy,cx2=x0,cy2=y0;while(true){if(cx2===x1&&cy2===y1)return true;if(map[cy2][cx2]===T.WALL&&!(cx2===x0&&cy2===y0))return false;var e2=2*e;if(e2>-dy){e-=dy;cx2+=sx}if(e2<dx){e+=dx;cy2+=sy}}}
+function startGame(){pl={x:0,y:0,hp:25,maxHp:25,atk:3,def:1,gold:0,xp:0,lv:1};cFloor=1;alive=true;st={kills:0,chests:0,potions:0,steps:0};hideOverlays();document.getElementById('hud').style.display='flex';document.getElementById('minimap').style.display='block';document.getElementById('jb-bar').style.display='flex';genMap();hudUpdate();render();msg('Floor 1 - Find the stairs!')}
+function move(dx,dy){if(!alive)return;var nx=pl.x+dx,ny=pl.y+dy;if(nx<0||nx>=MW||ny<0||ny>=MH||map[ny][nx]===T.WALL)return;var en=mons.find(function(m){return m.x===nx&&m.y===ny&&m.hp>0});if(en){attack(en);enemyTurn();checkHP();hudUpdate();render();return}pl.x=nx;pl.y=ny;st.steps++;var tile=map[ny][nx];if(tile===T.STAIRS){descend();return}if(tile===T.CHEST)openChest(nx,ny);if(tile===T.POTION)drinkPotion(nx,ny);reveal(pl.x,pl.y);enemyTurn();checkHP();hudUpdate();render()}
+function rest(){if(!alive)return;if(pl.hp<pl.maxHp){pl.hp=Math.min(pl.maxHp,pl.hp+1);msg('Resting... +1 HP')}enemyTurn();checkHP();hudUpdate();render()}
+function attack(en){var dmg=Math.max(1,pl.atk-en.def+rnd(-1,1));en.hp-=dmg;if(en.hp<=0){mons.splice(mons.indexOf(en),1);pl.gold+=en.gold;pl.xp+=en.xp;st.kills++;msg(en.icon+' '+en.name+' slain! +'+en.gold+' gold +'+en.xp+'XP');lvUp()}else msg('Hit '+en.icon+' '+en.name+' for '+dmg+'!')}
+function lvUp(){var need=pl.lv*50;if(pl.xp>=need){pl.xp-=need;pl.lv++;pl.maxHp+=5;pl.hp=Math.min(pl.maxHp,pl.hp+10);pl.atk++;pl.def++;msg('Level '+pl.lv+'! +5 MaxHP, +1 ATK, +1 DEF')}}
+function enemyTurn(){for(var i=0;i<mons.length;i++){var e=mons[i];if(e.hp<=0)continue;var d=Math.abs(e.x-pl.x)+Math.abs(e.y-pl.y);if(d>6)continue;if(d===1){var dmg=Math.max(1,e.atk-pl.def+rnd(-1,1));pl.hp-=dmg;msg(e.icon+' '+e.name+' hits you for '+dmg+'!')}else if(d<=5){var dx2=Math.sign(pl.x-e.x),dy2=Math.sign(pl.y-e.y),mvs=Math.random()<.5?[[dx2,0],[0,dy2]]:[[0,dy2],[dx2,0]];for(var j=0;j<mvs.length;j++){var nx2=e.x+mvs[j][0],ny2=e.y+mvs[j][1];if(nx2>=0&&nx2<MW&&ny2>=0&&ny2<MH&&map[ny2][nx2]!==T.WALL&&!mons.some(function(o){return o!==e&&o.x===nx2&&o.y===ny2})&&!(nx2===pl.x&&ny2===pl.y)){e.x=nx2;e.y=ny2;break}}}}}
+function openChest(x,y){map[y][x]=T.FLOOR;st.chests++;var avail=LOOT.filter(function(l){return l.fl.indexOf(cFloor)>=0});if(!avail.length){var g=rnd(5,15)*cFloor;pl.gold+=g;msg('Chest! Found '+g+' gold!');return}var l=avail[rnd(0,avail.length-1)];pl[l.stat]=(pl[l.stat]||0)+l.val;if(l.stat==='maxHp')pl.hp+=l.val;var label=l.stat==='maxHp'?'Max HP':l.stat==='atk'?'ATK':'DEF';msg('Chest! '+l.name+'! +'+l.val+' '+label)}
+function drinkPotion(x,y){map[y][x]=T.FLOOR;st.potions++;var heal=rnd(8,15)+cFloor*3;pl.hp=Math.min(pl.maxHp,pl.hp+heal);msg('Health Potion! +'+heal+' HP')}
+function descend(){cFloor++;if(cFloor>FLOORS){winGame();return}msg('Descending to Floor '+cFloor+'...');genMap();hudUpdate();render()}
+function checkHP(){if(pl.hp<=0){alive=false;document.getElementById('d-stats').innerHTML='Fell on <b>Floor '+cFloor+'</b><br>Level <b>'+pl.lv+'</b> - <b>'+st.kills+'</b> enemies slain<br><b>'+st.chests+'</b> chests - <b>'+pl.gold+'</b> gold - <b>'+st.steps+'</b> steps';showOverlay('death');document.getElementById('hud').style.display='none';document.getElementById('minimap').style.display='none'}}
+function winGame(){alive=false;document.getElementById('v-stats').innerHTML='Cleared all <b>'+FLOORS+' floors</b>!<br>Level <b>'+pl.lv+'</b> - <b>'+st.kills+'</b> enemies slain<br><b>'+st.chests+'</b> chests - <b>'+pl.gold+'</b> gold - <b>'+st.steps+'</b> steps';showOverlay('victory');document.getElementById('hud').style.display='none';document.getElementById('minimap').style.display='none'}
+function hudUpdate(){document.getElementById('hp').textContent=pl.hp;document.getElementById('maxhp').textContent=pl.maxHp;document.getElementById('atk').textContent=pl.atk;document.getElementById('def').textContent=pl.def;document.getElementById('gold').textContent=pl.gold;document.getElementById('floor').textContent=cFloor;document.getElementById('lvl').textContent=pl.lv;var p=Math.max(0,pl.hp/pl.maxHp*100),b=document.getElementById('hp-bar');b.style.width=p+'%';b.style.background=p>50?'#00ff88':p>25?'#ffcc00':'#ff6b6b'}
+function onKey(e){if(!alive)return;var K={'ArrowUp':[0,-1],'ArrowDown':[0,1],'ArrowLeft':[-1,0],'ArrowRight':[1,0],'w':[0,-1],'s':[0,1],'a':[-1,0],'d':[1,0],'W':[0,-1],'S':[0,1],'A':[-1,0],'D':[1,0]};if(e.key===' '||e.key==='.'){rest();e.preventDefault();return}var dir=K[e.key];if(dir){e.preventDefault();move(dir[0],dir[1])}}
+function render(){if(!ctx)return;var camX=Math.max(0,Math.min(MW-VW,pl.x-Math.floor(VW/2))),camY=Math.max(0,Math.min(MH-VH,pl.y-Math.floor(VH/2)));ctx.fillStyle='#0a0a0a';ctx.fillRect(0,0,C.width,C.height);for(var vy=0;vy<VH;vy++){for(var vx=0;vx<VW;vx++){var mx=camX+vx,my=camY+vy;if(mx>=MW||my>=MH)continue;var sx=vx*TS,sy=vy*TS;if(!seen[my][mx]){ctx.fillStyle='#0a0a0a';ctx.fillRect(sx,sy,TS,TS);continue}var dist=Math.abs(mx-pl.x)+Math.abs(my-pl.y),vis=dist<=SIGHT+1,tile=map[my][mx];if(tile===T.WALL){ctx.fillStyle=vis?'#2a2520':'#1a1815';ctx.fillRect(sx,sy,TS,TS);ctx.fillStyle=vis?'#3a3530':'#222';ctx.fillRect(sx,sy,TS,4);if(vis){ctx.fillStyle='#4a4540';if((mx+my)%2===0){ctx.fillRect(sx+2,sy+10,12,2);ctx.fillRect(sx+18,sy+20,12,2)}else ctx.fillRect(sx+10,sy+15,12,2)}}else{ctx.fillStyle=(mx+my)%2===0?'#1a1815':'#1e1c18';ctx.fillRect(sx,sy,TS,TS);if(tile===T.STAIRS){ctx.fillStyle='rgba(255,204,0,0.15)';ctx.fillRect(sx-2,sy-2,TS+4,TS+4);ctx.font='24px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('\u2B07',sx+TS/2,sy+TS/2)}else if(tile===T.CHEST){ctx.font='22px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('\u{1F4E6}',sx+TS/2,sy+TS/2)}else if(tile===T.POTION){ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('\u{1F9EA}',sx+TS/2,sy+TS/2)}}if(!vis){ctx.fillStyle='rgba(10,10,10,0.55)';ctx.fillRect(sx,sy,TS,TS)}}}for(var i=0;i<mons.length;i++){var e=mons[i];if(e.hp<=0||!seen[e.y][e.x])continue;var d=Math.abs(e.x-pl.x)+Math.abs(e.y-pl.y);if(d>SIGHT+1)continue;var ex=(e.x-camX)*TS,ey=(e.y-camY)*TS;if(ex<0||ey<0||ex>=C.width||ey>=C.height)continue;ctx.font='24px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(e.icon,ex+TS/2,ey+TS/2);var hp=e.hp/e.mhp;ctx.fillStyle='#2a1a1a';ctx.fillRect(ex+4,ey,TS-8,3);ctx.fillStyle=hp>.5?'#ff6b6b':'#ff3333';ctx.fillRect(ex+4,ey,(TS-8)*hp,3)}var px=(pl.x-camX)*TS,py=(pl.y-camY)*TS;ctx.fillStyle='rgba(0,255,136,0.08)';ctx.beginPath();ctx.arc(px+TS/2,py+TS/2,TS,0,Math.PI*2);ctx.fill();ctx.fillStyle='#00ff88';ctx.beginPath();ctx.arc(px+TS/2,py+TS/2+2,10,0,Math.PI*2);ctx.fill();ctx.fillStyle='#00cc6a';ctx.beginPath();ctx.arc(px+TS/2,py+TS/2-4,7,Math.PI,0);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(px+12,py+13,3,3);ctx.fillRect(px+18,py+13,3,3);var s=3;mmx.fillStyle='#000';mmx.fillRect(0,0,mmC.width,mmC.height);for(var y=0;y<MH;y++)for(var x=0;x<MW;x++){if(!seen[y][x])continue;mmx.fillStyle=map[y][x]===T.WALL?'#333':map[y][x]===T.STAIRS?'#ffcc00':'#1a1a1a';mmx.fillRect(x*s,y*s,s,s)}for(var i2=0;i2<mons.length;i2++){var e2=mons[i2];if(e2.hp<=0||!seen[e2.y][e2.x])continue;mmx.fillStyle='#ff6b6b';mmx.fillRect(e2.x*s,e2.y*s,s,s)}mmx.fillStyle='#00ff88';mmx.fillRect(pl.x*s,pl.y*s,s,s)}
+init();
+</script>
+</body>
+</html>

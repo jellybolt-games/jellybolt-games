@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Bounce Blitz — JellyBolt Games</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a1a; overflow: hidden; touch-action: none; user-select: none; }
+canvas { display: block; }
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+// Game state
+const STATE = { MENU: 0, PLAYING: 1, DEAD: 2 };
+let state = STATE.MENU;
+let score = 0, highScore = parseInt(localStorage.getItem('bb_high') || '0');
+let ball, obstacles, particles, speed, frameCount, combo;
+
+const COLORS = ['#00ff88','#ff6b6b','#58a6ff','#ffcc00','#bc8cff','#f778ba','#ff9f43'];
+const BALL_SKINS = ['#00ff88','#58a6ff','#ffcc00','#ff6b6b','#bc8cff'];
+let skinIdx = 0;
+
+function init() {
+  ball = { x: W / 2, y: H * 0.7, vy: 0, radius: 14, trail: [] };
+  obstacles = [];
+  particles = [];
+  speed = 2;
+  frameCount = 0;
+  score = 0;
+  combo = 0;
+  // Generate initial obstacles
+  for (let i = 0; i < 6; i++) genObstacle(H * 0.3 - i * 150);
+}
+
+function genObstacle(y) {
+  const gapW = Math.max(80, 150 - speed * 3);
+  const gapX = 40 + Math.random() * (W - 80 - gapW);
+  const type = Math.random() < 0.3 ? 'moving' : 'static';
+  obstacles.push({
+    y, gapX, gapW, type,
+    dir: Math.random() < 0.5 ? 1 : -1,
+    moveSpeed: 0.5 + Math.random() * 1.5,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    passed: false
+  });
+}
+
+function tap() {
+  if (state === STATE.MENU) { state = STATE.PLAYING; init(); return; }
+  if (state === STATE.DEAD) { state = STATE.MENU; return; }
+  ball.vy = -9 - Math.min(speed * 0.3, 4);
+  // Tap particles
+  for (let i = 0; i < 6; i++) {
+    particles.push({
+      x: ball.x, y: ball.y,
+      vx: (Math.random() - 0.5) * 4, vy: Math.random() * 3 + 1,
+      life: 1, color: BALL_SKINS[skinIdx], size: 3 + Math.random() * 3
+    });
+  }
+}
+
+canvas.addEventListener('click', tap);
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); tap(); }, { passive: false });
+window.addEventListener('keydown', (e) => { if (e.code === 'Space') tap(); });
+
+function update() {
+  if (state !== STATE.PLAYING) return;
+  frameCount++;
+  if (frameCount % 300 === 0) speed += 0.3;
+
+  // Ball physics
+  ball.vy += 0.45; // gravity
+  ball.y += ball.vy;
+  ball.trail.unshift({ x: ball.x, y: ball.y });
+  if (ball.trail.length > 12) ball.trail.pop();
+
+  // Ball horizontal drift toward center
+  ball.x += (W / 2 - ball.x) * 0.01;
+
+  // Move obstacles down
+  obstacles.forEach(obs => {
+    obs.y += speed;
+    if (obs.type === 'moving') {
+      obs.gapX += obs.dir * obs.moveSpeed;
+      if (obs.gapX <= 20 || obs.gapX + obs.gapW >= W - 20) obs.dir *= -1;
+    }
+    // Check pass
+    if (!obs.passed && obs.y > ball.y + ball.radius) {
+      obs.passed = true;
+      score++;
+      combo++;
+      // Score particles
+      for (let i = 0; i < 4; i++) {
+        particles.push({
+          x: ball.x, y: ball.y - 20,
+          vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 2,
+          life: 1, color: '#ffcc00', size: 2 + Math.random() * 2
+        });
+      }
+    }
+    // Collision
+    if (Math.abs(obs.y - ball.y) < ball.radius + 4) {
+      if (ball.x - ball.radius < obs.gapX || ball.x + ball.radius > obs.gapX + obs.gapW) {
+        die();
+      }
+    }
+  });
+
+  // Remove off-screen obstacles, add new
+  obstacles = obstacles.filter(o => o.y < H + 50);
+  while (obstacles.length < 6) {
+    const topY = Math.min(...obstacles.map(o => o.y));
+    genObstacle(topY - 150);
+  }
+
+  // Wall collision
+  if (ball.x < ball.radius || ball.x > W - ball.radius) die();
+  // Floor/ceiling
+  if (ball.y > H + 50 || ball.y < -50) die();
+
+  // Particles
+  particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.03; });
+  particles = particles.filter(p => p.life > 0);
+}
+
+function die() {
+  state = STATE.DEAD;
+  if (score > highScore) { highScore = score; localStorage.setItem('bb_high', highScore.toString()); }
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000);
+  // Death explosion
+  for (let i = 0; i < 20; i++) {
+    particles.push({
+      x: ball.x, y: ball.y,
+      vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
+      life: 1, color: BALL_SKINS[skinIdx], size: 3 + Math.random() * 5
+    });
+  }
+}
+
+function draw() {
+  // Background
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Stars
+  if (!draw.stars) {
+    draw.stars = [];
+    for (let i = 0; i < 60; i++) draw.stars.push({ x: Math.random() * W, y: Math.random() * H, s: Math.random() * 2 });
+  }
+  draw.stars.forEach(s => {
+    ctx.fillStyle = `rgba(255,255,255,${0.2 + Math.sin(Date.now() * 0.001 + s.x) * 0.15})`;
+    ctx.fillRect(s.x, s.y, s.s, s.s);
+  });
+
+  if (state === STATE.MENU) {
+    drawMenu();
+    drawParticles();
+    return;
+  }
+
+  // Obstacles
+  obstacles.forEach(obs => {
+    ctx.fillStyle = obs.color;
+    ctx.shadowColor = obs.color;
+    ctx.shadowBlur = 8;
+    // Left wall
+    ctx.fillRect(0, obs.y - 4, obs.gapX, 8);
+    // Right wall
+    ctx.fillRect(obs.gapX + obs.gapW, obs.y - 4, W - obs.gapX - obs.gapW, 8);
+    ctx.shadowBlur = 0;
+  });
+
+  // Ball trail
+  ball.trail.forEach((t, i) => {
+    const alpha = (1 - i / ball.trail.length) * 0.4;
+    const size = ball.radius * (1 - i / ball.trail.length * 0.5);
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, size, 0, Math.PI * 2);
+    ctx.fillStyle = BALL_SKINS[skinIdx] + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+    ctx.fill();
+  });
+
+  // Ball
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+  ctx.fillStyle = BALL_SKINS[skinIdx];
+  ctx.shadowColor = BALL_SKINS[skinIdx];
+  ctx.shadowBlur = 20;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Ball shine
+  ctx.beginPath();
+  ctx.arc(ball.x - 4, ball.y - 4, ball.radius * 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fill();
+
+  drawParticles();
+
+  // HUD
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 48px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(score, W / 2, 60);
+  ctx.font = '16px system-ui';
+  ctx.fillStyle = '#8b949e';
+  ctx.fillText(`Best: ${highScore}`, W / 2, 85);
+
+  if (state === STATE.DEAD) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ff6b6b';
+    ctx.font = 'bold 52px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', W / 2, H / 2 - 40);
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = 'bold 36px system-ui';
+    ctx.fillText(`Score: ${score}`, W / 2, H / 2 + 10);
+    if (score === highScore && score > 0) {
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 24px system-ui';
+      ctx.fillText('🏆 NEW HIGH SCORE!', W / 2, H / 2 + 50);
+    }
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '20px system-ui';
+    ctx.fillText('Tap to continue', W / 2, H / 2 + 100);
+  }
+}
+
+function drawMenu() {
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#00ff88';
+  ctx.font = 'bold 56px system-ui';
+  ctx.shadowColor = '#00ff88';
+  ctx.shadowBlur = 30;
+  ctx.fillText('BOUNCE BLITZ', W / 2, H / 2 - 80);
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = '#58a6ff';
+  ctx.font = '22px system-ui';
+  ctx.fillText('⚡ Tap to bounce through the gaps!', W / 2, H / 2 - 30);
+
+  ctx.fillStyle = '#ffcc00';
+  ctx.font = 'bold 28px system-ui';
+  ctx.fillText('TAP TO START', W / 2, H / 2 + 30);
+
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '16px system-ui';
+  ctx.fillText(`High Score: ${highScore}`, W / 2, H / 2 + 70);
+
+  // Skin selector
+  ctx.fillStyle = '#666';
+  ctx.font = '14px system-ui';
+  ctx.fillText('Press 1-5 to change ball color', W / 2, H / 2 + 110);
+
+  // Bouncing demo ball
+  const demoY = H / 2 + 160 + Math.sin(Date.now() * 0.003) * 20;
+  ctx.beginPath();
+  ctx.arc(W / 2, demoY, 16, 0, Math.PI * 2);
+  ctx.fillStyle = BALL_SKINS[skinIdx];
+  ctx.shadowColor = BALL_SKINS[skinIdx];
+  ctx.shadowBlur = 15;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = '#484f58';
+  ctx.font = '14px system-ui';
+  ctx.fillText('⚡ JellyBolt Games', W / 2, H - 30);
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+  });
+  ctx.globalAlpha = 1;
+}
+
+window.addEventListener('keydown', (e) => {
+  const n = parseInt(e.key);
+  if (n >= 1 && n <= 5) skinIdx = n - 1;
+});
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+init();
+loop();
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Bounce Blitz',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Bounce%20Blitz%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

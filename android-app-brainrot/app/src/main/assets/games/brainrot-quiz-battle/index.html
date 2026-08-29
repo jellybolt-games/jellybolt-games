@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BrainRot Quiz Battle — JellyBolt Games</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
+body {
+  background: #0a0a2e;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+#game-container {
+  width: 100vw; height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.screen { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+.screen.active { display: flex; }
+/* Splash */
+#splash { background: linear-gradient(135deg, #0a0a2e 0%, #1a0a3e 50%, #0a2a4e 100%); }
+.splash-logo { font-family: 'Fredoka One', cursive; font-size: 3em; color: #00ff88; text-shadow: 0 0 30px #00ff8855, 0 0 60px #00ff8833; margin-bottom: 10px; }
+.splash-sub { font-size: 1.2em; color: #88aaff; margin-bottom: 30px; }
+.splash-jelly { font-size: 0.9em; color: #666; margin-top: 40px; }
+/* Buttons */
+.btn {
+  padding: 15px 40px; font-size: 1.3em; font-family: 'Fredoka One', cursive;
+  border: none; border-radius: 50px; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  text-transform: uppercase; letter-spacing: 2px;
+}
+.btn:hover { transform: scale(1.05); }
+.btn-play { background: linear-gradient(135deg, #00ff88, #00cc66); color: #0a0a2e; box-shadow: 0 5px 25px #00ff8844; }
+.btn-cat { background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: #fff; box-shadow: 0 5px 25px #ff6b6b44; margin: 8px; padding: 12px 30px; font-size: 1em; }
+.btn-cat.selected { transform: scale(1.08); box-shadow: 0 5px 35px #ff6b6b88; }
+/* Quiz Screen */
+#quiz { background: linear-gradient(180deg, #0a0a2e, #1a1a4e); padding: 20px; }
+.hud { display: flex; justify-content: space-between; width: 90%; max-width: 600px; margin-bottom: 20px; }
+.hud-item { font-size: 1.1em; color: #88aaff; }
+.hud-item span { color: #00ff88; font-weight: 900; }
+.timer-bar { width: 90%; max-width: 600px; height: 8px; background: #1a1a4e; border-radius: 4px; margin-bottom: 25px; overflow: hidden; }
+.timer-fill { height: 100%; background: linear-gradient(90deg, #00ff88, #ffcc00); border-radius: 4px; transition: width 0.1s linear; }
+.question-box {
+  background: #1a1a4e; border: 2px solid #2a2a6e; border-radius: 20px;
+  padding: 30px; width: 90%; max-width: 600px; text-align: center;
+  margin-bottom: 25px; min-height: 120px; display: flex; align-items: center; justify-content: center;
+}
+.question-text { font-size: 1.4em; font-weight: 700; line-height: 1.4; }
+.answers { width: 90%; max-width: 600px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.answer-btn {
+  background: #1a1a4e; border: 2px solid #3a3a7e; border-radius: 15px;
+  padding: 18px; font-size: 1.1em; color: #fff; cursor: pointer;
+  transition: all 0.2s; font-family: 'Nunito', sans-serif; font-weight: 700;
+}
+.answer-btn:hover { border-color: #00ff88; background: #2a2a6e; }
+.answer-btn.correct { background: #00ff8833; border-color: #00ff88; color: #00ff88; }
+.answer-btn.wrong { background: #ff6b6b33; border-color: #ff6b6b; color: #ff6b6b; }
+.answer-btn.disabled { pointer-events: none; opacity: 0.6; }
+/* Results */
+#results { background: linear-gradient(135deg, #0a0a2e, #1a0a3e); }
+.results-score { font-family: 'Fredoka One', cursive; font-size: 4em; color: #00ff88; text-shadow: 0 0 40px #00ff8844; }
+.results-label { font-size: 1.5em; color: #88aaff; margin-bottom: 10px; }
+.results-detail { font-size: 1.1em; color: #aaa; margin: 5px 0; }
+.results-rank { font-size: 1.8em; margin: 20px 0; }
+.btn-again { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; box-shadow: 0 5px 25px #6c5ce744; margin-top: 20px; }
+/* Category Select */
+#categories { background: linear-gradient(135deg, #0a0a2e, #0a2a4e); }
+.cat-title { font-family: 'Fredoka One', cursive; font-size: 2em; color: #ffcc00; margin-bottom: 20px; }
+.cat-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 500px; }
+/* Particles */
+.particle {
+  position: absolute; width: 4px; height: 4px; border-radius: 50%;
+  background: #00ff88; opacity: 0.3; animation: float 6s infinite;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
+  50% { transform: translateY(-100px) rotate(180deg); opacity: 0.1; }
+}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="game-container">
+  <!-- Splash Screen -->
+  <div id="splash" class="screen active">
+    <div class="splash-logo">🧠 BrainRot Quiz</div>
+    <div class="splash-sub">Test your knowledge. Survive the rot.</div>
+    <button class="btn btn-play" onclick="showCategories()">▶ PLAY</button>
+    <div class="splash-jelly">⚡ JellyBolt Games</div>
+  </div>
+
+  <!-- Category Select -->
+  <div id="categories" class="screen">
+    <div class="cat-title">🎯 Pick Your Poison</div>
+    <div class="cat-grid">
+      <button class="btn btn-cat" onclick="startGame('memes')">😂 Memes</button>
+      <button class="btn btn-cat" onclick="startGame('tech')">💻 Tech</button>
+      <button class="btn btn-cat" onclick="startGame('science')">🔬 Science</button>
+      <button class="btn btn-cat" onclick="startGame('gaming')">🎮 Gaming</button>
+      <button class="btn btn-cat" onclick="startGame('internet')">🌐 Internet</button>
+      <button class="btn btn-cat" onclick="startGame('mixed')">🎲 Mixed</button>
+    </div>
+  </div>
+
+  <!-- Quiz Screen -->
+  <div id="quiz" class="screen">
+    <div class="hud">
+      <div class="hud-item">Score: <span id="score">0</span></div>
+      <div class="hud-item">Q: <span id="qnum">1</span>/10</div>
+      <div class="hud-item">Streak: <span id="streak">0</span>🔥</div>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill"></div></div>
+    <div class="question-box"><div class="question-text" id="question-text">Loading...</div></div>
+    <div class="answers" id="answers"></div>
+  </div>
+
+  <!-- Results Screen -->
+  <div id="results" class="screen">
+    <div class="results-label">Final Score</div>
+    <div class="results-score" id="final-score">0</div>
+    <div class="results-detail" id="results-correct"></div>
+    <div class="results-detail" id="results-streak"></div>
+    <div class="results-rank" id="results-rank"></div>
+    <button class="btn btn-again" onclick="showCategories()">🔄 Play Again</button>
+    <div class="splash-jelly" style="margin-top:30px">⚡ JellyBolt Games</div>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = {
+  memes: [
+    { q: "What does 'Skibidi' originally come from?", a: ["A YouTube series", "A TikTok dance", "A Roblox game", "A meme song"], c: 0 },
+    { q: "What is the 'Rizz' meme about?", a: ["Cooking skills", "Charisma/charm", "Gaming wins", "Dance moves"], c: 1 },
+    { q: "Who is the 'Gigachad' meme based on?", a: ["Ernest Khalimov", "Dwayne Johnson", "Arnold S.", "A CGI model"], c: 0 },
+    { q: "What does 'No cap' mean in internet slang?", a: ["No hat", "No lie / for real", "No limit", "No problem"], c: 1 },
+    { q: "What is 'Sigma Male' in meme culture?", a: ["A math term", "A lone wolf archetype", "A Greek letter", "A fitness routine"], c: 1 },
+    { q: "The 'This is Fine' meme features what animal?", a: ["Cat", "Dog", "Frog", "Bear"], c: 1 },
+    { q: "What does 'Based' mean in internet slang?", a: ["Uninformed", "Agreeable/authentic", "Basic", "Biased"], c: 1 },
+    { q: "What game popularized the 'Among Us' meme?", a: ["Fortnite", "Among Us", "Minecraft", "Roblox"], c: 1 },
+    { q: "'OK Boomer' targets which generation?", a: ["Gen Z", "Millennials", "Gen X", "Baby Boomers"], c: 3 },
+    { q: "What is 'Copium' in meme culture?", a: ["A real drug", "Coping mechanism joke", "A game item", "A crypto coin"], c: 1 },
+    { q: "The 'Distracted Boyfriend' meme is from where?", a: ["A movie scene", "A stock photo", "A TV show", "A painting"], c: 1 },
+    { q: "What does 'Bussin' mean?", a: ["Taking a bus", "Really good/delicious", "Being busy", "Dancing"], c: 1 },
+  ],
+  tech: [
+    { q: "What does HTML stand for?", a: ["HyperText Markup Language", "High Tech Modern Language", "Home Tool Markup Language", "Hyper Transfer ML"], c: 0 },
+    { q: "Who created JavaScript?", a: ["James Gosling", "Brendan Eich", "Guido van Rossum", "Dennis Ritchie"], c: 1 },
+    { q: "What does API stand for?", a: ["App Programming Interface", "Advanced Program Integration", "Auto Protocol Input", "App Process Interaction"], c: 0 },
+    { q: "What year was the first iPhone released?", a: ["2005", "2006", "2007", "2008"], c: 2 },
+    { q: "What does CPU stand for?", a: ["Central Processing Unit", "Computer Power Unit", "Central Program Utility", "Core Processing Update"], c: 0 },
+    { q: "Which company created Python?", a: ["Google", "Microsoft", "None - individual", "Apple"], c: 2 },
+    { q: "What is the latest HTTP version?", a: ["HTTP/1.1", "HTTP/2", "HTTP/3", "HTTP/4"], c: 2 },
+    { q: "What does 'Git' primarily do?", a: ["Web hosting", "Version control", "Database management", "Cloud computing"], c: 1 },
+    { q: "What is the cloud?", a: ["Weather data", "Remote servers", "A browser", "Wireless tech"], c: 1 },
+    { q: "What does SSD stand for?", a: ["Super Speed Drive", "Solid State Drive", "System Storage Device", "Serial Signal Data"], c: 1 },
+    { q: "What language does Arduino use?", a: ["Python", "Java", "C/C++", "Rust"], c: 2 },
+    { q: "Who founded Tesla?", a: ["Elon Musk alone", "Martin Eberhard & Marc Tarpenning", "Jeff Bezos", "Steve Jobs"], c: 1 },
+  ],
+  science: [
+    { q: "What is the chemical symbol for gold?", a: ["Go", "Gd", "Au", "Ag"], c: 2 },
+    { q: "How many bones are in the human body?", a: ["186", "206", "226", "256"], c: 1 },
+    { q: "What planet is known as the Red Planet?", a: ["Venus", "Jupiter", "Mars", "Saturn"], c: 2 },
+    { q: "What is the speed of light (approx)?", a: ["300,000 km/s", "150,000 km/s", "500,000 km/s", "1,000,000 km/s"], c: 0 },
+    { q: "What gas do plants absorb?", a: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"], c: 2 },
+    { q: "What is the hardest natural substance?", a: ["Steel", "Diamond", "Titanium", "Quartz"], c: 1 },
+    { q: "How many chromosomes do humans have?", a: ["23", "44", "46", "48"], c: 2 },
+    { q: "What is the largest organ in the human body?", a: ["Liver", "Brain", "Skin", "Lungs"], c: 2 },
+    { q: "What is absolute zero in Celsius?", a: ["-273.15°C", "-100°C", "-459.67°C", "0°C"], c: 0 },
+    { q: "What element has atomic number 1?", a: ["Helium", "Hydrogen", "Lithium", "Carbon"], c: 1 },
+    { q: "What is the powerhouse of the cell?", a: ["Nucleus", "Ribosome", "Mitochondria", "Golgi body"], c: 2 },
+    { q: "How old is the Earth (approx)?", a: ["4.5 billion years", "1 billion years", "10 billion years", "100 million years"], c: 0 },
+  ],
+  gaming: [
+    { q: "What game has the most sales of all time?", a: ["GTA V", "Minecraft", "Tetris", "Wii Sports"], c: 1 },
+    { q: "What year did Fortnite Battle Royale launch?", a: ["2016", "2017", "2018", "2019"], c: 1 },
+    { q: "Who is Mario's brother?", a: ["Wario", "Luigi", "Toad", "Bowser"], c: 1 },
+    { q: "What company made Roblox?", a: ["Epic Games", "Roblox Corporation", "Mojang", "Valve"], c: 1 },
+    { q: "In Minecraft, what do you use to mine diamonds?", a: ["Stone pickaxe", "Iron pickaxe", "Gold pickaxe", "Wood pickaxe"], c: 1 },
+    { q: "What is the final boss in Minecraft?", a: ["Wither", "Ender Dragon", "Elder Guardian", "Warden"], c: 1 },
+    { q: "What genre is 'League of Legends'?", a: ["FPS", "MOBA", "RPG", "Battle Royale"], c: 1 },
+    { q: "What console did Nintendo release in 2017?", a: ["Wii U", "3DS", "Switch", "GameCube"], c: 2 },
+    { q: "In Among Us, what do Impostors do?", a: ["Fix the ship", "Sabotage and eliminate", "Vote others out", "Complete tasks"], c: 1 },
+    { q: "What battle royale game has a building mechanic?", a: ["PUBG", "Apex Legends", "Fortnite", "Warzone"], c: 2 },
+    { q: "What does 'GG' stand for?", a: ["Great Going", "Good Game", "Get Going", "Game Glitch"], c: 1 },
+    { q: "What is the currency in Fortnite?", a: ["Robux", "V-Bucks", "Coins", "Gems"], c: 1 },
+  ],
+  internet: [
+    { q: "What does 'URL' stand for?", a: ["Uniform Resource Locator", "Universal Reference Link", "United Resource Library", "User Request Location"], c: 0 },
+    { q: "What year was YouTube founded?", a: ["2003", "2004", "2005", "2006"], c: 2 },
+    { q: "What social media has 'Stories' first?", a: ["Instagram", "Snapchat", "Facebook", "TikTok"], c: 1 },
+    { q: "What does 'WWW' stand for?", a: ["World Wide Web", "Western Web Works", "Wireless World Web", "Web World Wide"], c: 0 },
+    { q: "Who founded Facebook?", a: ["Jack Dorsey", "Mark Zuckerberg", "Evan Spiegel", "Kevin Systrom"], c: 1 },
+    { q: "What was the first web browser?", a: ["Netscape", "Internet Explorer", "WorldWideWeb", "Mosaic"], c: 2 },
+    { q: "What does 'DNS' stand for?", a: ["Domain Name System", "Data Network Service", "Digital Name Server", "Domain Network System"], c: 0 },
+    { q: "What year was TikTok launched globally?", a: ["2016", "2017", "2018", "2019"], c: 1 },
+    { q: "What is 'SEO'?", a: ["Social Engine Output", "Search Engine Optimization", "System Error Operation", "Server Exchange Order"], c: 1 },
+    { q: "What does the 'S' in HTTPS stand for?", a: ["Server", "Secure", "System", "Standard"], c: 1 },
+    { q: "What is a 'cookie' in web terms?", a: ["A virus", "Stored data file", "A web page", "An email"], c: 1 },
+    { q: "What company owns Instagram?", a: ["Google", "Meta (Facebook)", "Twitter", "Snapchat"], c: 1 },
+  ]
+};
+QUESTIONS.mixed = [].concat(...Object.values(QUESTIONS));
+
+let currentQuestions = [];
+let currentQ = 0;
+let score = 0;
+let streak = 0;
+let maxStreak = 0;
+let correctCount = 0;
+let timerInterval = null;
+let timeLeft = 15;
+const QUESTION_TIME = 15;
+const TOTAL_QUESTIONS = 10;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showCategories() { showScreen('categories'); }
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+function startGame(category) {
+  currentQuestions = shuffle(QUESTIONS[category]).slice(0, TOTAL_QUESTIONS);
+  currentQ = 0; score = 0; streak = 0; maxStreak = 0; correctCount = 0;
+  showScreen('quiz');
+  loadQuestion();
+}
+
+function loadQuestion() {
+  if (currentQ >= currentQuestions.length) { showResults(); return; }
+  const q = currentQuestions[currentQ];
+  document.getElementById('score').textContent = score;
+  document.getElementById('qnum').textContent = currentQ + 1;
+  document.getElementById('streak').textContent = streak;
+  document.getElementById('question-text').textContent = q.q;
+  const answersDiv = document.getElementById('answers');
+  answersDiv.innerHTML = '';
+  q.a.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = ans;
+    btn.onclick = () => selectAnswer(i);
+    answersDiv.appendChild(btn);
+  });
+  timeLeft = QUESTION_TIME;
+  document.getElementById('timer-fill').style.width = '100%';
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft -= 0.1;
+    document.getElementById('timer-fill').style.width = (timeLeft / QUESTION_TIME * 100) + '%';
+    if (timeLeft <= 5) document.getElementById('timer-fill').style.background = 'linear-gradient(90deg, #ff6b6b, #ffcc00)';
+    else document.getElementById('timer-fill').style.background = 'linear-gradient(90deg, #00ff88, #ffcc00)';
+    if (timeLeft <= 0) { clearInterval(timerInterval); timeUp(); }
+  }, 100);
+}
+
+function selectAnswer(idx) {
+  clearInterval(timerInterval);
+  const q = currentQuestions[currentQ];
+  const btns = document.querySelectorAll('.answer-btn');
+  btns.forEach(b => b.classList.add('disabled'));
+  if (idx === q.c) {
+    btns[idx].classList.add('correct');
+    const timeBonus = Math.floor(timeLeft * 10);
+    const streakBonus = streak * 50;
+    score += 100 + timeBonus + streakBonus;
+    streak++; correctCount++;
+    if (streak > maxStreak) maxStreak = streak;
+  } else {
+    btns[idx].classList.add('wrong');
+    btns[q.c].classList.add('correct');
+    streak = 0;
+  }
+  currentQ++;
+  setTimeout(loadQuestion, 1200);
+}
+
+function timeUp() {
+  const q = currentQuestions[currentQ];
+  const btns = document.querySelectorAll('.answer-btn');
+  btns.forEach(b => b.classList.add('disabled'));
+  btns[q.c].classList.add('correct');
+  streak = 0;
+  currentQ++;
+  setTimeout(loadQuestion, 1200);
+}
+
+function showResults() {
+  showScreen('results');
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000);
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('results-correct').textContent = `${correctCount}/${TOTAL_QUESTIONS} correct answers`;
+  document.getElementById('results-streak').textContent = `Best streak: ${maxStreak}🔥`;
+  const pct = correctCount / TOTAL_QUESTIONS;
+  let rank = '';
+  if (pct === 1) rank = '🏆 QUIZ MASTER';
+  else if (pct >= 0.8) rank = '🌟 BIG BRAIN';
+  else if (pct >= 0.6) rank = '😎 NOT BAD';
+  else if (pct >= 0.4) rank = '🤔 ROOM TO GROW';
+  else rank = '💀 MAXIMUM BRAINROT';
+  document.getElementById('results-rank').textContent = rank;
+}
+
+// Ambient particles
+for (let i = 0; i < 20; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random() * 100 + 'vw';
+  p.style.top = Math.random() * 100 + 'vh';
+  p.style.animationDelay = Math.random() * 6 + 's';
+  p.style.animationDuration = (4 + Math.random() * 4) + 's';
+  document.body.appendChild(p);
+}
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('BrainRot Quiz Battle',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20BrainRot%20Quiz%20Battle%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

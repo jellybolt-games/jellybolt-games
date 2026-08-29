@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Rhythm Tap — JellyBolt Games</title>
+<!-- Google AdSense — uncomment and add your publisher ID when approved -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8350556723025693" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0014;overflow:hidden;touch-action:none;user-select:none;padding-bottom:102px}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<canvas id="c"></canvas>
+
+<!-- Google AdSense Banner Ad — paste your ad unit code below -->
+</div>
+
+<!-- Interstitial Ad — shown between rounds/deaths -->
+<script>
+// === JellyBolt Ad Management ===
+let _adInterstitialCount = 0;
+function showInterstitialAd() {
+  _adInterstitialCount++;
+  // Show interstitial ad every 2nd death/game-over
+  if (_adInterstitialCount % 2 === 0) {
+    document.getElementById('ad-interstitial').style.display = 'flex';
+    // When real AdSense is set up, uncomment:
+    // (adsbygoogle = window.adsbygoogle || []).push({});
+  }
+}
+function closeInterstitialAd() {
+  document.getElementById('ad-interstitial').style.display = 'none';
+}
+</script>
+
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',resize);
+
+const ST={MENU:0,PLAY:1,OVER:2};
+let state=ST.MENU;
+const LANE_COLORS=['#ff6b6b','#00ff88','#58a6ff','#ffcc00'];
+const LANES=4;
+let laneW,hitY,notes=[],score,combo,maxCombo,hits,misses,totalNotes,
+    bpm,beatInterval,nextBeat,songTime,startTime,particles=[],
+    highScore=parseInt(localStorage.getItem('rt_high')||'0'),
+    flashLanes=[0,0,0,0],audioCtx=null;
+
+function initAudio(){
+  if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+}
+
+function playTone(freq,dur){
+  if(!audioCtx)return;
+  try{
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    o.connect(g);g.connect(audioCtx.destination);
+    o.frequency.value=freq;o.type='sine';
+    g.gain.setValueAtTime(0.08,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+    o.start();o.stop(audioCtx.currentTime+dur);
+  }catch(e){}
+}
+
+function playHit(){playTone(880,0.1)}
+function playMiss(){playTone(220,0.15)}
+function playPerfect(){playTone(1320,0.12)}
+
+function init(){
+  score=0;combo=0;maxCombo=0;hits=0;misses=0;totalNotes=0;
+  notes=[];particles=[];flashLanes=[0,0,0,0];
+  bpm=100;beatInterval=60000/bpm;nextBeat=0;
+  laneW=Math.min(80,W/LANES-4);
+  hitY=H-100;
+  startTime=Date.now();songTime=0;
+}
+
+function spawnNote(){
+  // Generate rhythmic patterns
+  const patterns=[
+    [0],[1],[2],[3],           // single
+    [0,2],[1,3],[0,3],[1,2],   // doubles
+    [0,1],[2,3],               // adjacent doubles
+    [0],[1],[2],[3],[0],[1],    // runs
+  ];
+  const pattern=patterns[Math.floor(Math.random()*patterns.length)];
+  // Vary speed based on difficulty
+  const speed=3+Math.min(songTime/30000,4);
+  const travelTime=(hitY+50)/speed;
+  pattern.forEach(lane=>{
+    notes.push({lane,y:-30,speed,hit:false,missed:false,
+      color:LANE_COLORS[lane],spawnTime:Date.now()});
+    totalNotes++;
+  });
+}
+
+function getLaneX(lane){
+  const totalW=LANES*laneW+(LANES-1)*6;
+  const startX=(W-totalW)/2;
+  return startX+lane*(laneW+6)+laneW/2;
+}
+
+function hitLane(lane){
+  if(state!==ST.PLAY)return;
+  flashLanes[lane]=1;
+  // Find closest unhit note in this lane near the hit line
+  let best=null,bestDist=Infinity;
+  notes.forEach(n=>{
+    if(n.lane===lane&&!n.hit&&!n.missed){
+      const dist=Math.abs(n.y-hitY);
+      if(dist<60&&dist<bestDist){bestDist=dist;best=n}
+    }
+  });
+  if(best){
+    best.hit=true;
+    let rating,pts,col;
+    if(bestDist<15){rating='PERFECT';pts=100;col='#ffcc00';playPerfect()}
+    else if(bestDist<30){rating='GREAT';pts=75;col='#00ff88';playHit()}
+    else{rating='GOOD';pts=50;col='#58a6ff';playHit()}
+    pts+=combo*5;
+    score+=pts;combo++;hits++;
+    if(combo>maxCombo)maxCombo=combo;
+    // Particles
+    const x=getLaneX(lane);
+    for(let i=0;i<10;i++)particles.push({x,y:hitY,vx:(Math.random()-.5)*6,vy:-2-Math.random()*4,life:1,color:col,size:3+Math.random()*3,text:null});
+    particles.push({x,y:hitY-30,vx:0,vy:-1.5,life:1.2,color:col,size:0,text:rating});
+  }else{
+    combo=0;misses++;playMiss();
+  }
+}
+
+// Input
+window.addEventListener('keydown',e=>{
+  if(state===ST.MENU){initAudio();state=ST.PLAY;init();return}
+  if(state===ST.OVER){state=ST.MENU;return}
+  const map={d:0,f:1,j:2,k:3,D:0,F:1,J:2,K:3};
+  if(e.key in map)hitLane(map[e.key]);
+  e.preventDefault();
+});
+
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  if(state===ST.MENU){initAudio();state=ST.PLAY;init();return}
+  if(state===ST.OVER){state=ST.MENU;return}
+  for(let t of e.changedTouches){
+    const x=t.clientX;
+    let bestLane=0,bestD=Infinity;
+    for(let i=0;i<LANES;i++){const d=Math.abs(x-getLaneX(i));if(d<bestD){bestD=d;bestLane=i}}
+    hitLane(bestLane);
+  }
+},{passive:false});
+
+canvas.addEventListener('click',()=>{
+  if(state===ST.MENU){initAudio();state=ST.PLAY;init()}
+  else if(state===ST.OVER)state=ST.MENU;
+});
+
+function update(){
+  if(state!==ST.PLAY)return;
+  songTime=Date.now()-startTime;
+  // Increase BPM over time
+  bpm=100+Math.floor(songTime/10000)*10;
+  beatInterval=60000/bpm;
+  // Spawn notes on beat
+  if(songTime>=nextBeat){spawnNote();nextBeat+=beatInterval}
+  // Move notes
+  notes.forEach(n=>{
+    if(!n.hit&&!n.missed)n.y+=n.speed;
+    if(n.y>hitY+60&&!n.hit&&!n.missed){n.missed=true;combo=0;misses++;playMiss()}
+  });
+  notes=notes.filter(n=>n.y<H+50||n.hit);
+  // Flash decay
+  flashLanes=flashLanes.map(f=>Math.max(0,f-0.05));
+  // Particles
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.02});
+  particles=particles.filter(p=>p.life>0);
+  // End after 60 seconds
+  if(songTime>=60000)endGame();
+}
+
+function endGame(){
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000);
+  state=ST.OVER;
+  if(score>highScore){highScore=score;localStorage.setItem('rt_high',highScore.toString())}
+}
+
+function draw(){
+  ctx.fillStyle='#0a0014';ctx.fillRect(0,0,W,H);
+
+  if(state===ST.MENU){
+    ctx.textAlign='center';
+    ctx.fillStyle='#bc8cff';ctx.shadowColor='#bc8cff';ctx.shadowBlur=25;
+    ctx.font='bold 50px system-ui';ctx.fillText('RHYTHM TAP',W/2,H/2-100);ctx.shadowBlur=0;
+    ctx.fillStyle='#f778ba';ctx.font='18px system-ui';
+    ctx.fillText('Hit notes as they reach the line!',W/2,H/2-55);
+    ctx.fillStyle='#8b949e';ctx.font='16px system-ui';
+    ctx.fillText('Desktop: D F J K keys',W/2,H/2-25);
+    ctx.fillText('Mobile: Tap the lanes',W/2,H/2);
+    ctx.fillStyle='#ffcc00';ctx.font='bold 26px system-ui';
+    ctx.fillText('TAP OR PRESS ANY KEY',W/2,H/2+45);
+    ctx.fillStyle='#8b949e';ctx.font='15px system-ui';
+    ctx.fillText(`High Score: ${highScore}`,W/2,H/2+85);
+    // Demo lanes
+    for(let i=0;i<4;i++){
+      const x=W/2+(i-1.5)*50;
+      ctx.fillStyle=LANE_COLORS[i];ctx.globalAlpha=0.4;
+      ctx.beginPath();ctx.arc(x,H/2+140,18,0,Math.PI*2);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#484f58';ctx.font='13px system-ui';ctx.fillText('⚡ JellyBolt Games',W/2,H-25);
+    return;
+  }
+
+  // Lanes
+  for(let i=0;i<LANES;i++){
+    const x=getLaneX(i);
+    const alpha=0.08+flashLanes[i]*0.15;
+    ctx.fillStyle=LANE_COLORS[i];ctx.globalAlpha=alpha;
+    ctx.fillRect(x-laneW/2,0,laneW,H);
+    ctx.globalAlpha=1;
+    // Lane dividers
+    ctx.strokeStyle='#ffffff08';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x-laneW/2,0);ctx.lineTo(x-laneW/2,H);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+laneW/2,0);ctx.lineTo(x+laneW/2,H);ctx.stroke();
+  }
+
+  // Hit line
+  ctx.strokeStyle='#ffffff44';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,hitY);ctx.lineTo(W,hitY);ctx.stroke();
+  // Hit zone indicators
+  for(let i=0;i<LANES;i++){
+    const x=getLaneX(i);
+    ctx.strokeStyle=LANE_COLORS[i];ctx.lineWidth=2+flashLanes[i]*3;ctx.globalAlpha=0.4+flashLanes[i]*0.6;
+    ctx.beginPath();ctx.arc(x,hitY,laneW/2-4,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+
+  // Notes
+  notes.forEach(n=>{
+    if(n.hit)return;
+    const x=getLaneX(n.lane);
+    const alpha=n.missed?0.3:1;
+    ctx.globalAlpha=alpha;
+    ctx.fillStyle=n.color;ctx.shadowColor=n.color;ctx.shadowBlur=n.missed?0:12;
+    ctx.beginPath();ctx.arc(x,n.y,laneW/2-6,0,Math.PI*2);ctx.fill();
+    // Inner glow
+    ctx.fillStyle='rgba(255,255,255,0.3)';
+    ctx.beginPath();ctx.arc(x-4,n.y-4,laneW/6,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;ctx.globalAlpha=1;
+  });
+
+  // Particles
+  particles.forEach(p=>{
+    ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;
+    if(p.text){ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText(p.text,p.x,p.y)}
+    else ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);
+  });ctx.globalAlpha=1;
+
+  // HUD
+  ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='bold 24px system-ui';
+  ctx.fillText(score,15,35);
+  ctx.fillStyle='#8b949e';ctx.font='14px system-ui';
+  ctx.fillText(`${bpm} BPM`,15,55);
+  ctx.textAlign='right';
+  if(combo>2){ctx.fillStyle='#ffcc00';ctx.font='bold 20px system-ui';ctx.fillText(`${combo}x`,W-15,35)}
+  ctx.fillStyle='#8b949e';ctx.font='14px system-ui';
+  const timeLeft=Math.max(0,60-Math.floor(songTime/1000));
+  ctx.fillText(`${timeLeft}s`,W-15,55);
+  // Key hints
+  ctx.textAlign='center';ctx.fillStyle='#ffffff33';ctx.font='bold 14px system-ui';
+  ['D','F','J','K'].forEach((k,i)=>ctx.fillText(k,getLaneX(i),H-15));
+
+  if(state===ST.OVER){
+    ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';
+    ctx.fillStyle='#bc8cff';ctx.font='bold 44px system-ui';ctx.fillText('SONG COMPLETE',W/2,H/2-80);
+    ctx.fillStyle='#ffcc00';ctx.font='bold 32px system-ui';ctx.fillText(`Score: ${score}`,W/2,H/2-30);
+    ctx.fillStyle='#aaa';ctx.font='18px system-ui';
+    const accuracy=totalNotes>0?Math.round(hits/totalNotes*100):0;
+    ctx.fillText(`${hits} hits / ${misses} misses — ${accuracy}% accuracy`,W/2,H/2+10);
+    ctx.fillText(`Max combo: ${maxCombo}x`,W/2,H/2+40);
+    let rank='';
+    if(accuracy>=95)rank='🏆 RHYTHM MASTER';
+    else if(accuracy>=80)rank='⭐ GREAT PERFORMANCE';
+    else if(accuracy>=60)rank='👍 NICE GROOVE';
+    else rank='🎵 KEEP PRACTICING';
+    ctx.fillStyle=accuracy>=80?'#00ff88':'#58a6ff';ctx.font='bold 22px system-ui';
+    ctx.fillText(rank,W/2,H/2+80);
+    if(score>=highScore&&score>0){ctx.fillStyle='#00ff88';ctx.font='bold 18px system-ui';ctx.fillText('🏆 NEW HIGH SCORE!',W/2,H/2+115)}
+    ctx.fillStyle='#8b949e';ctx.font='16px system-ui';ctx.fillText('Tap to continue',W/2,H/2+155);
+  }
+}
+
+function loop(){update();draw();requestAnimationFrame(loop)}
+loop();
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Rhythm Tap',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Rhythm%20Tap%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

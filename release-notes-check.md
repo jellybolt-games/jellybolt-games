@@ -1,0 +1,246 @@
+- generic [ref=e1]:
+  - generic:
+    - generic:
+      - img
+      - progressbar
+      - generic: Loading Google Play Console
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e6]:
+        - button "Show navigation sidebar" [ref=e7] [cursor=pointer]:
+          - img [ref=e10]: menu
+        - generic [ref=e44]:
+          - button "Unread notifications Open notification center" [ref=e49]:
+            - img [ref=e53]: notifications_unread
+            - generic [ref=e55]: Unread notifications
+          - button "JellyBolt Games Collection" [ref=e63] [cursor=pointer]:
+            - img [ref=e69]
+    - generic [ref=e15]:
+      - button "Switch developer accounts JellyBolt Game tdsquadai@gmail.com" [ref=e19] [cursor=pointer]:
+        - img "Switch developer accounts" [ref=e20]
+        - generic [ref=e21]:
+          - generic [ref=e22]: JellyBolt Game
+          - generic [ref=e23]: tdsquadai@gmail.com
+      - navigation [ref=e72]:
+        - link "All apps" [ref=e73] [cursor=pointer]:
+          - /url: /console/u/0/developers/9213992152789777496/app-list
+          - img [ref=e75]: keyboard_backspace
+          - generic [ref=e76]: All apps
+        - list [ref=e77]:
+          - listitem "Dashboard" [ref=e80]:
+            - button "Dashboard" [ref=e81] [cursor=pointer]:
+              - img [ref=e84]: dashboard
+              - generic [ref=e85]: Dashboard
+          - listitem "Statistics" [ref=e88]:
+            - button "Statistics" [ref=e89] [cursor=pointer]:
+              - img [ref=e92]: bar_chart
+              - generic [ref=e93]: Statistics
+          - listitem "Publishing overview" [ref=e96]:
+            - button "Publishing overview" [ref=e97] [cursor=pointer]:
+              - img [ref=e100]: overview
+              - generic [ref=e101]: Publishing overview
+          - listitem "Test and release" [ref=e104]:
+            - button "Test and release" [ref=e105] [cursor=pointer]:
+              - img [ref=e108]: rocket_launch
+              - generic [ref=e109]: Test and release
+            - list [ref=e110]:
+              - generic [ref=e112]:
+                - listitem "Latest releases and bundles" [ref=e114]:
+                  - button "Latest releases and bundles" [ref=e115] [cursor=pointer]:
+                    - generic [ref=e116]: Latest releases and bundles
+                - listitem "Production" [ref=e118]:
+                  - button "Production" [ref=e119] [cursor=pointer]:
+                    - generic [ref=e120]: Production
+                - listitem "Early access" [ref=e122]:
+                  - button "Early access" [ref=e123] [cursor=pointer]:
+                    - generic [ref=e124]: Early access
+                - listitem "Testing" [ref=e126]:
+                  - button "Testing" [ref=e127] [cursor=pointer]:
+                    - generic [ref=e128]: Testing
+                    - img [ref=e130]: expand_less
+                  - list [ref=e131]:
+                    - generic [ref=e133]:
+                      - listitem "Open testing" [ref=e135]:
+                        - button "Open testing" [ref=e136] [cursor=pointer]:
+                          - generic [ref=e137]: Open testing
+                      - listitem "Closed testing" [ref=e139]:
+                        - button "Closed testing" [ref=e140] [cursor=pointer]:
+                          - generic [ref=e141]: Closed testing
+                      - listitem "Internal testing" [ref=e143]:
+                        - button "Internal testing" [ref=e144] [cursor=pointer]:
+                          - generic [ref=e145]: Internal testing
+                      - listitem "Pre-launch report" [ref=e147]:
+                        - button "Pre-launch report" [ref=e148] [cursor=pointer]:
+                          - generic [ref=e149]: Pre-launch report
+                          - img [ref=e151]: expand_more
+                      - listitem "Internal app sharing" [ref=e153]:
+                        - button "Internal app sharing" [ref=e154] [cursor=pointer]:
+                          - generic [ref=e155]: Internal app sharing
+                - listitem "Pre-registration" [ref=e157]:
+                  - button "Pre-registration" [ref=e158] [cursor=pointer]:
+                    - generic [ref=e159]: Pre-registration
+                - listitem "App integrity" [ref=e161]:
+                  - button "App integrity" [ref=e162] [cursor=pointer]:
+                    - generic [ref=e163]: App integrity
+                - listitem "Advanced settings" [ref=e165]:
+                  - button "Advanced settings" [ref=e166] [cursor=pointer]:
+                    - generic [ref=e167]: Advanced settings
+          - listitem "Monitor and improve" [ref=e170]:
+            - button "Monitor and improve" [ref=e171] [cursor=pointer]:
+              - img [ref=e174]: vital_signs
+              - generic [ref=e175]: Monitor and improve
+          - listitem "Grow users" [ref=e178]:
+            - button "Grow users" [ref=e179] [cursor=pointer]:
+              - img [ref=e182]: finance_mode
+              - generic [ref=e183]: Grow users
+          - listitem "Monetize with Play" [ref=e186]:
+            - button "Monetize with Play" [ref=e187] [cursor=pointer]:
+              - img [ref=e190]: sell
+              - generic [ref=e191]: Monetize with Play
+    - generic [ref=e25]:
+      - generic [ref=e195]:
+        - heading "Create closed testing release" [level=1] [ref=e208]
+        - generic [ref=e214]:
+          - generic [ref=e218]:
+            - tablist [ref=e219]:
+              - tab "Step 1 of 2, Create release" [selected] [ref=e220]:
+                - generic [ref=e223]: "1"
+                - generic [ref=e225]: Create release
+              - tab "Step 2 of 2, Preview and confirm" [disabled] [ref=e227]:
+                - generic [ref=e230]: "2"
+                - generic [ref=e232]: Preview and confirm
+            - generic:
+              - tabpanel
+          - button "Discard draft release" [ref=e237]:
+            - generic [ref=e239]: Discard draft release
+        - generic [ref=e242]:
+          - heading "App integrity" [level=2] [ref=e251]
+          - generic [ref=e256]:
+            - list [ref=e258]:
+              - listitem [ref=e259]:
+                - generic [ref=e260]:
+                  - img [ref=e264]: check_circle
+                  - generic [ref=e266]: Automatic protection is on
+              - listitem [ref=e267]:
+                - generic [ref=e268]:
+                  - img [ref=e272]: check_circle
+                  - generic [ref=e274]: Releases signed by Google Play
+            - paragraph [ref=e275]: App integrity tools help you to ensure users experience your apps and games the way you intend
+            - generic [ref=e278]:
+              - button "Manage integrity protection" [ref=e280]:
+                - generic [ref=e283]: Manage integrity protection
+              - button "Change signing key" [ref=e285]:
+                - generic [ref=e288]: Change signing key
+        - generic [ref=e290]:
+          - heading "App bundles" [level=2] [ref=e299]
+          - generic [ref=e301]:
+            - generic [ref=e303]:
+              - heading "Play Games Sidekick" [level=3] [ref=e313]
+              - generic [ref=e314]:
+                - text: Play Games Sidekick is an in-game overlay that allows your players to access their achievements, rewards and game tips without ever leaving your game. Find out more about the Sidekick and how to manage who sees it.
+                - link "Learn more about the Play Games Sidekick and how to manage who sees it" [ref=e315] [cursor=pointer]:
+                  - /url: https://developer.android.com/games/pgs/play-games-sidekick
+                  - text: Learn more
+              - generic [ref=e317]:
+                - generic:
+                  - checkbox "Add Play Games Sidekick to app bundles you upload" [disabled]
+                  - generic:
+                    - img
+                - generic [ref=e322]: Add Play Games Sidekick to app bundles you upload
+            - generic [ref=e323]:
+              - generic [ref=e330]:
+                - img [ref=e335]: apk_document
+                - generic [ref=e336]: Drop app bundles here to upload
+                - generic [ref=e338]:
+                  - button "Upload" [ref=e339]:
+                    - img [ref=e343]: upload
+                    - generic [ref=e344]: Upload
+                  - button "Add from library" [ref=e345]:
+                    - img [ref=e349]: add_to_photos
+                    - generic [ref=e350]: Add from library
+              - grid "Artifacts" [ref=e563]:
+                - row "File type Version API levels Target SDK Screen layouts ABIs Required features" [ref=e564]:
+                  - columnheader "File type" [ref=e565] [cursor=pointer]
+                  - columnheader "Version" [ref=e566] [cursor=pointer]
+                  - columnheader "API levels" [ref=e567] [cursor=pointer]
+                  - columnheader "Target SDK" [ref=e568] [cursor=pointer]
+                  - columnheader "Screen layouts" [ref=e569] [cursor=pointer]
+                  - columnheader "ABIs" [ref=e570] [cursor=pointer]
+                  - columnheader "Required features" [ref=e571] [cursor=pointer]
+                  - cell [ref=e572]
+                  - cell [ref=e573]
+                - 'row "Table cell with a popup 4 (1.3.0) 24+ 35 4 All 2 Manage artifact View details for App bundle: 4 (1.3.0)" [ref=e574]':
+                  - gridcell "Table cell with a popup" [ref=e575]:
+                    - generic "Table cell with a popup" [ref=e578]:
+                      - generic [ref=e579]:
+                        - generic [ref=e580]: App bundle
+                        - 'img "This app bundle has the following file attached: ReTrace mapping file" [ref=e584]': attachment
+                  - gridcell "4 (1.3.0)" [ref=e585]:
+                    - generic [ref=e586]: 4 (1.3.0)
+                  - gridcell "24+" [ref=e587]:
+                    - generic [ref=e588]: 24+
+                  - gridcell "35" [ref=e589]:
+                    - generic [ref=e590]: "35"
+                  - gridcell "4" [ref=e591]:
+                    - generic [ref=e592]: "4"
+                  - gridcell "All" [ref=e593]:
+                    - generic [ref=e594]: All
+                  - gridcell "2" [ref=e595]:
+                    - generic [ref=e596]: "2"
+                  - gridcell "Manage artifact" [ref=e597]:
+                    - button "Manage artifact" [ref=e601] [cursor=pointer]:
+                      - img [ref=e603]: more_vert
+                  - 'gridcell "View details for App bundle: 4 (1.3.0)" [ref=e604]':
+                    - 'button "View details for App bundle: 4 (1.3.0)" [ref=e606] [cursor=pointer]':
+                      - img [ref=e609]: arrow_right_alt
+        - generic [ref=e352]:
+          - heading "Release details" [level=2] [ref=e361]
+          - generic [ref=e365]:
+            - generic [ref=e366]:
+              - group "Release name" [ref=e368]:
+                - generic [ref=e371]: Release name *
+                - generic [ref=e373]:
+                  - generic [ref=e374]:
+                    - textbox "Release name" [ref=e376]: 4 (1.3.0)
+                    - generic [ref=e377]:
+                      - paragraph [ref=e378]
+                      - generic [ref=e379]:
+                        - generic [ref=e380]: 9 / 50
+                        - generic [ref=e381]: Text is 9 characters out of 50
+                  - generic [ref=e382]: This is so you can identify this release, and isn't shown to users on Google Play. We've suggested a name based on the first app bundle or APK in this release, but you can edit it.
+              - group "Release notes" [ref=e384]:
+                - generic [ref=e387]: Release notes
+                - generic [ref=e389]:
+                  - button "Copy from a previous release" [ref=e393]:
+                    - generic [ref=e395]: Copy from a previous release
+                  - generic [ref=e396]:
+                    - textbox "Release notes" [active] [ref=e399]: <en-US>JellyBolt Games Collection - 24 free HTML5 games including arcade, puzzle, RPG, typing, and 3D runner games. Play instantly in your browser!</en-US>
+                    - alert [ref=e635]: "Line 1: tag not closed for en-US>JellyBolt Games Collection - 24 free HTML5 games including arcade, puzzle, RPG, typing, and 3D runner games. Play instantly in your browser!</en-US."
+                  - generic [ref=e402]: Release notes provided for 0 language
+                  - generic [ref=e403]: Let users know what's in your release. Enter release notes for each language within the language tags.
+            - generic [ref=e411]:
+              - button "Discard changes" [ref=e613]:
+                - generic [ref=e615]: Discard changes
+              - generic:
+                - button "Save as draft" [disabled]:
+                  - generic: Save as draft
+              - generic:
+                - button "Next" [disabled]:
+                  - generic: Next
+      - generic [ref=e33]:
+        - generic [ref=e414]:
+          - link "Product updates" [ref=e415] [cursor=pointer]:
+            - /url: https://play.google.com/console/about/whats-new/
+          - link "Status dashboard" [ref=e416] [cursor=pointer]:
+            - /url: https://status.play.google.com/
+          - link "Help" [ref=e417] [cursor=pointer]:
+            - /url: /console/u/0/developers/9213992152789777496/help-and-support?app=4975197531897745068
+        - generic [ref=e418]:
+          - generic [ref=e419]: © 2026 Google
+          - link "Privacy" [ref=e420] [cursor=pointer]:
+            - /url: https://www.google.com/policies/privacy/
+          - link "Developer Distribution Agreement" [ref=e421] [cursor=pointer]:
+            - /url: https://play.google.com/about/developer-distribution-agreement.html
+          - link "Terms of Service" [ref=e422] [cursor=pointer]:
+            - /url: https://play.google.com/about/console/terms-of-service/
+  - status [ref=e625]

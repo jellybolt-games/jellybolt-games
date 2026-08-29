@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tower Stack — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0d0d1a;overflow:hidden;font-family:'Segoe UI',Arial,sans-serif;color:#fff;touch-action:none;}
+canvas{display:block;}
+#hud{position:fixed;top:20px;left:50%;transform:translateX(-50%);text-align:center;z-index:10;pointer-events:none;}
+#score{font-size:48px;font-weight:800;background:linear-gradient(180deg,#ff6644,#ff44aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;filter:drop-shadow(0 0 10px rgba(255,100,68,0.5));}
+#combo{font-size:16px;color:#ffaa00;margin-top:2px;opacity:0;transition:opacity 0.3s;}
+#combo.show{opacity:1;}
+#overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(8,8,18,0.93);}
+#overlay.hidden{display:none;}
+#overlay h1{font-size:clamp(32px,6vw,56px);background:linear-gradient(135deg,#ff6644,#ff44aa,#aa44ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
+#overlay .sub{font-size:16px;color:#aa88cc;margin-bottom:24px;}
+#overlay .final{font-size:22px;color:#ff6644;margin-bottom:16px;display:none;}
+#overlay button{padding:14px 48px;font-size:20px;border:2px solid #ff6644;background:transparent;color:#ff6644;border-radius:8px;cursor:pointer;transition:all .2s;}
+#overlay button:hover{background:#ff6644;color:#000;}
+#tap-hint{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);font-size:14px;color:#445;z-index:10;pointer-events:none;}
+#footer{position:fixed;bottom:0;width:100%;text-align:center;padding:10px;font-size:13px;z-index:10;background:rgba(8,8,18,0.85);border-top:1px solid #1a1a2e;}
+#footer a{color:#ff6644;text-decoration:none;margin:0 10px;transition:color .2s;}
+#footer a:hover{color:#ff44aa;}
+.share-btn{display:inline-block;margin:0 6px;padding:4px 10px;border:1px solid #333;border-radius:4px;font-size:12px;color:#aaa;text-decoration:none;transition:all .2s;}
+.share-btn:hover{border-color:#ff6644;color:#ff6644;}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="score">0</div>
+  <div id="combo">PERFECT!</div>
+</div>
+<div id="overlay">
+  <h1>TOWER STACK</h1>
+  <div class="sub">by JellyBolt Games</div>
+  <div class="final" id="final-score"></div>
+  <button id="start-btn">STACK!</button>
+</div>
+<div id="tap-hint">Tap / Click / Space to place block</div>
+<div id="footer">
+  <span style="color:#555;">JellyBolt Games</span>
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank">☕ Support</a>
+  <a href="https://jellyboltgames.itch.io" target="_blank">🎮 More Games</a>
+  <a class="share-btn" href="https://twitter.com/intent/tweet?text=I%20stacked%20blocks%20in%20Tower%20Stack%20by%20JellyBolt%20Games!&url=https://jellyboltgames.itch.io" target="_blank">𝕏 Share</a>
+  <a class="share-btn" href="https://wa.me/?text=Play%20Tower%20Stack%20by%20JellyBolt%20Games!%20https://jellyboltgames.itch.io" target="_blank">WhatsApp</a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x0d0d1a,0.015);
+const camera=new THREE.PerspectiveCamera(55,window.innerWidth/window.innerHeight,0.1,200);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x0d0d1a);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.insertBefore(renderer.domElement,document.body.firstChild);
+
+// Lighting
+const ambient=new THREE.AmbientLight(0x333355,0.6);
+scene.add(ambient);
+const dirLight=new THREE.DirectionalLight(0xffeedd,0.9);
+dirLight.position.set(8,20,8);
+dirLight.castShadow=true;
+dirLight.shadow.camera.near=1;dirLight.shadow.camera.far=50;
+dirLight.shadow.camera.left=-10;dirLight.shadow.camera.right=10;
+dirLight.shadow.camera.top=10;dirLight.shadow.camera.bottom=-10;
+dirLight.shadow.mapSize.set(1024,1024);
+scene.add(dirLight);
+const backLight=new THREE.DirectionalLight(0x4466ff,0.3);
+backLight.position.set(-5,10,-5);
+scene.add(backLight);
+
+// Stars
+const starGeo=new THREE.BufferGeometry();
+const spos=new Float32Array(3000);
+for(let i=0;i<3000;i++){spos[i*3]=(Math.random()-0.5)*100;spos[i*3+1]=Math.random()*80+10;spos[i*3+2]=(Math.random()-0.5)*100;}
+starGeo.setAttribute('position',new THREE.BufferAttribute(spos,3));
+scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({size:0.12,color:0x6666aa,transparent:true,opacity:0.6})));
+
+// Base platform
+const baseMat=new THREE.MeshPhongMaterial({color:0x222244,shininess:10});
+const base=new THREE.Mesh(new THREE.BoxGeometry(4,0.5,4),baseMat);
+base.position.y=-0.25;
+base.receiveShadow=true;
+scene.add(base);
+
+// Camera setup
+const camTarget=new THREE.Vector3(0,3,0);
+camera.position.set(6,6,6);
+camera.lookAt(camTarget);
+
+// Game state
+let gameRunning=false,score=0,combo=0;
+const blockHeight=0.3;
+let stack=[]; // {mesh, width, depth, x, z}
+let movingBlock=null;
+let movingDir=1; // 1 or -1
+let axis='x'; // alternates x and z
+let moveSpeed=0.06;
+let fallingPieces=[];
+let perfectCombo=0;
+
+function getColor(idx){
+  const hue=(idx*22)%360;
+  return new THREE.Color().setHSL(hue/360,0.7,0.55);
+}
+
+function addStaticBlock(x,z,w,d,yIdx){
+  const color=getColor(yIdx);
+  const mat=new THREE.MeshPhongMaterial({color,shininess:40});
+  const geo=new THREE.BoxGeometry(w,blockHeight,d);
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.set(x,yIdx*blockHeight+blockHeight/2,z);
+  mesh.castShadow=true;
+  mesh.receiveShadow=true;
+  scene.add(mesh);
+  return{mesh,width:w,depth:d,x,z};
+}
+
+function spawnMovingBlock(){
+  const prev=stack[stack.length-1];
+  const yIdx=stack.length;
+  const color=getColor(yIdx);
+  const mat=new THREE.MeshPhongMaterial({color,emissive:color.clone().multiplyScalar(0.15),shininess:60});
+  const geo=new THREE.BoxGeometry(prev.width,blockHeight,prev.depth);
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.castShadow=true;
+  const startOffset=5;
+  if(axis==='x'){
+    mesh.position.set(prev.x-startOffset,yIdx*blockHeight+blockHeight/2,prev.z);
+  } else {
+    mesh.position.set(prev.x,yIdx*blockHeight+blockHeight/2,prev.z-startOffset);
+  }
+  scene.add(mesh);
+  movingBlock={mesh,width:prev.width,depth:prev.depth,x:mesh.position.x,z:mesh.position.z};
+  movingDir=1;
+  moveSpeed=Math.min(0.12,0.05+score*0.002);
+}
+
+function dropBlock(){
+  if(!movingBlock)return;
+  const prev=stack[stack.length-1];
+  const yIdx=stack.length;
+
+  let overhang,newW,newD,newX,newZ,cutW,cutD,cutX,cutZ;
+
+  if(axis==='x'){
+    overhang=movingBlock.mesh.position.x-prev.x;
+    const absOH=Math.abs(overhang);
+    if(absOH>prev.width){gameOver();return;}
+    // Perfect check
+    if(absOH<0.08){
+      // Perfect placement!
+      perfectCombo++;
+      newW=prev.width;newD=prev.depth;newX=prev.x;newZ=prev.z;
+      showCombo();
+    } else {
+      perfectCombo=0;
+      newW=prev.width-absOH;
+      newX=prev.x+overhang/2;
+      newD=prev.depth;newZ=prev.z;
+      // Cut off piece
+      cutW=absOH;cutD=prev.depth;
+      cutX=movingBlock.mesh.position.x+(overhang>0?newW/2:-newW/2);
+      cutZ=prev.z;
+      spawnFallingPiece(cutX,yIdx*blockHeight+blockHeight/2,cutZ,cutW,cutD,yIdx);
+    }
+  } else {
+    overhang=movingBlock.mesh.position.z-prev.z;
+    const absOH=Math.abs(overhang);
+    if(absOH>prev.depth){gameOver();return;}
+    if(absOH<0.08){
+      perfectCombo++;
+      newW=prev.width;newD=prev.depth;newX=prev.x;newZ=prev.z;
+      showCombo();
+    } else {
+      perfectCombo=0;
+      newD=prev.depth-absOH;
+      newZ=prev.z+overhang/2;
+      newW=prev.width;newX=prev.x;
+      cutW=prev.width;cutD=absOH;
+      cutX=prev.x;
+      cutZ=movingBlock.mesh.position.z+(overhang>0?newD/2:-newD/2);
+      spawnFallingPiece(cutX,yIdx*blockHeight+blockHeight/2,cutZ,cutW,cutD,yIdx);
+    }
+  }
+
+  // Remove moving block
+  scene.remove(movingBlock.mesh);
+  movingBlock=null;
+
+  // Check minimum size
+  if(newW<0.05||newD<0.05){gameOver();return;}
+
+  // Place final block
+  const placed=addStaticBlock(newX,newZ,newW,newD,yIdx);
+  stack.push(placed);
+
+  score++;
+  document.getElementById('score').textContent=score;
+
+  // Alternate axis
+  axis=axis==='x'?'z':'x';
+
+  // Move camera up
+  const targetCamY=(yIdx+3)*blockHeight+3;
+  camTarget.y=yIdx*blockHeight+1;
+
+  spawnMovingBlock();
+}
+
+function spawnFallingPiece(x,y,z,w,d,colorIdx){
+  const color=getColor(colorIdx);
+  const mat=new THREE.MeshPhongMaterial({color,transparent:true,opacity:0.9});
+  const geo=new THREE.BoxGeometry(w,blockHeight,d);
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.set(x,y,z);
+  mesh.castShadow=true;
+  scene.add(mesh);
+  fallingPieces.push({mesh,vel:0,rotVelX:(Math.random()-0.5)*0.1,rotVelZ:(Math.random()-0.5)*0.1});
+}
+
+function showCombo(){
+  const comboEl=document.getElementById('combo');
+  if(perfectCombo>=3)comboEl.textContent='🔥 PERFECT x'+perfectCombo+'!';
+  else comboEl.textContent='✨ PERFECT!';
+  comboEl.classList.add('show');
+  setTimeout(()=>comboEl.classList.remove('show'),1000);
+}
+
+function resetGame(){
+  stack.forEach(s=>scene.remove(s.mesh));
+  stack=[];
+  fallingPieces.forEach(f=>scene.remove(f.mesh));
+  fallingPieces=[];
+  if(movingBlock){scene.remove(movingBlock.mesh);movingBlock=null;}
+  score=0;combo=0;perfectCombo=0;
+  axis='x';
+  document.getElementById('score').textContent='0';
+
+  // First block
+  stack.push(addStaticBlock(0,0,3,3,0));
+  camTarget.set(0,2,0);
+  camera.position.set(6,5,6);
+  spawnMovingBlock();
+}
+
+function gameOver(){
+  gameRunning=false;
+  if(movingBlock){scene.remove(movingBlock.mesh);movingBlock=null;}
+  const fs=document.getElementById('final-score');
+  fs.textContent='Blocks Stacked: '+score;
+  fs.style.display='block';
+  document.getElementById('start-btn').textContent='RETRY';
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+// Controls
+function handleTap(){
+  if(!gameRunning)return;
+  dropBlock();
+}
+window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();handleTap();}});
+renderer.domElement.addEventListener('click',handleTap);
+renderer.domElement.addEventListener('touchstart',e=>{e.preventDefault();handleTap();},{passive:false});
+
+document.getElementById('start-btn').addEventListener('click',()=>{
+  document.getElementById('overlay').classList.add('hidden');
+  resetGame();
+  gameRunning=true;
+});
+
+// Animation
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+
+  if(gameRunning&&movingBlock){
+    // Move block
+    if(axis==='x'){
+      movingBlock.mesh.position.x+=movingDir*moveSpeed;
+      if(movingBlock.mesh.position.x>5)movingDir=-1;
+      if(movingBlock.mesh.position.x<-5)movingDir=1;
+    } else {
+      movingBlock.mesh.position.z+=movingDir*moveSpeed;
+      if(movingBlock.mesh.position.z>5)movingDir=-1;
+      if(movingBlock.mesh.position.z<-5)movingDir=1;
+    }
+  }
+
+  // Falling pieces
+  for(let i=fallingPieces.length-1;i>=0;i--){
+    const fp=fallingPieces[i];
+    fp.vel-=0.005;
+    fp.mesh.position.y+=fp.vel;
+    fp.mesh.rotation.x+=fp.rotVelX;
+    fp.mesh.rotation.z+=fp.rotVelZ;
+    fp.mesh.material.opacity-=0.008;
+    if(fp.mesh.position.y<-10||fp.mesh.material.opacity<=0){
+      scene.remove(fp.mesh);
+      fallingPieces.splice(i,1);
+    }
+  }
+
+  // Smooth camera follow
+  const topY=stack.length*blockHeight;
+  const desiredCamY=topY+4;
+  camera.position.y+=(desiredCamY-camera.position.y)*0.04;
+  camTarget.y+=(topY+0.5-camTarget.y)*0.04;
+  camera.position.x+=(6-camera.position.x)*0.02;
+  camera.position.z+=(6-camera.position.z)*0.02;
+  camera.lookAt(camTarget);
+
+  // Update dir light to follow tower
+  dirLight.position.y=topY+15;
+  dirLight.target.position.set(0,topY,0);
+  dirLight.target.updateMatrixWorld();
+
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+})();
+</script>
+</body>
+</html>

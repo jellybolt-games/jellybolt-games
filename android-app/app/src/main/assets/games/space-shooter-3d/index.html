@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Space Shooter 3D — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;touch-action:none;user-select:none;font-family:system-ui,-apple-system,sans-serif}
+canvas{display:block}
+#ui{position:fixed;top:0;left:0;width:100%;pointer-events:none;z-index:100}
+.hud{padding:15px;color:#fff;font-weight:bold;text-shadow:2px 2px 4px rgba(0,0,0,0.8)}
+.hud-top{display:flex;justify-content:space-between;font-size:18px}
+.hud-status{display:flex;gap:15px}
+.health-bar{width:200px;height:20px;background:#333;border:2px solid #0ff;border-radius:10px;overflow:hidden;position:relative}
+.health-fill{height:100%;background:linear-gradient(90deg,#0f0,#ff0,#f00);transition:width 0.3s}
+.power-up{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);padding:10px 20px;background:rgba(0,255,255,0.3);border:2px solid #0ff;border-radius:10px;font-size:16px;color:#0ff;font-weight:bold;text-align:center}
+#menu{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,20,0.95);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:1000;color:#fff}
+#menu h1{font-size:48px;margin-bottom:20px;color:#0ff;text-shadow:0 0 20px #0ff}
+#menu p{font-size:18px;margin-bottom:10px;color:#aaa}
+#menu button{margin-top:30px;padding:15px 40px;font-size:20px;background:linear-gradient(135deg,#0ff,#00f);border:none;border-radius:10px;color:#fff;font-weight:bold;cursor:pointer;transition:transform 0.2s}
+#menu button:hover{transform:scale(1.1)}
+#gameOver{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);justify-content:center;align-items:center;flex-direction:column;z-index:1000;color:#fff}
+#gameOver h2{font-size:42px;color:#f00;margin-bottom:20px}
+#gameOver p{font-size:20px;margin:10px 0}
+#gameOver button{margin-top:30px;padding:15px 40px;font-size:18px;background:linear-gradient(135deg,#0ff,#00f);border:none;border-radius:10px;color:#fff;font-weight:bold;cursor:pointer}
+.mobile-controls{display:none;position:fixed;bottom:140px;width:100%;pointer-events:auto;z-index:101}
+.joystick{position:absolute;left:20px;bottom:20px;width:120px;height:120px;background:rgba(255,255,255,0.1);border:3px solid rgba(0,255,255,0.5);border-radius:50%;touch-action:none}
+.joystick-knob{position:absolute;top:50%;left:50%;width:50px;height:50px;background:rgba(0,255,255,0.6);border-radius:50%;transform:translate(-50%,-50%)}
+.fire-btn{position:absolute;right:20px;bottom:20px;width:100px;height:100px;background:rgba(255,0,0,0.5);border:3px solid rgba(255,0,0,0.8);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;font-weight:bold;touch-action:none}
+@media (max-width:768px){.mobile-controls{display:block}}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="ui">
+  <div class="hud">
+    <div class="hud-top">
+      <div class="hud-status">
+        <div>Wave: <span id="wave">1</span></div>
+        <div>Score: <span id="score">0</span></div>
+        <div>High: <span id="highScore">0</span></div>
+      </div>
+    </div>
+    <div class="health-bar"><div class="health-fill" id="healthFill" style="width:100%"></div></div>
+  </div>
+  <div class="power-up" id="powerUpDisplay" style="display:none"></div>
+</div>
+
+<div id="menu">
+  <h1>SPACE SHOOTER 3D</h1>
+  <p>Destroy enemy ships and survive the waves!</p>
+  <p>WASD/Arrows to move, Mouse/Touch to aim, Space/Click to fire</p>
+  <p>Power-ups: Shield 🛡️, Rapid Fire ⚡, Missiles 🚀</p>
+  <button onclick="startGame()">START GAME</button>
+</div>
+
+<div id="gameOver">
+  <h2>GAME OVER</h2>
+  <p>Wave: <span id="finalWave">0</span></p>
+  <p>Score: <span id="finalScore">0</span></p>
+  <p id="newHighScore" style="color:#0ff;display:none">🏆 NEW HIGH SCORE!</p>
+  <button onclick="restartGame()">PLAY AGAIN</button>
+</div>
+
+<div class="mobile-controls">
+  <div class="joystick" id="joystick">
+    <div class="joystick-knob" id="joystickKnob"></div>
+  </div>
+  <div class="fire-btn" id="fireBtn">FIRE</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+// Game State
+const game = {
+  score: 0,
+  wave: 1,
+  health: 100,
+  maxHealth: 100,
+  enemies: [],
+  bullets: [],
+  enemyBullets: [],
+  powerUps: [],
+  particles: [],
+  activePowerUp: null,
+  powerUpTimer: 0,
+  waveEnemiesLeft: 0,
+  isBoss: false,
+  rapidFire: false,
+  shield: false,
+  missiles: false,
+  fireRate: 200,
+  lastFireTime: 0
+};
+
+let highScore = parseInt(localStorage.getItem('ss3d_high') || '0');
+document.getElementById('highScore').textContent = highScore;
+
+// Three.js Setup
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x000033, 10, 100);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+camera.position.set(0, 5, 15);
+camera.lookAt(0, 0, 0);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+scene.add(ambientLight);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(5, 10, 7);
+directionalLight.castShadow = true;
+scene.add(directionalLight);
+
+// Stars Background
+const starGeometry = new THREE.BufferGeometry();
+const starVertices = [];
+for(let i = 0; i < 1000; i++) {
+  starVertices.push(
+    (Math.random() - 0.5) * 200,
+    (Math.random() - 0.5) * 200,
+    (Math.random() - 0.5) * 200
+  );
+}
+starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 });
+const stars = new THREE.Points(starGeometry, starMaterial);
+scene.add(stars);
+
+// Player Ship
+const playerGeometry = new THREE.ConeGeometry(0.5, 2, 4);
+const playerMaterial = new THREE.MeshPhongMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 0.3 });
+const player = new THREE.Mesh(playerGeometry, playerMaterial);
+player.rotation.x = Math.PI / 2;
+player.position.z = 10;
+player.castShadow = true;
+scene.add(player);
+
+// Player Controls
+const keys = {};
+const mouse = { x: 0, y: 0 };
+let joystickActive = false;
+let joystickDelta = { x: 0, y: 0 };
+
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+window.addEventListener('mousemove', e => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+});
+
+window.addEventListener('click', () => {
+  if(!document.getElementById('menu').style.display && document.getElementById('gameOver').style.display === 'none') {
+    fireBullet();
+  }
+});
+
+// Mobile Joystick
+const joystick = document.getElementById('joystick');
+const joystickKnob = document.getElementById('joystickKnob');
+const fireBtn = document.getElementById('fireBtn');
+
+joystick.addEventListener('touchstart', handleJoystickStart);
+joystick.addEventListener('touchmove', handleJoystickMove);
+joystick.addEventListener('touchend', handleJoystickEnd);
+
+fireBtn.addEventListener('touchstart', e => {
+  e.preventDefault();
+  fireBullet();
+});
+
+function handleJoystickStart(e) {
+  e.preventDefault();
+  joystickActive = true;
+}
+
+function handleJoystickMove(e) {
+  e.preventDefault();
+  if(!joystickActive) return;
+  const touch = e.touches[0];
+  const rect = joystick.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  let deltaX = touch.clientX - centerX;
+  let deltaY = touch.clientY - centerY;
+  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  const maxDistance = rect.width / 2 - 25;
+  if(distance > maxDistance) {
+    deltaX = (deltaX / distance) * maxDistance;
+    deltaY = (deltaY / distance) * maxDistance;
+  }
+  joystickKnob.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+  joystickDelta.x = deltaX / maxDistance;
+  joystickDelta.y = deltaY / maxDistance;
+}
+
+function handleJoystickEnd(e) {
+  e.preventDefault();
+  joystickActive = false;
+  joystickKnob.style.transform = 'translate(-50%, -50%)';
+  joystickDelta.x = 0;
+  joystickDelta.y = 0;
+}
+
+// Game Functions
+function createEnemy(isBoss = false) {
+  const size = isBoss ? 2 : 0.8;
+  const geometry = isBoss ? new THREE.OctahedronGeometry(size) : new THREE.TetrahedronGeometry(size);
+  const material = new THREE.MeshPhongMaterial({ 
+    color: isBoss ? 0xff0000 : 0xff00ff,
+    emissive: isBoss ? 0xff0000 : 0xff00ff,
+    emissiveIntensity: 0.5
+  });
+  const enemy = new THREE.Mesh(geometry, material);
+  enemy.position.set(
+    (Math.random() - 0.5) * 20,
+    (Math.random() - 0.5) * 10,
+    -30
+  );
+  enemy.userData = {
+    health: isBoss ? 50 : 10,
+    maxHealth: isBoss ? 50 : 10,
+    speed: isBoss ? 0.03 : 0.05 + game.wave * 0.005,
+    isBoss: isBoss,
+    lastFireTime: 0,
+    fireRate: isBoss ? 1000 : 2000
+  };
+  scene.add(enemy);
+  game.enemies.push(enemy);
+  game.waveEnemiesLeft++;
+}
+
+function fireBullet() {
+  const now = Date.now();
+  const fireRate = game.rapidFire ? game.fireRate / 3 : game.fireRate;
+  if(now - game.lastFireTime < fireRate) return;
+  game.lastFireTime = now;
+
+  const bulletCount = game.missiles ? 3 : 1;
+  for(let i = 0; i < bulletCount; i++) {
+    const geometry = new THREE.SphereGeometry(0.15);
+    const material = new THREE.MeshBasicMaterial({ color: game.missiles ? 0xff0000 : 0x00ff00 });
+    const bullet = new THREE.Mesh(geometry, material);
+    bullet.position.copy(player.position);
+    bullet.position.x += (i - 1) * 0.5;
+    bullet.userData = { speed: 0.8, damage: game.missiles ? 15 : 5 };
+    scene.add(bullet);
+    game.bullets.push(bullet);
+  }
+}
+
+function enemyFireBullet(enemy) {
+  const now = Date.now();
+  if(now - enemy.userData.lastFireTime < enemy.userData.fireRate) return;
+  enemy.userData.lastFireTime = now;
+
+  const geometry = new THREE.SphereGeometry(0.1);
+  const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+  const bullet = new THREE.Mesh(geometry, material);
+  bullet.position.copy(enemy.position);
+  const direction = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
+  bullet.userData = { velocity: direction.multiplyScalar(0.3), damage: 10 };
+  scene.add(bullet);
+  game.enemyBullets.push(bullet);
+}
+
+function spawnPowerUp(position) {
+  if(Math.random() > 0.3) return;
+  const types = ['shield', 'rapidfire', 'missiles'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  const colors = { shield: 0x00ffff, rapidfire: 0xffff00, missiles: 0xff00ff };
+  const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+  const material = new THREE.MeshPhongMaterial({ color: colors[type], emissive: colors[type], emissiveIntensity: 0.5 });
+  const powerUp = new THREE.Mesh(geometry, material);
+  powerUp.position.copy(position);
+  powerUp.userData = { type, rotationSpeed: 0.05 };
+  scene.add(powerUp);
+  game.powerUps.push(powerUp);
+}
+
+function activatePowerUp(type) {
+  game.activePowerUp = type;
+  game.powerUpTimer = 10000;
+  game.rapidFire = type === 'rapidfire';
+  game.shield = type === 'shield';
+  game.missiles = type === 'missiles';
+  const icons = { shield: '🛡️', rapidfire: '⚡', missiles: '🚀' };
+  const names = { shield: 'Shield Active', rapidfire: 'Rapid Fire', missiles: 'Missiles' };
+  document.getElementById('powerUpDisplay').innerHTML = `${icons[type]} ${names[type]}`;
+  document.getElementById('powerUpDisplay').style.display = 'block';
+}
+
+function createExplosion(position, color = 0xff6600, count = 20) {
+  for(let i = 0; i < count; i++) {
+    const geometry = new THREE.SphereGeometry(0.1);
+    const material = new THREE.MeshBasicMaterial({ color });
+    const particle = new THREE.Mesh(geometry, material);
+    particle.position.copy(position);
+    particle.userData = {
+      velocity: new THREE.Vector3(
+        (Math.random() - 0.5) * 0.3,
+        (Math.random() - 0.5) * 0.3,
+        (Math.random() - 0.5) * 0.3
+      ),
+      life: 1
+    };
+    scene.add(particle);
+    game.particles.push(particle);
+  }
+}
+
+function damagePlayer(amount) {
+  if(game.shield) return;
+  game.health = Math.max(0, game.health - amount);
+  document.getElementById('healthFill').style.width = `${(game.health / game.maxHealth) * 100}%`;
+  if(game.health <= 0) {
+    gameOver();
+  }
+}
+
+function startWave() {
+  game.isBoss = game.wave % 5 === 0;
+  const enemyCount = game.isBoss ? 1 : Math.min(5 + game.wave, 20);
+  for(let i = 0; i < enemyCount; i++) {
+    setTimeout(() => createEnemy(game.isBoss), i * 500);
+  }
+}
+
+function updateGame() {
+  // Player movement
+  const moveSpeed = 0.15;
+  if(keys['KeyW'] || keys['ArrowUp']) player.position.y = Math.min(8, player.position.y + moveSpeed);
+  if(keys['KeyS'] || keys['ArrowDown']) player.position.y = Math.max(-8, player.position.y - moveSpeed);
+  if(keys['KeyA'] || keys['ArrowLeft']) player.position.x = Math.max(-10, player.position.x - moveSpeed);
+  if(keys['KeyD'] || keys['ArrowRight']) player.position.x = Math.min(10, player.position.x + moveSpeed);
+  if(keys['Space']) fireBullet();
+
+  // Joystick movement
+  if(joystickActive) {
+    player.position.x = Math.max(-10, Math.min(10, player.position.x + joystickDelta.x * moveSpeed));
+    player.position.y = Math.max(-8, Math.min(8, player.position.y - joystickDelta.y * moveSpeed));
+  }
+
+  // Update bullets
+  game.bullets.forEach((bullet, index) => {
+    bullet.position.z -= bullet.userData.speed;
+    if(bullet.position.z < -50) {
+      scene.remove(bullet);
+      game.bullets.splice(index, 1);
+    }
+  });
+
+  // Update enemy bullets
+  game.enemyBullets.forEach((bullet, index) => {
+    bullet.position.add(bullet.userData.velocity);
+    if(bullet.position.distanceTo(player.position) < 1) {
+      damagePlayer(bullet.userData.damage);
+      scene.remove(bullet);
+      game.enemyBullets.splice(index, 1);
+      createExplosion(bullet.position, 0xff0000, 10);
+    }
+    if(bullet.position.z > 20) {
+      scene.remove(bullet);
+      game.enemyBullets.splice(index, 1);
+    }
+  });
+
+  // Update enemies
+  game.enemies.forEach((enemy, enemyIndex) => {
+    enemy.rotation.y += 0.05;
+    enemy.position.z += enemy.userData.speed;
+    
+    if(Math.random() < 0.01) {
+      enemyFireBullet(enemy);
+    }
+
+    if(enemy.position.z > 15) {
+      scene.remove(enemy);
+      game.enemies.splice(enemyIndex, 1);
+      game.waveEnemiesLeft--;
+      damagePlayer(20);
+    }
+
+    // Collision with bullets
+    game.bullets.forEach((bullet, bulletIndex) => {
+      if(bullet.position.distanceTo(enemy.position) < 1) {
+        enemy.userData.health -= bullet.userData.damage;
+        scene.remove(bullet);
+        game.bullets.splice(bulletIndex, 1);
+        
+        if(enemy.userData.health <= 0) {
+          const points = enemy.userData.isBoss ? 1000 : 100;
+          game.score += points;
+          document.getElementById('score').textContent = game.score;
+          createExplosion(enemy.position, enemy.userData.isBoss ? 0xff0000 : 0xff00ff, enemy.userData.isBoss ? 50 : 20);
+          spawnPowerUp(enemy.position);
+          scene.remove(enemy);
+          game.enemies.splice(enemyIndex, 1);
+          game.waveEnemiesLeft--;
+        } else {
+          createExplosion(bullet.position, 0x00ff00, 5);
+        }
+      }
+    });
+  });
+
+  // Update power-ups
+  game.powerUps.forEach((powerUp, index) => {
+    powerUp.rotation.y += powerUp.userData.rotationSpeed;
+    powerUp.position.z += 0.1;
+    if(powerUp.position.distanceTo(player.position) < 1.5) {
+      activatePowerUp(powerUp.userData.type);
+      scene.remove(powerUp);
+      game.powerUps.splice(index, 1);
+    }
+    if(powerUp.position.z > 15) {
+      scene.remove(powerUp);
+      game.powerUps.splice(index, 1);
+    }
+  });
+
+  // Update particles
+  game.particles.forEach((particle, index) => {
+    particle.position.add(particle.userData.velocity);
+    particle.userData.life -= 0.02;
+    particle.material.opacity = particle.userData.life;
+    if(particle.userData.life <= 0) {
+      scene.remove(particle);
+      game.particles.splice(index, 1);
+    }
+  });
+
+  // Power-up timer
+  if(game.powerUpTimer > 0) {
+    game.powerUpTimer -= 16;
+    if(game.powerUpTimer <= 0) {
+      game.rapidFire = false;
+      game.shield = false;
+      game.missiles = false;
+      document.getElementById('powerUpDisplay').style.display = 'none';
+    }
+  }
+
+  // Wave progression
+  if(game.waveEnemiesLeft <= 0 && game.enemies.length === 0) {
+    game.wave++;
+    document.getElementById('wave').textContent = game.wave;
+    startWave();
+  }
+
+  // Rotate stars
+  stars.rotation.y += 0.0002;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  updateGame();
+  renderer.render(scene, camera);
+}
+
+function startGame() {
+  document.getElementById('menu').style.display = 'none';
+  game.score = 0;
+  game.wave = 1;
+  game.health = 100;
+  game.enemies = [];
+  game.bullets = [];
+  game.enemyBullets = [];
+  game.powerUps = [];
+  game.particles = [];
+  game.activePowerUp = null;
+  game.waveEnemiesLeft = 0;
+  document.getElementById('score').textContent = 0;
+  document.getElementById('wave').textContent = 1;
+  document.getElementById('healthFill').style.width = '100%';
+  
+  // Clear scene
+  game.enemies.forEach(e => scene.remove(e));
+  game.bullets.forEach(b => scene.remove(b));
+  game.enemyBullets.forEach(b => scene.remove(b));
+  game.powerUps.forEach(p => scene.remove(p));
+  game.particles.forEach(p => scene.remove(p));
+  
+  game.enemies = [];
+  game.bullets = [];
+  game.enemyBullets = [];
+  game.powerUps = [];
+  game.particles = [];
+  
+  startWave();
+}
+
+function gameOver() {
+  document.getElementById('finalWave').textContent = game.wave;
+  document.getElementById('finalScore').textContent = game.score;
+  
+  if(game.score > highScore) {
+    highScore = game.score;
+    localStorage.setItem('ss3d_high', highScore);
+    document.getElementById('highScore').textContent = highScore;
+    document.getElementById('newHighScore').style.display = 'block';
+  } else {
+    document.getElementById('newHighScore').style.display = 'none';
+  }
+  
+  document.getElementById('gameOver').style.display = 'flex';
+  
+  if(window.jbShowInterstitial) jbShowInterstitial();
+  setTimeout(() => {
+    if(window.jbShareScore) jbShareScore(game.score);
+  }, 2000);
+}
+
+function restartGame() {
+  document.getElementById('gameOver').style.display = 'none';
+  startGame();
+}
+
+// Handle window resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+animate();
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Space Shooter 3D',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Space%20Shooter%203D%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

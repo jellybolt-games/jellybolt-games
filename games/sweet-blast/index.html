@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sweet Blast — JellyBolt Games</title>
+<meta name="description" content="Sweet Blast: a sugary Match-3 puzzle game! Swap candies, chain combos, and blast through 20 delicious levels. Free browser game by JellyBolt Games.">
+<meta name="keywords" content="match 3, candy game, puzzle, free browser game, HTML5, JellyBolt">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8350556723025693" crossorigin="anonymous"></script>
+<style>
+/* ═══════════════════════════════════════════════════
+   RESET & ROOT
+═══════════════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#1a0a2e;
+  --surface:#0d0520;
+  --border:#3a1a6a;
+  --accent:#ff88ff;
+  --gold:#ffcc00;
+  --text:#f0e8ff;
+  --muted:#8866aa;
+}
+html,body{
+  width:100%;height:100%;overflow:hidden;touch-action:none;
+  background:var(--bg);color:var(--text);
+  font-family:'Segoe UI',system-ui,sans-serif;
+  user-select:none;-webkit-user-select:none;
+}
+
+/* ═══════════════════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════════════════ */
+#topbar{
+  position:fixed;top:0;left:0;right:0;height:42px;
+  background:linear-gradient(90deg,#0d0520,#1a0a2e);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 12px;z-index:200;flex-shrink:0;
+}
+#topbar .brand{
+  font-size:.85rem;font-weight:800;letter-spacing:.5px;
+  background:linear-gradient(135deg,#ff88ff,#88aaff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+#topbar .back-btn{
+  background:rgba(255,255,255,.08);border:1px solid var(--border);
+  color:var(--muted);padding:4px 10px;border-radius:6px;
+  cursor:pointer;font-size:.78rem;font-weight:600;transition:all .15s;
+}
+#topbar .back-btn:hover{color:var(--text);border-color:var(--accent)}
+
+/* ═══════════════════════════════════════════════════
+   SCREENS
+═══════════════════════════════════════════════════ */
+.screen{
+  display:none;position:fixed;
+  top:42px;left:0;right:0;bottom:0;
+  flex-direction:column;align-items:center;justify-content:center;
+  padding:16px;overflow:hidden;
+}
+.screen.active{display:flex}
+
+/* ═══════════════════════════════════════════════════
+   MENU / LEVEL SELECT
+═══════════════════════════════════════════════════ */
+#menuScreen{
+  background:radial-gradient(ellipse at 50% 30%,#2a0a4a 0%,#0a0520 70%);
+  text-align:center;justify-content:flex-start;padding-top:20px;
+}
+.game-title{
+  font-size:clamp(2.4rem,9vw,3.4rem);font-weight:900;
+  background:linear-gradient(135deg,#ff88ff,#ff44aa,#ffaa44);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 24px #ff44aa55);line-height:1.1;margin-bottom:4px;
+}
+.game-subtitle{color:var(--muted);font-size:.88rem;margin-bottom:16px}
+#levelGrid{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:7px;
+  width:100%;max-width:340px;overflow-y:auto;
+  max-height:calc(100vh - 220px);padding:4px 2px;
+}
+.lvl-btn{
+  aspect-ratio:1;background:#1e0840;border:2px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:.95rem;font-weight:700;
+  cursor:pointer;position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;transition:all .15s;outline:none;
+}
+.lvl-btn.unlocked:hover,.lvl-btn.unlocked:focus{
+  border-color:var(--accent);background:#2a0a4a;transform:scale(1.06);
+}
+.lvl-btn.locked{opacity:.35;cursor:not-allowed}
+.lvl-btn.current{border-color:var(--gold);box-shadow:0 0 10px #ffcc0033}
+.lvl-stars{font-size:.62rem;line-height:1;letter-spacing:1px}
+.menu-credit{color:var(--muted);font-size:.75rem;margin-top:12px}
+
+/* ═══════════════════════════════════════════════════
+   GAME SCREEN
+═══════════════════════════════════════════════════ */
+#gameScreen{background:var(--surface);padding:0;justify-content:flex-start}
+
+/* HUD */
+#hud{
+  width:100%;background:rgba(10,5,32,.96);
+  border-bottom:1px solid var(--border);padding:6px 10px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;gap:4px;
+}
+.hud-item{text-align:center;min-width:50px}
+.hud-lbl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;line-height:1.2}
+.hud-val{font-size:1rem;font-weight:900;color:var(--text);line-height:1.2}
+.hud-val.warning{color:#ff6655}
+.hud-val.good{color:#44ff88}
+
+/* Progress bar */
+#progWrap{width:100%;height:5px;background:#1a0840;flex-shrink:0}
+#progFill{
+  height:100%;
+  background:linear-gradient(90deg,#ff44aa,#ff88ff,#ffaa44);
+  transition:width .35s ease;width:0%;
+}
+
+/* Canvas wrap */
+#canvasWrap{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  width:100%;padding:6px;overflow:hidden;position:relative;
+}
+#gameCanvas{border-radius:10px;box-shadow:0 0 40px rgba(255,68,170,.12);cursor:pointer;touch-action:none}
+
+/* Score popup */
+#scorePopup{
+  position:absolute;pointer-events:none;z-index:60;
+  font-size:1.1rem;font-weight:900;
+  text-shadow:0 0 8px currentColor;opacity:0;
+  left:50%;top:50%;transform:translate(-50%,-50%);white-space:nowrap;
+}
+
+/* ═══════════════════════════════════════════════════
+   OVERLAYS
+═══════════════════════════════════════════════════ */
+.overlay{
+  display:none;position:fixed;
+  top:42px;left:0;right:0;bottom:0;
+  background:rgba(10,5,32,.88);backdrop-filter:blur(6px);
+  flex-direction:column;align-items:center;justify-content:center;
+  z-index:100;text-align:center;padding:24px;
+}
+.overlay.active{display:flex}
+.ov-icon{font-size:3.5rem;line-height:1;margin-bottom:8px}
+.ov-title{font-size:2rem;font-weight:900;margin-bottom:6px}
+.ov-sub{color:var(--muted);font-size:.9rem;margin-bottom:16px}
+.stars-row{font-size:2.4rem;margin:8px 0 16px;letter-spacing:4px}
+
+/* ═══════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════ */
+.btn{
+  padding:11px 28px;font-size:.95rem;font-weight:700;
+  border:none;border-radius:10px;cursor:pointer;
+  transition:all .15s;margin:4px;min-width:130px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn-play{background:linear-gradient(135deg,#ff44aa,#ff88ff);color:#fff;box-shadow:0 4px 20px rgba(255,68,170,.35)}
+.btn-next{background:linear-gradient(135deg,#44aaff,#44ffcc);color:#041420;box-shadow:0 4px 14px rgba(68,170,255,.25)}
+.btn-ghost{background:rgba(255,255,255,.07);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:rgba(255,255,255,.12)}
+
+/* ═══════════════════════════════════════════════════
+   INTERSTITIAL AD
+═══════════════════════════════════════════════════ */
+#jb-interstitial{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.88);z-index:99999;
+  flex-direction:column;align-items:center;justify-content:center;
+}
+.jb-interstitial-box{
+  background:#14042a;border:1px solid var(--border);
+  border-radius:14px;padding:28px;text-align:center;max-width:360px;width:90%;
+}
+.jb-interstitial-title{font-size:1.1rem;font-weight:700;margin-bottom:6px}
+.jb-interstitial-sub{color:var(--muted);font-size:.85rem;margin-bottom:16px}
+.jb-interstitial-close{
+  margin-top:14px;padding:8px 26px;
+  background:linear-gradient(135deg,#ff44aa,#ff88ff);
+  color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem;
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════ */
+@media(max-height:680px){.game-title{font-size:2rem}#levelGrid{gap:5px;max-height:calc(100vh - 180px)}.ov-title{font-size:1.5rem}}
+@media(max-width:360px){#levelGrid{grid-template-columns:repeat(4,1fr)}}
+</style>
+<style>.jb-ad-banner{text-align:center;margin:4px auto;overflow:hidden;max-height:100px}#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}</style></head>
+<body>
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- ══ JellyBolt Top Bar ══════════════════════════════════════════ -->
+<div id="topbar">
+  <div class="brand">⚡ JellyBolt Games</div>
+  <button class="back-btn" onclick="showMenu()">← Games</button>
+</div>
+
+<!-- ══ Menu / Level Select ════════════════════════════════════════ -->
+<div id="menuScreen" class="screen active">
+  <div class="game-title">🍬 Sweet Blast</div>
+  <div class="game-subtitle">Match candies · Chain combos · Blast through 20 levels!</div>
+  <div id="levelGrid"><!-- built by JS --></div>
+  <div class="menu-credit">⚡ JellyBolt Games</div>
+</div>
+
+<!-- ══ Game Screen ════════════════════════════════════════════════ -->
+<div id="gameScreen" class="screen">
+  <div id="hud">
+    <div class="hud-item">
+      <div class="hud-lbl">Level</div>
+      <div class="hud-val" id="hudLvl">1</div>
+    </div>
+    <div class="hud-item" style="flex:1;text-align:left;padding-left:8px">
+      <div class="hud-lbl">Score</div>
+      <div class="hud-val" id="hudScore">0</div>
+    </div>
+    <div class="hud-item" style="flex:1;text-align:left">
+      <div class="hud-lbl">Target</div>
+      <div class="hud-val" id="hudTarget">1,000</div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-lbl">Moves</div>
+      <div class="hud-val" id="hudMoves">30</div>
+    </div>
+  </div>
+  <div id="progWrap"><div id="progFill"></div></div>
+  <div id="canvasWrap">
+    <canvas id="gameCanvas"></canvas>
+    <div id="scorePopup"></div>
+  </div>
+</div>
+
+<!-- ══ Level Clear Overlay ════════════════════════════════════════ -->
+<div id="clearOverlay" class="overlay">
+  <div class="ov-icon">🎉</div>
+  <div class="ov-title" style="color:#ffaa44">Level Clear!</div>
+  <div class="ov-sub" id="clearSubText">Score: 0</div>
+  <div class="stars-row" id="clearStars">⭐⭐⭐</div>
+  <button class="btn btn-next" onclick="nextLevel()">Next Level ▶</button>
+  <button class="btn btn-ghost" onclick="showMenu()">🏠 Menu</button>
+</div>
+
+<!-- ══ Game Over Overlay ══════════════════════════════════════════ -->
+<div id="overOverlay" class="overlay">
+  <div class="ov-icon">💔</div>
+  <div class="ov-title" style="color:#ff5544">Out of Moves!</div>
+  <div class="ov-sub" id="overSubText">Score: 0</div>
+  <div class="ov-sub" id="overNeedText" style="color:#ff8866"></div>
+  <button class="btn btn-play" onclick="restartLevel()">🔄 Try Again</button>
+  <button class="btn btn-ghost" onclick="showMenu()">🏠 Menu</button>
+</div>
+
+<!-- ══ Win Screen ═════════════════════════════════════════════════ -->
+<div id="winOverlay" class="overlay">
+  <div class="ov-icon">🏆</div>
+  <div class="ov-title" style="background:linear-gradient(135deg,#ffcc00,#ff8833);-webkit-background-clip:text;-webkit-text-fill-color:transparent">You Win!</div>
+  <div class="ov-sub">All 20 levels completed!</div>
+  <div class="ov-sub" id="winStarCount" style="color:var(--gold);font-size:1.1rem;font-weight:700"></div>
+  <button class="btn btn-play" onclick="showMenu()">🏠 Play Again</button>
+</div>
+
+<!-- ══ Interstitial Ad ════════════════════════════════════════════ -->
+<div id="jb-interstitial">
+  <div class="jb-interstitial-box">
+    <div class="jb-interstitial-title">🍬 Sweet Break!</div>
+    <div class="jb-interstitial-sub">Enjoying Sweet Blast? Support JellyBolt Games!</div>
+    <ins class="adsbygoogle"
+         style="display:block;width:300px;height:250px"
+         data-ad-client="ca-pub-8350556723025693"
+         data-ad-slot="8171848729"></ins>
+    <button class="jb-interstitial-close" id="jbIntClose">Continue Playing →</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// §1  CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+const COLS   = 7;
+const ROWS   = 7;
+const NTYPES = 6;
+
+/** Special candy type IDs */
+const SPEC = Object.freeze({ NONE:0, SH:1, SV:2, WRAP:3, BOMB:4 });
+
+/**
+ * Candy visual definitions.
+ * base  = main body colour
+ * dark  = shadow / bottom rim
+ * hi    = highlight / gloss top
+ */
+const CANDY = [
+  { base:'#ff3344', dark:'#cc1122', hi:'#ff9999' }, // 0 Red
+  { base:'#3388ff', dark:'#1155cc', hi:'#99ccff' }, // 1 Blue
+  { base:'#33cc44', dark:'#119922', hi:'#99ffaa' }, // 2 Green
+  { base:'#ffcc00', dark:'#cc9900', hi:'#ffee88' }, // 3 Yellow
+  { base:'#cc33ff', dark:'#881199', hi:'#ee99ff' }, // 4 Purple
+  { base:'#ff8833', dark:'#cc5511', hi:'#ffcc99' }, // 5 Orange
+];
+
+/**
+ * 20 levels: moves limit + score target.
+ * Stars: score ≥ 2× target → 3★, ≥ 1.5× → 2★, ≥ 1× → 1★
+ */
+const LEVELS = [
+  { moves:30, target:1000   }, //  1
+  { moves:30, target:2500   }, //  2
+  { moves:28, target:4500   }, //  3
+  { moves:28, target:7000   }, //  4
+  { moves:26, target:10000  }, //  5
+  { moves:26, target:14000  }, //  6
+  { moves:25, target:18000  }, //  7
+  { moves:25, target:23000  }, //  8
+  { moves:24, target:29000  }, //  9
+  { moves:24, target:36000  }, // 10
+  { moves:23, target:44000  }, // 11
+  { moves:23, target:53000  }, // 12
+  { moves:22, target:63000  }, // 13
+  { moves:22, target:74000  }, // 14
+  { moves:21, target:86000  }, // 15
+  { moves:21, target:99000  }, // 16
+  { moves:20, target:113000 }, // 17
+  { moves:20, target:128000 }, // 18
+  { moves:20, target:144000 }, // 19
+  { moves:20, target:160000 }, // 20
+];
+
+// Animation durations (ms)
+const DUR_SWAP  = 120;
+const DUR_BURST = 280;
+const DUR_FALL  = 200;
+
+// ═══════════════════════════════════════════════════════════════
+// §2  GAME STATE
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * board[r][c] = { type: -1..5, special: SPEC.* }
+ * type -1 means empty (only briefly, while resolving)
+ */
+let board = [];
+
+// Current level stats
+let gLevel  = 0;   // 0-indexed
+let gScore  = 0;
+let gMoves  = 0;
+let gTarget = 0;
+
+// Saved progress (localStorage)
+let savedLevel = 0;           // highest unlocked index
+let savedStars = new Array(20).fill(0);
+
+// Interaction
+let selected    = null;       // { r, c } or null
+let inputLocked = false;
+let gamePhase   = 'idle';     // 'idle' | 'swap' | 'burst' | 'fall'
+
+// Combo counter (resets each resolution chain)
+let comboCount = 0;
+
+// ── Animation data ─────────────────────────────────────────────
+
+/** swap animation: { r1,c1,r2,c2, t0, reverse } */
+let swapAnim = null;
+
+/**
+ * burstCells[i] = { r,c, type,special, t0, dur }
+ * Rendered at scale+fade; suppressed from static draw.
+ */
+let burstCells = [];
+
+/**
+ * fallCells[i] = { r,c, fromR, type,special, t0, dur }
+ * fromR may be negative (above the board).
+ * Rendered at interpolated Y; suppressed from static draw.
+ */
+let fallCells = [];
+
+// Whether the cascade resolution engine is running
+let resolveInProgress = false;
+let resolveSwapPos    = null; // { r1,c1,r2,c2 } used for first step only
+
+// ── Canvas ─────────────────────────────────────────────────────
+let canvas, ctx;
+let cellSize = 56;
+let boardOffX = 0, boardOffY = 0;
+
+// ── Touch tracking ─────────────────────────────────────────────
+let touchStart = null; // { x, y }
+
+// ── Ad tracking ────────────────────────────────────────────────
+let adLevelCount = 0;
+const AD_FREQ    = 3;
+const AD_COOL    = 60000; // ms between interstitials
+let adLastShown  = 0;
+
+// ═══════════════════════════════════════════════════════════════
+// §3  PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem('sweetblast_v1');
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    savedLevel = d.level || 0;
+    savedStars = Array.isArray(d.stars) ? d.stars : new Array(20).fill(0);
+  } catch (_) { /* ignore */ }
+}
+
+function saveProgress() {
+  try {
+    localStorage.setItem('sweetblast_v1', JSON.stringify({
+      level: savedLevel,
+      stars: savedStars,
+    }));
+  } catch (_) { /* ignore quota */ }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §4  BOARD INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+
+function initBoard() {
+  board = [];
+  for (let r = 0; r < ROWS; r++) {
+    board[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      board[r][c] = { type: 0, special: SPEC.NONE };
+    }
+  }
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      board[r][c].type = pickSafeType(r, c);
+    }
+  }
+  ensureValidMove();
+}
+
+/**
+ * Pick a candy type at (r,c) that won't immediately create a match-3
+ * with already-placed neighbours to the left and above.
+ */
+function pickSafeType(r, c) {
+  const forbidden = new Set();
+  if (c >= 2 && board[r][c-1].type === board[r][c-2].type) {
+    forbidden.add(board[r][c-1].type);
+  }
+  if (r >= 2 && board[r-1][c].type === board[r-2][c].type) {
+    forbidden.add(board[r-1][c].type);
+  }
+  for (let tries = 0; tries < 30; tries++) {
+    const t = Math.floor(Math.random() * NTYPES);
+    if (!forbidden.has(t)) return t;
+  }
+  return Math.floor(Math.random() * NTYPES);
+}
+
+/** Guarantee at least one adjacent-swap exists that creates a match. */
+function ensureValidMove() {
+  for (let attempt = 0; attempt < 80; attempt++) {
+    if (hasValidMove()) return;
+    const r = Math.floor(Math.random() * ROWS);
+    const c = Math.floor(Math.random() * COLS);
+    board[r][c].type = Math.floor(Math.random() * NTYPES);
+  }
+}
+
+function hasValidMove() {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (c + 1 < COLS && wouldMatchAfterSwap(r, c, r, c + 1)) return true;
+      if (r + 1 < ROWS && wouldMatchAfterSwap(r, c, r + 1, c)) return true;
+    }
+  }
+  return false;
+}
+
+function wouldMatchAfterSwap(r1, c1, r2, c2) {
+  const a = board[r1][c1].type;
+  const b = board[r2][c2].type;
+  board[r1][c1].type = b;
+  board[r2][c2].type = a;
+  const found = findMatches().length > 0;
+  board[r1][c1].type = a;
+  board[r2][c2].type = b;
+  return found;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §5  MATCH FINDING
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * findMatches() → [{r,c}]
+ * Returns all cells participating in any match-3 or longer (H or V).
+ */
+function findMatches() {
+  const matched = new Set();
+
+  // Horizontal runs
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS - 2;) {
+      const t = board[r][c].type;
+      if (t < 0) { c++; continue; }
+      let end = c + 1;
+      while (end < COLS && board[r][end].type === t) end++;
+      if (end - c >= 3) {
+        for (let x = c; x < end; x++) matched.add(r * 100 + x);
+      }
+      c = end;
+    }
+  }
+
+  // Vertical runs
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS - 2;) {
+      const t = board[r][c].type;
+      if (t < 0) { r++; continue; }
+      let end = r + 1;
+      while (end < ROWS && board[end][c].type === t) end++;
+      if (end - r >= 3) {
+        for (let x = r; x < end; x++) matched.add(x * 100 + c);
+      }
+      r = end;
+    }
+  }
+
+  return [...matched].map(k => ({ r: Math.floor(k / 100), c: k % 100 }));
+}
+
+/**
+ * findMatchGroups() → [{type, dir:'H'|'V', len, cells:[{r,c}]}]
+ * Structured match runs used to determine which special candies to create.
+ */
+function findMatchGroups() {
+  const groups = [];
+
+  // Horizontal
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS - 2;) {
+      const t = board[r][c].type;
+      if (t < 0) { c++; continue; }
+      let end = c + 1;
+      while (end < COLS && board[r][end].type === t) end++;
+      const len = end - c;
+      if (len >= 3) {
+        const cells = [];
+        for (let x = c; x < end; x++) cells.push({ r, c: x });
+        groups.push({ type: t, dir: 'H', len, cells });
+      }
+      c = end;
+    }
+  }
+
+  // Vertical
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS - 2;) {
+      const t = board[r][c].type;
+      if (t < 0) { r++; continue; }
+      let end = r + 1;
+      while (end < ROWS && board[end][c].type === t) end++;
+      const len = end - r;
+      if (len >= 3) {
+        const cells = [];
+        for (let x = r; x < end; x++) cells.push({ r: x, c });
+        groups.push({ type: t, dir: 'V', len, cells });
+      }
+      r = end;
+    }
+  }
+
+  return groups;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §6  SPECIAL CANDY LOGIC
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * determineSpecials(groups, swapPos)
+ * Returns [{r, c, special, type}] — new specials to place on the board.
+ *
+ * Priority:
+ *   5+ in a row → BOMB (color bomb)
+ *   L/T intersection of same type → WRAP (wrapped)
+ *   4 in a row H → SH (striped horizontal)
+ *   4 in a col V → SV (striped vertical)
+ */
+function determineSpecials(groups, swapPos) {
+  const result = [];
+  const ltCells = findLTIntersections(groups);
+  const ltKeys  = new Set(ltCells.map(lt => lt.r * 100 + lt.c));
+
+  for (const g of groups) {
+    const groupHasLT = g.cells.some(cell => ltKeys.has(cell.r * 100 + cell.c));
+
+    if (g.len >= 5 && !groupHasLT) {
+      const anchor = pickAnchorCell(g, swapPos);
+      result.push({ r: anchor.r, c: anchor.c, special: SPEC.BOMB, type: g.type });
+    } else if (g.len === 4 && !groupHasLT) {
+      const anchor = pickAnchorCell(g, swapPos);
+      const sp     = g.dir === 'H' ? SPEC.SH : SPEC.SV;
+      result.push({ r: anchor.r, c: anchor.c, special: sp, type: g.type });
+    }
+  }
+
+  // L/T intersections → wrapped
+  for (const lt of ltCells) {
+    const existing = result.find(s => s.r === lt.r && s.c === lt.c);
+    if (existing) {
+      existing.special = SPEC.WRAP; // upgrade
+    } else {
+      result.push({ r: lt.r, c: lt.c, special: SPEC.WRAP, type: lt.type });
+    }
+  }
+
+  return result;
+}
+
+/** Find cells where perpendicular runs of the same type intersect. */
+function findLTIntersections(groups) {
+  const intersections = [];
+  for (let i = 0; i < groups.length; i++) {
+    for (let j = i + 1; j < groups.length; j++) {
+      const gi = groups[i];
+      const gj = groups[j];
+      if (gi.type !== gj.type) continue;
+      if (gi.dir  === gj.dir)  continue; // must be perpendicular
+      const shared = gi.cells.find(ci =>
+        gj.cells.some(cj => ci.r === cj.r && ci.c === cj.c)
+      );
+      if (shared) intersections.push({ r: shared.r, c: shared.c, type: gi.type });
+    }
+  }
+  return intersections;
+}
+
+/**
+ * Choose the "anchor" cell where the new special is placed.
+ * Prefers the cell that was just swapped in; otherwise uses the middle.
+ */
+function pickAnchorCell(group, swapPos) {
+  if (swapPos) {
+    const sc = group.cells.find(cell =>
+      (cell.r === swapPos.r1 && cell.c === swapPos.c1) ||
+      (cell.r === swapPos.r2 && cell.c === swapPos.c2)
+    );
+    if (sc) return sc;
+  }
+  return group.cells[Math.floor(group.cells.length / 2)];
+}
+
+/**
+ * activateSpecial(r, c, swappedType)
+ * Returns [{r,c}] — all cells destroyed by the special candy at (r,c).
+ * swappedType is the colour of the candy swapped against a BOMB.
+ */
+function activateSpecial(r, c, swappedType) {
+  const cell = board[r][c];
+  if (!cell || cell.type < 0 || cell.special === SPEC.NONE) return [];
+
+  const result = [];
+
+  switch (cell.special) {
+    case SPEC.SH:
+      // Clear entire row
+      for (let cc = 0; cc < COLS; cc++) {
+        if (board[r][cc].type >= 0) result.push({ r, c: cc });
+      }
+      break;
+
+    case SPEC.SV:
+      // Clear entire column
+      for (let rr = 0; rr < ROWS; rr++) {
+        if (board[rr][c].type >= 0) result.push({ r: rr, c });
+      }
+      break;
+
+    case SPEC.WRAP:
+      // First blast: 3×3
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const rr = r + dr, cc = c + dc;
+          if (inBounds(rr, cc) && board[rr][cc].type >= 0) {
+            result.push({ r: rr, c: cc });
+          }
+        }
+      }
+      // Second blast ring (up to 5×5 edges)
+      for (let dr = -2; dr <= 2; dr++) {
+        for (let dc = -2; dc <= 2; dc++) {
+          if (Math.abs(dr) <= 1 && Math.abs(dc) <= 1) continue;
+          const rr = r + dr, cc = c + dc;
+          if (inBounds(rr, cc) && board[rr][cc].type >= 0 &&
+              !result.some(x => x.r === rr && x.c === cc)) {
+            result.push({ r: rr, c: cc });
+          }
+        }
+      }
+      break;
+
+    case SPEC.BOMB: {
+      // Destroy all candies of swappedType (fallback: own type)
+      const target = swappedType >= 0 ? swappedType : cell.type;
+      for (let rr = 0; rr < ROWS; rr++) {
+        for (let cc = 0; cc < COLS; cc++) {
+          if (board[rr][cc].type === target) result.push({ r: rr, c: cc });
+        }
+      }
+      break;
+    }
+  }
+
+  return result;
+}
+
+function inBounds(r, c) {
+  return r >= 0 && r < ROWS && c >= 0 && c < COLS;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §7  GRAVITY & REFILL
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * applyGravity()
+ * Compacts each column downward, filling empty top slots with new random candies.
+ * Returns animation data for every cell that moved or was newly added.
+ *
+ * After this call, board[] is already in its FINAL state.
+ * The returned fallCells array drives the visual transition.
+ */
+function applyGravity() {
+  const falls = [];
+
+  for (let c = 0; c < COLS; c++) {
+    // Collect non-empty cells top→bottom
+    const keep = [];
+    for (let r = 0; r < ROWS; r++) {
+      if (board[r][c].type >= 0) {
+        keep.push({ type: board[r][c].type, special: board[r][c].special, origR: r });
+      }
+    }
+
+    // Wipe column
+    for (let r = 0; r < ROWS; r++) {
+      board[r][c] = { type: -1, special: SPEC.NONE };
+    }
+
+    // Re-place existing cells at the bottom
+    const emptyCount = ROWS - keep.length;
+    for (let i = 0; i < keep.length; i++) {
+      const destR = emptyCount + i;
+      board[destR][c] = { type: keep[i].type, special: keep[i].special };
+      if (keep[i].origR !== destR) {
+        falls.push({ r: destR, c, fromR: keep[i].origR,
+                     type: keep[i].type, special: keep[i].special });
+      }
+    }
+
+    // Fill empty top slots with new candies
+    for (let i = 0; i < emptyCount; i++) {
+      const t = Math.floor(Math.random() * NTYPES);
+      board[i][c] = { type: t, special: SPEC.NONE };
+      falls.push({ r: i, c, fromR: i - emptyCount,
+                   type: t, special: SPEC.NONE });
+    }
+  }
+
+  return falls;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §8  CASCADE RESOLUTION ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+/** Begin a new resolution chain (called after a valid swap). */
+function startResolution(swapPos) {
+  resolveInProgress = true;
+  resolveSwapPos    = swapPos;
+  comboCount        = 0;
+  processNextStep();
+}
+
+/**
+ * processNextStep()
+ * One cascade iteration:
+ *   scan → score → burst → gravity → fall → repeat
+ */
+function processNextStep() {
+  const groups  = findMatchGroups();
+  const matches = findMatches();
+
+  if (matches.length === 0) {
+    // Chain complete
+    resolveInProgress = false;
+    gamePhase         = 'idle';
+    inputLocked       = false;
+    checkLevelEnd();
+    if (gamePhase === 'idle' && !hasValidMove()) reshuffleVisible();
+    return;
+  }
+
+  comboCount++;
+
+  // ── Build removal set ─────────────────────────────────────
+  const removeSet = new Set(matches.map(m => m.r * 100 + m.c));
+
+  // ── Find specials within the match zone that activate ────
+  const activations = [];
+  for (const m of matches) {
+    if (board[m.r][m.c].special !== SPEC.NONE) {
+      activations.push({
+        r: m.r, c: m.c,
+        type:    board[m.r][m.c].type,
+        special: board[m.r][m.c].special,
+      });
+    }
+  }
+
+  // Determine "swapped type" for BOMB colour selection
+  for (const act of activations) {
+    let swappedType = -1;
+    if (resolveSwapPos) {
+      if (act.r === resolveSwapPos.r1 && act.c === resolveSwapPos.c1) {
+        swappedType = board[resolveSwapPos.r2][resolveSwapPos.c2].type;
+      } else if (act.r === resolveSwapPos.r2 && act.c === resolveSwapPos.c2) {
+        swappedType = board[resolveSwapPos.r1][resolveSwapPos.c1].type;
+      }
+    }
+    // Fallback: use most common neighbour type
+    if (swappedType < 0) swappedType = findNeighbourType(act.r, act.c);
+    const extra = activateSpecial(act.r, act.c, swappedType);
+    for (const e of extra) removeSet.add(e.r * 100 + e.c);
+  }
+
+  resolveSwapPos = null; // only applies to the first step
+
+  // ── New specials created by this match ───────────────────
+  const newSpecials = determineSpecials(groups, null);
+
+  // ── Score ─────────────────────────────────────────────────
+  const basePoints = removeSet.size * 30;
+  const comboMult  = Math.pow(1.5, comboCount - 1);
+  const specBonus  = activations.length * 150;
+  const gained     = Math.round(basePoints * comboMult) + specBonus;
+  gScore          += gained;
+
+  // ── Collect burst data before removal ────────────────────
+  const removeList = [...removeSet].map(k => {
+    const r = Math.floor(k / 100), c = k % 100;
+    return { r, c, type: board[r][c].type, special: board[r][c].special };
+  });
+
+  const now = performance.now();
+  burstCells = removeList.map(item => ({ ...item, t0: now, dur: DUR_BURST }));
+
+  // ── Remove cells ──────────────────────────────────────────
+  for (const item of removeList) {
+    board[item.r][item.c] = { type: -1, special: SPEC.NONE };
+  }
+
+  // ── Place new specials ────────────────────────────────────
+  for (const sp of newSpecials) {
+    if (inBounds(sp.r, sp.c)) {
+      board[sp.r][sp.c] = { type: sp.type, special: sp.special };
+    }
+  }
+
+  // ── Apply gravity, set up fall animation ─────────────────
+  const falls   = applyGravity();
+  const fallT0  = now + DUR_BURST + 20;
+  fallCells = falls.map(f => ({ ...f, t0: fallT0, dur: DUR_FALL }));
+
+  // ── Score popup ───────────────────────────────────────────
+  if (removeList.length > 0) {
+    const avgR = removeList.reduce((s, m) => s + m.r, 0) / removeList.length;
+    const avgC = removeList.reduce((s, m) => s + m.c, 0) / removeList.length;
+    flashScorePopup(avgR, avgC, gained, comboCount > 1);
+  }
+
+  updateHUD();
+
+  // ── Schedule next cascade step ────────────────────────────
+  gamePhase = 'burst';
+  setTimeout(() => {
+    gamePhase = 'fall';
+    setTimeout(() => {
+      if (resolveInProgress) processNextStep();
+    }, DUR_FALL + 40);
+  }, DUR_BURST + 20);
+}
+
+/** Find a non-matching neighbour type (for bomb activation fallback). */
+function findNeighbourType(r, c) {
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+  const self = board[r][c].type;
+  for (const [dr, dc] of dirs) {
+    const rr = r + dr, cc = c + dc;
+    if (inBounds(rr, cc) && board[rr][cc].type >= 0 && board[rr][cc].type !== self) {
+      return board[rr][cc].type;
+    }
+  }
+  return (self + 1) % NTYPES;
+}
+
+/** Reshuffle board when no valid moves exist. */
+function reshuffleVisible() {
+  for (let iter = 0; iter < 50; iter++) {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        board[r][c] = { type: Math.floor(Math.random() * NTYPES), special: SPEC.NONE };
+      }
+    }
+    for (let pass = 0; pass < 5; pass++) {
+      const m = findMatches();
+      if (m.length === 0) break;
+      for (const cell of m) {
+        board[cell.r][cell.c].type = Math.floor(Math.random() * NTYPES);
+      }
+    }
+    if (hasValidMove()) break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §9  SWAP LOGIC
+// ═══════════════════════════════════════════════════════════════
+
+/** Attempt to swap two adjacent cells and start resolution. */
+function trySwap(r1, c1, r2, c2) {
+  if (inputLocked) return;
+  if (!isAdjacent(r1, c1, r2, c2)) return;
+
+  inputLocked = true;
+  selected    = null;
+
+  const aType = board[r1][c1].type;
+  const bType = board[r2][c2].type;
+  const aSpec = board[r1][c1].special;
+  const bSpec = board[r2][c2].special;
+
+  // Perform the swap
+  board[r1][c1] = { type: bType, special: bSpec };
+  board[r2][c2] = { type: aType, special: aSpec };
+
+  const hasBomb = aSpec === SPEC.BOMB || bSpec === SPEC.BOMB;
+  const valid   = hasBomb || findMatches().length > 0;
+
+  if (!valid) {
+    // Reverse the swap
+    board[r1][c1] = { type: aType, special: aSpec };
+    board[r2][c2] = { type: bType, special: bSpec };
+
+    swapAnim  = { r1, c1, r2, c2, t0: performance.now(), reverse: true };
+    gamePhase = 'swap';
+    setTimeout(() => {
+      swapAnim    = null;
+      gamePhase   = 'idle';
+      inputLocked = false;
+    }, DUR_SWAP * 2 + 20);
+    return;
+  }
+
+  // Valid swap
+  gMoves--;
+  updateHUD();
+
+  swapAnim  = { r1, c1, r2, c2, t0: performance.now(), reverse: false };
+  gamePhase = 'swap';
+
+  setTimeout(() => {
+    swapAnim = null;
+    if (hasBomb) {
+      handleBombSwap(r1, c1, r2, c2, aType, bType, aSpec, bSpec);
+    } else {
+      startResolution({ r1, c1, r2, c2 });
+    }
+  }, DUR_SWAP + 20);
+}
+
+/**
+ * Handle a swap involving at least one Color Bomb.
+ * Bomb + regular → destroy all of partner's type
+ * Bomb + bomb   → destroy all of both types
+ */
+function handleBombSwap(r1, c1, r2, c2, aType, bType, aSpec, bSpec) {
+  const removeSet = new Set();
+
+  const destroyAllOfType = (t) => {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (board[r][c].type === t) removeSet.add(r * 100 + c);
+      }
+    }
+  };
+
+  if (aSpec === SPEC.BOMB) {
+    destroyAllOfType(bType);
+    removeSet.add(r1 * 100 + c1);
+  }
+  if (bSpec === SPEC.BOMB) {
+    destroyAllOfType(aType);
+    removeSet.add(r2 * 100 + c2);
+  }
+
+  // Chain any other specials caught in the blast
+  for (const k of [...removeSet]) {
+    const r = Math.floor(k / 100), c = k % 100;
+    if (board[r][c].special !== SPEC.NONE && board[r][c].special !== SPEC.BOMB) {
+      const extra = activateSpecial(r, c, -1);
+      for (const e of extra) removeSet.add(e.r * 100 + e.c);
+    }
+  }
+
+  const gained = removeSet.size * 60 + 300;
+  gScore += gained;
+
+  const removeList = [...removeSet].map(k => {
+    const r = Math.floor(k / 100), c = k % 100;
+    return { r, c, type: board[r][c].type, special: board[r][c].special };
+  });
+
+  const now = performance.now();
+  burstCells = removeList.map(item => ({ ...item, t0: now, dur: DUR_BURST }));
+
+  for (const item of removeList) {
+    board[item.r][item.c] = { type: -1, special: SPEC.NONE };
+  }
+
+  const falls = applyGravity();
+  fallCells = falls.map(f => ({ ...f, t0: now + DUR_BURST + 20, dur: DUR_FALL }));
+
+  flashScorePopup(3, 3, gained, false);
+  updateHUD();
+
+  gamePhase = 'burst';
+  setTimeout(() => {
+    gamePhase = 'fall';
+    setTimeout(() => {
+      startResolution(null);
+    }, DUR_FALL + 40);
+  }, DUR_BURST + 20);
+}
+
+function isAdjacent(r1, c1, r2, c2) {
+  return (r1 === r2 && Math.abs(c1 - c2) === 1) ||
+         (c1 === c2 && Math.abs(r1 - r2) === 1);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §10  LEVEL MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+function startLevel(idx) {
+  gLevel  = idx;
+  gScore  = 0;
+  gMoves  = LEVELS[idx].moves;
+  gTarget = LEVELS[idx].target;
+
+  comboCount        = 0;
+  selected          = null;
+  inputLocked       = false;
+  resolveInProgress = false;
+  swapAnim          = null;
+  burstCells        = [];
+  fallCells         = [];
+  gamePhase         = 'idle';
+
+  initBoard();
+  updateHUD();
+  showScreen('gameScreen');
+  resizeCanvas();
+}
+
+function checkLevelEnd() {
+  if (gMoves <= 0) {
+    if (gScore >= gTarget) {
+      triggerLevelClear();
+    } else {
+      triggerGameOver();
+    }
+  }
+}
+
+function triggerLevelClear() {
+  const ratio = gScore / gTarget;
+  const stars = ratio >= 2.0 ? 3 : ratio >= 1.5 ? 2 : 1;
+
+  if (stars > (savedStars[gLevel] || 0)) savedStars[gLevel] = stars;
+  if (gLevel + 1 > savedLevel)           savedLevel = gLevel + 1;
+  saveProgress();
+
+  document.getElementById('clearSubText').textContent =
+    `Score: ${gScore.toLocaleString()}  /  Target: ${gTarget.toLocaleString()}`;
+  document.getElementById('clearStars').textContent =
+    '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+
+  showOverlay('clearOverlay');
+  maybeShowInterstitial(() => {});
+}
+
+function triggerGameOver() {
+  document.getElementById('overSubText').textContent =
+    `Your score: ${gScore.toLocaleString()}`;
+  document.getElementById('overNeedText').textContent =
+    `You needed ${(gTarget - gScore).toLocaleString()} more points`;
+  showOverlay('overOverlay');
+}
+
+function nextLevel() {
+  hideOverlay('clearOverlay');
+  const next = gLevel + 1;
+  if (next >= LEVELS.length) {
+    showWinScreen();
+  } else {
+    startLevel(next);
+  }
+}
+
+function restartLevel() {
+  hideOverlay('overOverlay');
+  startLevel(gLevel);
+}
+
+function showWinScreen() {
+  const total = savedStars.reduce((a, b) => a + b, 0);
+  document.getElementById('winStarCount').textContent =
+    `Total Stars: ${total} / 60 ⭐`;
+  showOverlay('winOverlay');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §11  HUD UPDATE
+// ═══════════════════════════════════════════════════════════════
+
+function updateHUD() {
+  document.getElementById('hudLvl').textContent    = gLevel + 1;
+  document.getElementById('hudScore').textContent  = gScore.toLocaleString();
+  document.getElementById('hudTarget').textContent = gTarget.toLocaleString();
+
+  const movesEl = document.getElementById('hudMoves');
+  movesEl.textContent = gMoves;
+  movesEl.className   = 'hud-val' +
+    (gMoves <= 5 ? ' warning' : gMoves > 20 ? ' good' : '');
+
+  const pct = Math.min(100, (gScore / gTarget) * 100);
+  document.getElementById('progFill').style.width = pct + '%';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §12  SCORE POPUP
+// ═══════════════════════════════════════════════════════════════
+
+function flashScorePopup(avgR, avgC, points, isCombo) {
+  const popup     = document.getElementById('scorePopup');
+  const cvRect    = canvas.getBoundingClientRect();
+  const wrapRect  = document.getElementById('canvasWrap').getBoundingClientRect();
+  const scale     = cvRect.width / canvas.width;
+
+  const x = (cvRect.left - wrapRect.left) + (boardOffX + (avgC + 0.5) * cellSize) * scale;
+  const y = (cvRect.top  - wrapRect.top)  + (boardOffY + (avgR + 0.5) * cellSize) * scale;
+
+  popup.textContent    = (isCombo ? '🔥 COMBO! +' : '+') + points.toLocaleString();
+  popup.style.color    = isCombo ? '#ffcc00' : '#ffffff';
+  popup.style.left     = x + 'px';
+  popup.style.top      = y + 'px';
+  popup.style.opacity  = '1';
+  popup.style.transform = 'translate(-50%,-50%) scale(1)';
+  popup.style.transition = 'none';
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    popup.style.transition = 'opacity 0.75s ease, transform 0.75s ease';
+    popup.style.opacity    = '0';
+    popup.style.transform  = 'translate(-50%,-220%) scale(1.3)';
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §13  INPUT HANDLING
+// ═══════════════════════════════════════════════════════════════
+
+function setupInput() {
+  canvas.addEventListener('click',      onCanvasClick, { passive: false });
+  canvas.addEventListener('touchstart', onTouchStart,  { passive: false });
+  canvas.addEventListener('touchmove',  onTouchMove,   { passive: false });
+  canvas.addEventListener('touchend',   onTouchEnd,    { passive: false });
+}
+
+function onCanvasClick(e) {
+  e.preventDefault();
+  if (inputLocked || gamePhase !== 'idle') return;
+  const pos = canvasToGrid(e.clientX, e.clientY);
+  handleCellTap(pos.r, pos.c);
+}
+
+function onTouchStart(e) {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  touchStart = { x: t.clientX, y: t.clientY };
+}
+
+function onTouchMove(e) { e.preventDefault(); }
+
+function onTouchEnd(e) {
+  e.preventDefault();
+  if (!touchStart) return;
+  if (inputLocked || gamePhase !== 'idle') { touchStart = null; return; }
+
+  const t    = e.changedTouches[0];
+  const dx   = t.clientX - touchStart.x;
+  const dy   = t.clientY - touchStart.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const startPos = canvasToGrid(touchStart.x, touchStart.y);
+  touchStart = null;
+
+  if (!inBoardBounds(startPos.r, startPos.c)) return;
+
+  if (dist < 18) {
+    handleCellTap(startPos.r, startPos.c);
+  } else {
+    let r2 = startPos.r, c2 = startPos.c;
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      c2 += dx > 0 ? 1 : -1;
+    } else {
+      r2 += dy > 0 ? 1 : -1;
+    }
+    if (inBoardBounds(r2, c2)) {
+      selected = null;
+      trySwap(startPos.r, startPos.c, r2, c2);
+    }
+  }
+}
+
+function handleCellTap(r, c) {
+  if (!inBoardBounds(r, c)) return;
+  if (board[r][c].type < 0)  return;
+
+  if (!selected) { selected = { r, c }; return; }
+
+  const { r: sr, c: sc } = selected;
+  if (sr === r && sc === c) { selected = null; return; }
+
+  if (isAdjacent(sr, sc, r, c)) {
+    selected = null;
+    trySwap(sr, sc, r, c);
+  } else {
+    selected = { r, c };
+  }
+}
+
+function canvasToGrid(clientX, clientY) {
+  const rect   = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const x = (clientX - rect.left) * scaleX - boardOffX;
+  const y = (clientY - rect.top)  * scaleY - boardOffY;
+  return { r: Math.floor(y / cellSize), c: Math.floor(x / cellSize) };
+}
+
+function inBoardBounds(r, c) {
+  return r >= 0 && r < ROWS && c >= 0 && c < COLS;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §14  CANVAS RENDERING
+// ═══════════════════════════════════════════════════════════════
+
+function resizeCanvas() {
+  const wrap   = document.getElementById('canvasWrap');
+  const availW = wrap.clientWidth  - 12;
+  const availH = wrap.clientHeight - 12;
+  const size   = Math.min(availW, availH, 520);
+
+  canvas.width  = size;
+  canvas.height = size;
+  cellSize  = Math.floor(size / COLS);
+  boardOffX = Math.floor((size - cellSize * COLS) / 2);
+  boardOffY = Math.floor((size - cellSize * ROWS) / 2);
+}
+
+/** Main render function — driven by requestAnimationFrame. */
+function renderFrame(ts) {
+  if (!ctx) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Canvas background
+  ctx.fillStyle = '#0d0520';
+  ctx.beginPath();
+  rrect(ctx, 0, 0, canvas.width, canvas.height, 10);
+  ctx.fill();
+
+  drawBoardSlots();
+
+  // Static cells (skip those currently animated)
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (!isCellAnimating(r, c, ts)) drawBoardCell(r, c);
+    }
+  }
+
+  // Burst animations
+  for (const b of burstCells) {
+    const elapsed = ts - b.t0;
+    if (elapsed >= 0 && elapsed < b.dur) drawBurst(b, elapsed / b.dur);
+  }
+
+  // Fall animations
+  for (const f of fallCells) {
+    const elapsed = ts - f.t0;
+    if (elapsed >= 0 && elapsed < f.dur) drawFalling(f, elapsed / f.dur);
+  }
+
+  // Swap animation
+  if (swapAnim) drawSwap(swapAnim, ts);
+
+  // Selection highlight
+  if (selected && gamePhase === 'idle') drawSelection(selected.r, selected.c, ts);
+}
+
+function drawBoardSlots() {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.beginPath();
+      rrect(ctx,
+        boardOffX + c * cellSize + 2,
+        boardOffY + r * cellSize + 2,
+        cellSize - 4, cellSize - 4, 6);
+      ctx.fill();
+    }
+  }
+}
+
+/**
+ * Returns true when cell (r,c) is controlled by an animation
+ * and should not be drawn by the static render pass.
+ */
+function isCellAnimating(r, c, ts) {
+  if (burstCells.some(b => b.r === r && b.c === c && ts - b.t0 < b.dur)) return true;
+  if (swapAnim && ((r === swapAnim.r1 && c === swapAnim.c1) ||
+                   (r === swapAnim.r2 && c === swapAnim.c2)))              return true;
+  if (fallCells.some(f => f.r === r && f.c === c &&
+                          ts - f.t0 >= 0 && ts - f.t0 < f.dur))           return true;
+  return false;
+}
+
+function drawBoardCell(r, c) {
+  const cell = board[r][c];
+  if (!cell || cell.type < 0) return;
+  drawCandy(boardOffX + c * cellSize, boardOffY + r * cellSize,
+            cellSize, cell.type, cell.special, 1);
+}
+
+function drawSwap(sa, ts) {
+  const raw   = Math.min(1, Math.max(0, (ts - sa.t0) / DUR_SWAP));
+  const eased = sa.reverse ? easeOutBack(1 - raw) : easeOutCubic(raw);
+  const fwd   = sa.reverse ? 1 - eased : eased;
+
+  const dx = sa.c2 - sa.c1;
+  const dy = sa.r2 - sa.r1;
+
+  drawCandy(boardOffX + sa.c1 * cellSize + dx * cellSize * fwd,
+            boardOffY + sa.r1 * cellSize + dy * cellSize * fwd,
+            cellSize, board[sa.r1][sa.c1].type, board[sa.r1][sa.c1].special, 1);
+
+  drawCandy(boardOffX + sa.c2 * cellSize - dx * cellSize * fwd,
+            boardOffY + sa.r2 * cellSize - dy * cellSize * fwd,
+            cellSize, board[sa.r2][sa.c2].type, board[sa.r2][sa.c2].special, 1);
+}
+
+function drawBurst(burst, progress) {
+  const x     = boardOffX + burst.c * cellSize;
+  const y     = boardOffY + burst.r * cellSize;
+  const scale = 1 + progress * 0.55;
+  const alpha = 1 - progress;
+
+  // Main candy scaled+faded
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x + cellSize / 2, y + cellSize / 2);
+  ctx.scale(scale, scale);
+  drawCandy(-cellSize / 2, -cellSize / 2, cellSize, burst.type, burst.special, 1);
+  ctx.restore();
+
+  // Sparkle ring
+  const def   = CANDY[burst.type];
+  const count = 6;
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2 + progress * Math.PI;
+    const dist  = cellSize * 0.45 * progress;
+    const px    = x + cellSize / 2 + Math.cos(angle) * dist;
+    const py    = y + cellSize / 2 + Math.sin(angle) * dist;
+    ctx.fillStyle   = def.hi;
+    ctx.globalAlpha = (1 - progress) * 0.75;
+    ctx.beginPath();
+    ctx.arc(px, py, Math.max(1, (1 - progress) * 4), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawFalling(fall, progress) {
+  const eased  = easeOutBounce(progress);
+  const destY  = boardOffY + fall.r * cellSize;
+  const srcY   = boardOffY + fall.fromR * cellSize;
+  const curY   = srcY + (destY - srcY) * eased;
+  drawCandy(boardOffX + fall.c * cellSize, curY, cellSize, fall.type, fall.special, 1);
+}
+
+function drawSelection(r, c, ts) {
+  const x     = boardOffX + c * cellSize + 3;
+  const y     = boardOffY + r * cellSize + 3;
+  const sz    = cellSize - 6;
+  const pulse = 0.65 + 0.35 * Math.sin(ts * 0.007);
+
+  ctx.save();
+  ctx.strokeStyle = `rgba(255,200,80,${pulse})`;
+  ctx.lineWidth   = 3;
+  ctx.shadowColor = '#ffcc00';
+  ctx.shadowBlur  = 14;
+  ctx.beginPath();
+  rrect(ctx, x, y, sz, sz, 7);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §15  CANDY DRAWING
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Draw one candy at canvas position (x, y) with size sz.
+ * Layers: shadow slot → radial gradient body → gloss → special mark.
+ */
+function drawCandy(x, y, sz, type, special, alpha) {
+  if (type < 0) return;
+
+  const def = CANDY[type];
+  const pad = sz * 0.09;
+  const r   = (sz - pad * 2) / 2; // candy radius
+  const cx  = x + sz / 2;
+  const cy  = y + sz / 2;
+
+  ctx.save();
+  if (alpha < 1) ctx.globalAlpha *= alpha;
+
+  // Shadow slot
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath();
+  rrect(ctx, x + 2, y + 2, sz - 4, sz - 4, 7);
+  ctx.fill();
+
+  // Candy body — radial gradient (highlight → base → dark)
+  const grad = ctx.createRadialGradient(
+    cx - r * 0.25, cy - r * 0.25, r * 0.05,
+    cx,            cy,            r
+  );
+  grad.addColorStop(0,    def.hi);
+  grad.addColorStop(0.45, def.base);
+  grad.addColorStop(1,    def.dark);
+
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Gloss highlight
+  const gloss = ctx.createRadialGradient(
+    cx - r * 0.15, cy - r * 0.38, 0,
+    cx,            cy - r * 0.10, r * 0.72
+  );
+  gloss.addColorStop(0,   'rgba(255,255,255,0.52)');
+  gloss.addColorStop(0.5, 'rgba(255,255,255,0.10)');
+  gloss.addColorStop(1,   'rgba(255,255,255,0)');
+  ctx.fillStyle = gloss;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Rim outline
+  ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Special indicator
+  if (special !== SPEC.NONE) drawSpecialMark(cx, cy, r, special);
+
+  ctx.restore();
+}
+
+/** Draw the overlay mark that visually identifies a special candy. */
+function drawSpecialMark(cx, cy, r, special) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+  ctx.lineWidth   = Math.max(1.5, r * 0.12);
+  ctx.lineCap     = 'round';
+
+  switch (special) {
+    case SPEC.SH: {
+      const y1 = cy - r * 0.22, y2 = cy + r * 0.22;
+      const xL = cx - r * 0.78, xR = cx + r * 0.78;
+      ctx.beginPath();
+      ctx.moveTo(xL, y1); ctx.lineTo(xR, y1);
+      ctx.moveTo(xL, y2); ctx.lineTo(xR, y2);
+      ctx.stroke();
+      break;
+    }
+    case SPEC.SV: {
+      const x1 = cx - r * 0.22, x2 = cx + r * 0.22;
+      const yT = cy - r * 0.78, yB = cy + r * 0.78;
+      ctx.beginPath();
+      ctx.moveTo(x1, yT); ctx.lineTo(x1, yB);
+      ctx.moveTo(x2, yT); ctx.lineTo(x2, yB);
+      ctx.stroke();
+      break;
+    }
+    case SPEC.WRAP: {
+      // Circle + diagonal cross (ribbon knot)
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.35, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.6, cy - r * 0.6); ctx.lineTo(cx + r * 0.6, cy + r * 0.6);
+      ctx.moveTo(cx + r * 0.6, cy - r * 0.6); ctx.lineTo(cx - r * 0.6, cy + r * 0.6);
+      ctx.stroke();
+      break;
+    }
+    case SPEC.BOMB: {
+      // 8-point starburst + black centre dot
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      const rays = 8;
+      for (let i = 0; i < rays; i++) {
+        const a  = (i / rays) * Math.PI * 2 - Math.PI / 2;
+        const a2 = a + Math.PI / rays;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a)  * r * 0.22, cy + Math.sin(a)  * r * 0.22);
+        ctx.lineTo(cx + Math.cos(a2) * r * 0.38, cy + Math.sin(a2) * r * 0.38);
+        ctx.lineTo(cx + Math.cos(a + Math.PI / (rays / 2)) * r * 0.22,
+                   cy + Math.sin(a + Math.PI / (rays / 2)) * r * 0.22);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §16  EASING FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+function easeOutBack(t) {
+  const c1 = 1.70158, c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function easeOutBounce(t) {
+  const n1 = 7.5625, d1 = 2.75;
+  if      (t < 1 / d1)     return n1 * t * t;
+  else if (t < 2 / d1)     return n1 * (t -= 1.5   / d1) * t + 0.75;
+  else if (t < 2.5 / d1)   return n1 * (t -= 2.25  / d1) * t + 0.9375;
+  else                      return n1 * (t -= 2.625 / d1) * t + 0.984375;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §17  CANVAS UTILITY
+// ═══════════════════════════════════════════════════════════════
+
+/** Shorthand for a rounded-rectangle path (does not call fill/stroke). */
+function rrect(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y,     x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h,     x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y,         x + r, y);
+  ctx.closePath();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §18  SCREEN / OVERLAY MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showOverlay(id)  { document.getElementById(id).classList.add('active');    }
+function hideOverlay(id)  { document.getElementById(id).classList.remove('active'); }
+
+function showMenu() {
+  ['clearOverlay','overOverlay','winOverlay'].forEach(hideOverlay);
+  resolveInProgress = false;
+  inputLocked       = false;
+  gamePhase         = 'idle';
+  buildLevelGrid();
+  showScreen('menuScreen');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §19  LEVEL GRID (MENU)
+// ═══════════════════════════════════════════════════════════════
+
+function buildLevelGrid() {
+  const grid = document.getElementById('levelGrid');
+  grid.innerHTML = '';
+
+  for (let i = 0; i < LEVELS.length; i++) {
+    const btn      = document.createElement('button');
+    const stars    = savedStars[i] || 0;
+    const unlocked = i <= savedLevel;
+    const current  = i === savedLevel && stars === 0;
+
+    btn.className = 'lvl-btn' +
+      (unlocked ? ' unlocked' : ' locked') +
+      (current  ? ' current'  : '');
+
+    btn.innerHTML =
+      `<span>${i + 1}</span>` +
+      `<span class="lvl-stars">${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)}</span>`;
+
+    if (unlocked) btn.onclick = () => startLevel(i);
+    grid.appendChild(btn);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §20  ADMOB / INTERSTITIAL
+// ═══════════════════════════════════════════════════════════════
+
+function maybeShowInterstitial(onClose) {
+  adLevelCount++;
+  const now = Date.now();
+  const shouldShow = (adLevelCount % AD_FREQ === 0) &&
+                     (now - adLastShown >= AD_COOL);
+
+  if (!shouldShow) { onClose(); return; }
+
+  adLastShown = now;
+  const overlay = document.getElementById('jb-interstitial');
+  overlay.style.display = 'flex';
+
+  const closeBtn = document.getElementById('jbIntClose');
+  const doClose  = () => {
+    overlay.style.display = 'none';
+    onClose();
+  };
+  closeBtn.onclick = doClose;
+  setTimeout(doClose, 6000);
+
+  try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §21  GAME LOOP
+// ═══════════════════════════════════════════════════════════════
+
+function gameLoop(ts) {
+  if (document.getElementById('gameScreen').classList.contains('active')) {
+    renderFrame(ts);
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §22  INITIALISATION
+// ═══════════════════════════════════════════════════════════════
+
+function init() {
+  canvas = document.getElementById('gameCanvas');
+  ctx    = canvas.getContext('2d');
+
+  loadProgress();
+  buildLevelGrid();
+  setupInput();
+
+  window.addEventListener('resize', () => {
+    if (document.getElementById('gameScreen').classList.contains('active')) {
+      resizeCanvas();
+    }
+  });
+
+  requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+</body>
+</html>

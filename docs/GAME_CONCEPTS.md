@@ -1,7 +1,7 @@
 # 🎮 JellyBolt Games — Game Concepts
 
 ## Game 1: BrainRot Quiz Battle
-**Repo:** [tamirdresher/brainrot-quiz-battle](https://github.com/tamirdresher/brainrot-quiz-battle)
+**Repo:** [jellybolt-games/brainrot-quiz-battle](https://github.com/jellybolt-games/brainrot-quiz-battle)
 **Genre:** Multiplayer Trivia / Quiz Battle
 **Status:** 🟡 In Development
 
@@ -34,7 +34,7 @@ Real-time multiplayer trivia game where players battle in quiz rounds. AI-genera
 ---
 
 ## Game 2: Bounce Blitz ⚡
-**Repo:** [tamirdresher/bounce-blitz](https://github.com/tamirdresher/bounce-blitz)
+**Repo:** [jellybolt-games/bounce-blitz](https://github.com/jellybolt-games/bounce-blitz)
 **Genre:** One-Tap Arcade / Endless Runner
 **Status:** 🔵 Design Phase
 
@@ -86,7 +86,7 @@ A hyper-casual one-tap bouncing ball game. Tap to bounce, avoid obstacles, colle
 ---
 
 ## Game 3: Idle Critter Farm
-**Repo:** [tamirdresher/idle-critter-farm](https://github.com/tamirdresher/idle-critter-farm)
+**Repo:** [jellybolt-games/idle-critter-farm](https://github.com/jellybolt-games/idle-critter-farm)
 **Genre:** Idle / Merge / Collection
 **Status:** 🔵 Design Phase
 

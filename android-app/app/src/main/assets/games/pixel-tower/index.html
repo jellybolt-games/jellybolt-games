@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Pixel Tower — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:none;user-select:none}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<canvas id="c"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',resize);
+
+const STATE={MENU:0,PLAYING:1,DEAD:2};
+let state=STATE.MENU;
+let blocks,currentBlock,towerHeight,score,highScore,speed,particles,perfectStreak;
+highScore=parseInt(localStorage.getItem('pt_high')||'0');
+
+const COLORS=['#00ff88','#58a6ff','#ff6b6b','#ffcc00','#bc8cff','#f778ba','#ff9f43','#00d4ff','#a8e6cf','#ffd93d'];
+const BLOCK_HEIGHT=25;
+const BASE_Y=()=>H-40;
+const START_WIDTH=()=>Math.min(120,W*0.25);
+
+function init(){
+  blocks=[];particles=[];perfectStreak=0;score=0;speed=2.5;towerHeight=0;
+  const bw=START_WIDTH();
+  blocks.push({x:W/2-bw/2,y:BASE_Y(),w:bw,h:BLOCK_HEIGHT,color:COLORS[0],settled:true});
+  spawnBlock();
+}
+
+function spawnBlock(){
+  const prev=blocks[blocks.length-1];
+  const w=prev.w;const y=prev.y-BLOCK_HEIGHT;
+  const dir=Math.random()<0.5?1:-1;
+  currentBlock={x:dir>0?-w:W,y,w,h:BLOCK_HEIGHT,color:COLORS[blocks.length%COLORS.length],vx:dir*speed,settled:false};
+  if(y<H*0.4){const shift=H*0.4-y;blocks.forEach(b=>b.y+=shift);currentBlock.y+=shift}
+}
+
+function drop(){
+  if(!currentBlock||state!==STATE.PLAYING)return;
+  const prev=blocks[blocks.length-1];
+  const leftEdge=Math.max(currentBlock.x,prev.x);
+  const rightEdge=Math.min(currentBlock.x+currentBlock.w,prev.x+prev.w);
+  const trimW=rightEdge-leftEdge;
+  if(trimW<=0){explodeBlock(currentBlock);state=STATE.DEAD;if(score>highScore){highScore=score;localStorage.setItem('pt_high',highScore.toString())}if(window.jbShowInterstitial)jbShowInterstitial();setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000);return}
+  const isPerfect=Math.abs(trimW-prev.w)<3;
+  if(isPerfect){perfectStreak++;score+=50+perfectStreak*10;
+    for(let i=0;i<15;i++)particles.push({x:leftEdge+trimW/2,y:currentBlock.y,vx:(Math.random()-.5)*6,vy:-2-Math.random()*4,life:1,color:'#ffcc00',size:3+Math.random()*3});
+  }else{
+    const choppedX=currentBlock.x<prev.x?currentBlock.x:prev.x+prev.w;
+    const choppedW=currentBlock.w-trimW;
+    if(choppedW>1)explodePiece(choppedX,currentBlock.y,choppedW,BLOCK_HEIGHT,currentBlock.color);
+    perfectStreak=0;score+=Math.ceil(trimW/prev.w*50);
+  }
+  const settled={x:leftEdge,y:currentBlock.y,w:isPerfect?prev.w:trimW,h:BLOCK_HEIGHT,color:currentBlock.color,settled:true};
+  blocks.push(settled);towerHeight=blocks.length-1;speed=Math.min(8,2.5+towerHeight*0.12);currentBlock=null;
+  if(trimW<5){state=STATE.DEAD;if(score>highScore){highScore=score;localStorage.setItem('pt_high',highScore.toString())}if(window.jbShowInterstitial)jbShowInterstitial();setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000);return}
+  spawnBlock();
+}
+
+function explodeBlock(b){for(let i=0;i<20;i++)particles.push({x:b.x+b.w*Math.random(),y:b.y+b.h*Math.random(),vx:(Math.random()-.5)*5,vy:1+Math.random()*3,life:1,color:b.color,size:3+Math.random()*4})}
+function explodePiece(x,y,w,h,c){for(let i=0;i<8;i++)particles.push({x:x+w*Math.random(),y:y+h*Math.random(),vx:(Math.random()-.5)*3,vy:2+Math.random()*4,life:1,color:c,size:2+Math.random()*3})}
+
+function tap(){if(state===STATE.MENU){state=STATE.PLAYING;init();return}if(state===STATE.DEAD){state=STATE.MENU;return}drop()}
+canvas.addEventListener('click',tap);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();tap()},{passive:false});
+window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();tap()}});
+
+function update(){
+  if(state!==STATE.PLAYING||!currentBlock)return;
+  currentBlock.x+=currentBlock.vx;
+  if(currentBlock.x<=0){currentBlock.x=0;currentBlock.vx=Math.abs(currentBlock.vx)}
+  if(currentBlock.x+currentBlock.w>=W){currentBlock.x=W-currentBlock.w;currentBlock.vx=-Math.abs(currentBlock.vx)}
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life-=0.02});
+  particles=particles.filter(p=>p.life>0);
+}
+
+function draw(){
+  ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+  if(!draw.stars){draw.stars=[];for(let i=0;i<40;i++)draw.stars.push({x:Math.random()*W,y:Math.random()*H,s:Math.random()*1.5})}
+  draw.stars.forEach(s=>{ctx.fillStyle=`rgba(255,255,255,${.15+Math.sin(Date.now()*.001+s.x)*.1})`;ctx.fillRect(s.x,s.y,s.s,s.s)});
+
+  if(state===STATE.MENU){
+    ctx.textAlign='center';ctx.fillStyle='#ffcc00';ctx.shadowColor='#ffcc00';ctx.shadowBlur=25;
+    ctx.font='bold 48px system-ui';ctx.fillText('PIXEL TOWER',W/2,H/2-80);ctx.shadowBlur=0;
+    ctx.fillStyle='#58a6ff';ctx.font='18px system-ui';ctx.fillText('Tap to drop blocks. Stack them perfectly!',W/2,H/2-30);
+    ctx.fillStyle='#00ff88';ctx.font='bold 26px system-ui';ctx.fillText('TAP TO START',W/2,H/2+20);
+    ctx.fillStyle='#8b949e';ctx.font='15px system-ui';ctx.fillText(`High Score: ${highScore}`,W/2,H/2+60);
+    for(let i=0;i<5;i++){const w=80-i*5;ctx.fillStyle=COLORS[i];ctx.globalAlpha=.6;ctx.fillRect(W/2-w/2,H/2+100+i*(-BLOCK_HEIGHT),w,BLOCK_HEIGHT)}
+    ctx.globalAlpha=1;ctx.fillStyle='#484f58';ctx.font='13px system-ui';ctx.fillText('⚡ JellyBolt Games',W/2,H-25);
+    return;
+  }
+  ctx.fillStyle='#161b22';ctx.fillRect(0,BASE_Y()+BLOCK_HEIGHT,W,H-BASE_Y());
+  blocks.forEach(b=>{ctx.fillStyle=b.color;ctx.fillRect(b.x,b.y,b.w,b.h);ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=1;ctx.strokeRect(b.x,b.y,b.w,b.h)});
+  if(currentBlock){ctx.fillStyle=currentBlock.color;ctx.shadowColor=currentBlock.color;ctx.shadowBlur=10;ctx.fillRect(currentBlock.x,currentBlock.y,currentBlock.w,currentBlock.h);ctx.shadowBlur=0}
+  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size)});ctx.globalAlpha=1;
+  ctx.fillStyle='#fff';ctx.font='bold 32px system-ui';ctx.textAlign='center';ctx.fillText(score,W/2,40);
+  ctx.fillStyle='#8b949e';ctx.font='14px system-ui';ctx.fillText(`Height: ${towerHeight} | Best: ${highScore}`,W/2,60);
+  if(perfectStreak>1){ctx.fillStyle='#ffcc00';ctx.font='bold 18px system-ui';ctx.fillText(`🔥 Perfect x${perfectStreak}!`,W/2,85)}
+  if(state===STATE.DEAD){
+    ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';
+    ctx.fillStyle='#ff6b6b';ctx.font='bold 44px system-ui';ctx.fillText('TOWER FELL!',W/2,H/2-50);
+    ctx.fillStyle='#ffcc00';ctx.font='bold 30px system-ui';ctx.fillText(`Score: ${score}`,W/2,H/2);
+    ctx.fillStyle='#8b949e';ctx.font='18px system-ui';ctx.fillText(`Tower height: ${towerHeight} blocks`,W/2,H/2+35);
+    if(score>=highScore&&score>0){ctx.fillStyle='#00ff88';ctx.font='bold 20px system-ui';ctx.fillText('🏆 NEW HIGH SCORE!',W/2,H/2+70)}
+    ctx.fillStyle='#8b949e';ctx.font='16px system-ui';ctx.fillText('Tap to continue',W/2,H/2+110);
+  }
+}
+function loop(){update();draw();requestAnimationFrame(loop)}
+loop();
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Pixel Tower',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Pixel%20Tower%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

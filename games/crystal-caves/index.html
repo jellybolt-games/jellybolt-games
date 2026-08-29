@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Crystal Caves — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:none;user-select:none;font-family:Arial,sans-serif}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+<style>
+/* Game UI */
+#ui{position:fixed;top:10px;left:10px;color:#fff;font-size:18px;z-index:999;text-shadow:2px 2px 4px #000}
+#ui div{margin:5px 0}
+#menu{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;font-family:Arial,sans-serif}
+#menu h1{font-size:48px;margin-bottom:20px;color:#00ff88}
+#menu p{font-size:18px;margin:10px 0;max-width:600px;text-align:center;line-height:1.5}
+#menu button{margin:10px;padding:15px 30px;font-size:20px;background:#00ff88;color:#000;border:none;border-radius:8px;cursor:pointer;font-weight:bold}
+#menu button:hover{background:#00ccff;transform:scale(1.05)}
+#levelSelect{display:none;flex-wrap:wrap;justify-content:center;gap:15px;margin-top:20px}
+#levelSelect button{width:80px;height:80px;font-size:24px}
+.locked{opacity:0.5;cursor:not-allowed!important}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="ui">
+  <div id="level-info">Level: 1</div>
+  <div id="crystals-info">Crystals: 0/0</div>
+  <div id="lives-info">Lives: 3</div>
+  <div id="time-info">Time: 0.0s</div>
+</div>
+
+<div id="menu">
+  <h1>🔮 Crystal Caves</h1>
+  <p>Jump between platforms, collect all crystals, and reach the portal!</p>
+  <p>Controls: Arrow Keys/WASD to move, Space to jump</p>
+  <p>Dodge enemies or jump on them to defeat them!</p>
+  <button id="start-btn">Start Game</button>
+  <button id="level-select-btn">Level Select</button>
+  <div id="levelSelect"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+// Game State
+let scene, camera, renderer;
+let player, platforms = [], crystals = [], enemies = [], particles = [];
+let keys = {};
+let playerVel = {x: 0, y: 0, z: 0};
+let isGrounded = false;
+let currentLevel = 1;
+let crystalsCollected = 0;
+let totalCrystals = 0;
+let lives = 3;
+let portal = null;
+let portalActive = false;
+let gameTime = 0;
+let gameRunning = false;
+let levelStartTime = 0;
+
+const GRAVITY = -0.02;
+const JUMP_FORCE = 0.35;
+const MOVE_SPEED = 0.15;
+const PLAYER_SIZE = 0.5;
+const VOID_Y = -20;
+
+// Initialize Three.js
+function initThree() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a1a);
+  scene.fog = new THREE.Fog(0x0a0a1a, 10, 50);
+  
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  
+  renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+  
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0x404040, 1);
+  scene.add(ambientLight);
+  
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(5, 10, 5);
+  scene.add(dirLight);
+  
+  const pointLight = new THREE.PointLight(0x00ff88, 1, 100);
+  pointLight.position.set(0, 10, 0);
+  scene.add(pointLight);
+  
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+}
+
+// Create Player
+function createPlayer() {
+  const geometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE * 2, PLAYER_SIZE);
+  const material = new THREE.MeshPhongMaterial({color: 0x00ff88});
+  player = new THREE.Mesh(geometry, material);
+  player.position.set(0, 5, 0);
+  scene.add(player);
+  playerVel = {x: 0, y: 0, z: 0};
+}
+
+// Create Platform
+function createPlatform(x, y, z, width, depth, color = 0x4444ff, moving = false, moveRange = 0, moveAxis = 'x') {
+  const geometry = new THREE.BoxGeometry(width, 0.5, depth);
+  const material = new THREE.MeshPhongMaterial({color: color});
+  const platform = new THREE.Mesh(geometry, material);
+  platform.position.set(x, y, z);
+  platform.userData = {
+    width, depth,
+    moving: moving,
+    moveRange: moveRange,
+    moveAxis: moveAxis,
+    moveDir: 1,
+    startPos: {x, y, z}
+  };
+  scene.add(platform);
+  platforms.push(platform);
+  return platform;
+}
+
+// Create Crystal
+function createCrystal(x, y, z) {
+  const geometry = new THREE.OctahedronGeometry(0.3);
+  const material = new THREE.MeshPhongMaterial({
+    color: 0xffff00,
+    emissive: 0xffff00,
+    emissiveIntensity: 0.5
+  });
+  const crystal = new THREE.Mesh(geometry, material);
+  crystal.position.set(x, y, z);
+  crystal.userData = {rotation: 0};
+  scene.add(crystal);
+  crystals.push(crystal);
+  totalCrystals++;
+}
+
+// Create Enemy
+function createEnemy(x, y, z, patrolRange = 5) {
+  const geometry = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+  const material = new THREE.MeshPhongMaterial({color: 0xff0000});
+  const enemy = new THREE.Mesh(geometry, material);
+  enemy.position.set(x, y, z);
+  enemy.userData = {
+    patrolRange: patrolRange,
+    patrolDir: 1,
+    startX: x,
+    defeated: false
+  };
+  scene.add(enemy);
+  enemies.push(enemy);
+}
+
+// Create Portal
+function createPortal(x, y, z) {
+  const geometry = new THREE.TorusGeometry(1, 0.2, 16, 32);
+  const material = new THREE.MeshPhongMaterial({
+    color: 0xff00ff,
+    emissive: 0xff00ff,
+    emissiveIntensity: 0.8,
+    transparent: true,
+    opacity: 0.3
+  });
+  portal = new THREE.Mesh(geometry, material);
+  portal.position.set(x, y, z);
+  portal.rotation.y = Math.PI / 2;
+  scene.add(portal);
+  portalActive = false;
+}
+
+// Level Designs
+function loadLevel(level) {
+  // Clear existing
+  platforms.forEach(p => scene.remove(p));
+  crystals.forEach(c => scene.remove(c));
+  enemies.forEach(e => scene.remove(e));
+  if (portal) scene.remove(portal);
+  
+  platforms = [];
+  crystals = [];
+  enemies = [];
+  totalCrystals = 0;
+  crystalsCollected = 0;
+  portalActive = false;
+  lives = 3;
+  gameTime = 0;
+  
+  if (player) scene.remove(player);
+  createPlayer();
+  
+  // Level-specific designs
+  if (level === 1) {
+    // Tutorial level - simple platforms
+    createPlatform(0, 0, 0, 5, 5, 0x4444ff);
+    createCrystal(0, 1.5, 0);
+    
+    createPlatform(6, 1, 0, 4, 4, 0x4444ff);
+    createCrystal(6, 2.5, 0);
+    
+    createPlatform(11, 2, 0, 4, 4, 0x4444ff);
+    createCrystal(11, 3.5, 0);
+    
+    createPlatform(16, 3, 0, 5, 5, 0x4444ff);
+    createCrystal(16, 4.5, 0);
+    createPortal(16, 5, 0);
+    
+    player.position.set(0, 3, 0);
+  } 
+  else if (level === 2) {
+    // Introducing enemies
+    createPlatform(0, 0, 0, 5, 5, 0x4444ff);
+    createCrystal(0, 1.5, 0);
+    
+    createPlatform(7, 0, 0, 6, 4, 0x4444ff);
+    createCrystal(7, 1.5, 0);
+    createEnemy(7, 1, 0, 3);
+    
+    createPlatform(14, 1, 0, 5, 5, 0x4444ff);
+    createCrystal(14, 2.5, 0);
+    createCrystal(14, 2.5, 3);
+    
+    createPlatform(7, 2, 6, 4, 4, 0x4444ff);
+    createCrystal(7, 3.5, 6);
+    
+    createPlatform(0, 3, 6, 5, 5, 0x4444ff);
+    createCrystal(0, 4.5, 6);
+    createPortal(0, 5, 6);
+    
+    player.position.set(0, 3, 0);
+  }
+  else if (level === 3) {
+    // Moving platforms
+    createPlatform(0, 0, 0, 5, 5, 0x4444ff);
+    createCrystal(0, 1.5, 0);
+    
+    createPlatform(7, 0, 0, 4, 4, 0x6644ff, true, 4, 'z');
+    createCrystal(7, 1.5, 0);
+    
+    createPlatform(14, 1, 0, 4, 4, 0x4444ff);
+    createCrystal(14, 2.5, 0);
+    createEnemy(14, 2, 0, 2);
+    
+    createPlatform(14, 2, 7, 4, 4, 0x6644ff, true, 5, 'x');
+    createCrystal(14, 3.5, 7);
+    
+    createPlatform(7, 3, 7, 5, 5, 0x4444ff);
+    createCrystal(7, 4.5, 7);
+    createCrystal(7, 4.5, 10);
+    
+    createPlatform(0, 4, 7, 5, 5, 0x4444ff);
+    createPortal(0, 6, 7);
+    
+    player.position.set(0, 3, 0);
+  }
+  else if (level === 4) {
+    // Complex layout with more enemies
+    createPlatform(0, 0, 0, 5, 5, 0x4444ff);
+    createCrystal(0, 1.5, 0);
+    
+    createPlatform(8, 0, 0, 6, 4, 0x4444ff);
+    createCrystal(8, 1.5, 0);
+    createEnemy(8, 1, 0, 3);
+    
+    createPlatform(16, 1, 0, 4, 4, 0x6644ff, true, 3, 'z');
+    createCrystal(16, 2.5, 0);
+    
+    createPlatform(16, 1, 8, 4, 4, 0x4444ff);
+    createCrystal(16, 2.5, 8);
+    createEnemy(16, 2, 8, 2);
+    
+    createPlatform(8, 2, 8, 5, 5, 0x6644ff, true, 4, 'x');
+    createCrystal(8, 3.5, 8);
+    
+    createPlatform(0, 3, 8, 4, 4, 0x4444ff);
+    createCrystal(0, 4.5, 8);
+    
+    createPlatform(-7, 4, 8, 5, 5, 0x4444ff);
+    createCrystal(-7, 5.5, 8);
+    createEnemy(-7, 5, 8, 2);
+    
+    createPlatform(-7, 5, 0, 5, 5, 0x4444ff);
+    createCrystal(-7, 6.5, 0);
+    createPortal(-7, 7, 0);
+    
+    player.position.set(0, 3, 0);
+  }
+  else if (level === 5) {
+    // Final challenge - everything combined
+    createPlatform(0, 0, 0, 5, 5, 0x4444ff);
+    createCrystal(0, 1.5, 0);
+    
+    createPlatform(7, 0, 0, 4, 4, 0x6644ff, true, 5, 'z');
+    createCrystal(7, 1.5, 0);
+    createEnemy(7, 1, 0, 2);
+    
+    createPlatform(14, 1, -5, 4, 4, 0x4444ff);
+    createCrystal(14, 2.5, -5);
+    
+    createPlatform(14, 1, 5, 4, 4, 0x6644ff, true, 4, 'x');
+    createCrystal(14, 2.5, 5);
+    createEnemy(14, 2, 5, 2);
+    
+    createPlatform(21, 2, 0, 5, 5, 0x4444ff);
+    createCrystal(21, 3.5, 0);
+    createCrystal(21, 3.5, 3);
+    
+    createPlatform(21, 3, 10, 4, 4, 0x6644ff, true, 3, 'x');
+    createCrystal(21, 4.5, 10);
+    
+    createPlatform(14, 4, 10, 5, 5, 0x4444ff);
+    createCrystal(14, 5.5, 10);
+    createEnemy(14, 5, 10, 2);
+    
+    createPlatform(7, 5, 10, 4, 4, 0x6644ff, true, 5, 'z');
+    createCrystal(7, 6.5, 10);
+    
+    createPlatform(0, 6, 10, 5, 5, 0x4444ff);
+    createCrystal(0, 7.5, 10);
+    createCrystal(0, 7.5, 13);
+    
+    createPlatform(-7, 7, 10, 6, 6, 0x4444ff);
+    createPortal(-7, 9, 10);
+    
+    player.position.set(0, 3, 0);
+  }
+  
+  updateUI();
+}
+
+// Physics & Collision
+function updatePhysics() {
+  if (!player) return;
+  
+  // Gravity
+  playerVel.y += GRAVITY;
+  
+  // Movement input
+  const moveDir = new THREE.Vector3();
+  if (keys['ArrowLeft'] || keys['a'] || keys['A']) moveDir.x -= 1;
+  if (keys['ArrowRight'] || keys['d'] || keys['D']) moveDir.x += 1;
+  if (keys['ArrowUp'] || keys['w'] || keys['W']) moveDir.z -= 1;
+  if (keys['ArrowDown'] || keys['s'] || keys['S']) moveDir.z += 1;
+  
+  if (moveDir.length() > 0) {
+    moveDir.normalize();
+    playerVel.x = moveDir.x * MOVE_SPEED;
+    playerVel.z = moveDir.z * MOVE_SPEED;
+  } else {
+    playerVel.x *= 0.8;
+    playerVel.z *= 0.8;
+  }
+  
+  // Jump
+  if ((keys[' '] || keys['Space']) && isGrounded) {
+    playerVel.y = JUMP_FORCE;
+    isGrounded = false;
+  }
+  
+  // Apply velocity
+  player.position.x += playerVel.x;
+  player.position.y += playerVel.y;
+  player.position.z += playerVel.z;
+  
+  // Platform collision
+  isGrounded = false;
+  platforms.forEach(platform => {
+    const pw = platform.userData.width / 2;
+    const pd = platform.userData.depth / 2;
+    const ph = 0.25;
+    
+    const px = platform.position.x;
+    const py = platform.position.y;
+    const pz = platform.position.z;
+    
+    if (player.position.x + PLAYER_SIZE/2 > px - pw &&
+        player.position.x - PLAYER_SIZE/2 < px + pw &&
+        player.position.z + PLAYER_SIZE/2 > pz - pd &&
+        player.position.z - PLAYER_SIZE/2 < pz + pd) {
+      
+      const playerBottom = player.position.y - PLAYER_SIZE;
+      const platformTop = py + ph;
+      
+      if (playerBottom <= platformTop && playerBottom + playerVel.y * 2 >= py - ph) {
+        player.position.y = platformTop + PLAYER_SIZE;
+        playerVel.y = 0;
+        isGrounded = true;
+      }
+    }
+  });
+  
+  // Fall detection
+  if (player.position.y < VOID_Y) {
+    lives--;
+    if (lives <= 0) {
+      gameOver();
+    } else {
+      respawn();
+    }
+  }
+  
+  // Crystal collection
+  crystals.forEach((crystal, idx) => {
+    if (crystal.visible) {
+      const dist = player.position.distanceTo(crystal.position);
+      if (dist < 1) {
+        crystal.visible = false;
+        crystalsCollected++;
+        createParticles(crystal.position, 0xffff00);
+        
+        if (crystalsCollected >= totalCrystals) {
+          portalActive = true;
+          if (portal) portal.material.opacity = 1;
+        }
+        updateUI();
+      }
+    }
+  });
+  
+  // Enemy collision & defeat
+  enemies.forEach(enemy => {
+    if (!enemy.userData.defeated) {
+      const dist = player.position.distanceTo(enemy.position);
+      if (dist < 1) {
+        // Check if player is jumping on enemy (from above)
+        if (player.position.y > enemy.position.y + 0.3 && playerVel.y < 0) {
+          enemy.userData.defeated = true;
+          enemy.visible = false;
+          playerVel.y = JUMP_FORCE * 0.5;
+          createParticles(enemy.position, 0xff0000);
+        } else {
+          // Hit by enemy
+          lives--;
+          if (lives <= 0) {
+            gameOver();
+          } else {
+            respawn();
+          }
+        }
+      }
+    }
+  });
+  
+  // Portal entry
+  if (portalActive && portal) {
+    const dist = player.position.distanceTo(portal.position);
+    if (dist < 2) {
+      levelComplete();
+    }
+  }
+}
+
+// Update moving platforms and enemies
+function updateEntities() {
+  platforms.forEach(platform => {
+    if (platform.userData.moving) {
+      const axis = platform.userData.moveAxis;
+      const range = platform.userData.moveRange;
+      const start = platform.userData.startPos[axis];
+      
+      platform.position[axis] += platform.userData.moveDir * 0.03;
+      
+      if (Math.abs(platform.position[axis] - start) > range) {
+        platform.userData.moveDir *= -1;
+      }
+    }
+  });
+  
+  enemies.forEach(enemy => {
+    if (!enemy.userData.defeated) {
+      enemy.position.x += enemy.userData.patrolDir * 0.02;
+      
+      if (Math.abs(enemy.position.x - enemy.userData.startX) > enemy.userData.patrolRange) {
+        enemy.userData.patrolDir *= -1;
+      }
+      
+      enemy.rotation.y += 0.05;
+    }
+  });
+  
+  crystals.forEach(crystal => {
+    if (crystal.visible) {
+      crystal.userData.rotation += 0.03;
+      crystal.rotation.y = crystal.userData.rotation;
+      crystal.position.y += Math.sin(crystal.userData.rotation) * 0.005;
+    }
+  });
+  
+  if (portal) {
+    portal.rotation.z += 0.02;
+  }
+}
+
+// Update camera to follow player
+function updateCamera() {
+  if (!player) return;
+  
+  const offset = new THREE.Vector3(0, 5, 10);
+  const targetPos = player.position.clone().add(offset);
+  
+  camera.position.lerp(targetPos, 0.1);
+  camera.lookAt(player.position.clone().add(new THREE.Vector3(0, 1, 0)));
+}
+
+// Particles
+function createParticles(position, color) {
+  for (let i = 0; i < 10; i++) {
+    const geometry = new THREE.SphereGeometry(0.1);
+    const material = new THREE.MeshBasicMaterial({color: color});
+    const particle = new THREE.Mesh(geometry, material);
+    particle.position.copy(position);
+    particle.userData = {
+      vel: new THREE.Vector3(
+        (Math.random() - 0.5) * 0.2,
+        Math.random() * 0.2,
+        (Math.random() - 0.5) * 0.2
+      ),
+      life: 30
+    };
+    scene.add(particle);
+    particles.push(particle);
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.position.add(p.userData.vel);
+    p.userData.vel.y -= 0.01;
+    p.userData.life--;
+    
+    if (p.userData.life <= 0) {
+      scene.remove(p);
+      particles.splice(i, 1);
+    }
+  }
+}
+
+// UI Updates
+function updateUI() {
+  document.getElementById('level-info').textContent = `Level: ${currentLevel}`;
+  document.getElementById('crystals-info').textContent = `Crystals: ${crystalsCollected}/${totalCrystals}`;
+  document.getElementById('lives-info').textContent = `Lives: ${lives}`;
+  
+  if (gameRunning) {
+    gameTime = (Date.now() - levelStartTime) / 1000;
+    document.getElementById('time-info').textContent = `Time: ${gameTime.toFixed(1)}s`;
+  }
+}
+
+// Respawn
+function respawn() {
+  player.position.set(0, 5, 0);
+  playerVel = {x: 0, y: 0, z: 0};
+  updateUI();
+}
+
+// Level Complete
+function levelComplete() {
+  gameRunning = false;
+  
+  // Save best time
+  const timeKey = `cc_level${currentLevel}_time`;
+  const bestTime = localStorage.getItem(timeKey);
+  if (!bestTime || gameTime < parseFloat(bestTime)) {
+    localStorage.setItem(timeKey, gameTime.toFixed(1));
+  }
+  
+  // Unlock next level
+  const unlockedKey = `cc_level${currentLevel + 1}_unlocked`;
+  localStorage.setItem(unlockedKey, 'true');
+  
+  if (currentLevel < 5) {
+    currentLevel++;
+    setTimeout(() => {
+      loadLevel(currentLevel);
+      startGame();
+    }, 1000);
+  } else {
+    // Game complete!
+    setTimeout(() => {
+      showMenu();
+      alert('🎉 Congratulations! You completed all levels of Crystal Caves!');
+    }, 1000);
+  }
+}
+
+// Game Over
+function gameOver() {
+  gameRunning = false;
+  setTimeout(() => {
+    showMenu();
+    alert('💀 Game Over! All lives lost.');
+  }, 500);
+}
+
+// Menu
+function showMenu() {
+  document.getElementById('menu').style.display = 'flex';
+  document.getElementById('ui').style.display = 'none';
+  gameRunning = false;
+}
+
+function hideMenu() {
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('ui').style.display = 'block';
+}
+
+function startGame() {
+  hideMenu();
+  loadLevel(currentLevel);
+  gameRunning = true;
+  levelStartTime = Date.now();
+  animate();
+}
+
+// Level Select
+function showLevelSelect() {
+  const container = document.getElementById('levelSelect');
+  container.innerHTML = '';
+  container.style.display = 'flex';
+  
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    
+    const unlocked = i === 1 || localStorage.getItem(`cc_level${i}_unlocked`) === 'true';
+    const bestTime = localStorage.getItem(`cc_level${i}_time`);
+    
+    if (!unlocked) {
+      btn.classList.add('locked');
+      btn.disabled = true;
+      btn.textContent = '🔒';
+    } else if (bestTime) {
+      btn.textContent = `${i}\n${bestTime}s`;
+    }
+    
+    btn.addEventListener('click', () => {
+      if (unlocked) {
+        currentLevel = i;
+        startGame();
+      }
+    });
+    
+    container.appendChild(btn);
+  }
+}
+
+document.getElementById('level-select-btn').addEventListener('click', showLevelSelect);
+
+// Animation Loop
+function animate() {
+  if (!gameRunning) return;
+  requestAnimationFrame(animate);
+  
+  updatePhysics();
+  updateEntities();
+  updateParticles();
+  updateCamera();
+  updateUI();
+  
+  renderer.render(scene, camera);
+}
+
+// Input handlers
+window.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (e.key === ' ') e.preventDefault();
+});
+
+window.addEventListener('keyup', e => {
+  keys[e.key] = false;
+});
+
+// Initialize
+initThree();
+document.getElementById('start-btn').addEventListener('click', () => {
+  currentLevel = 1;
+  startGame();
+});
+
+showMenu();
+</script>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank" class="jb-btn-coffee">☕ Buy me a coffee</a>
+  <a href="https://jellybolt-games.github.io/jellybolt-games" target="_blank" class="jb-btn-games">🎮 More Games</a>
+  <a href="https://twitter.com/intent/tweet?text=Just%20played%20Crystal%20Caves!%20🔮&url=https://jellybolt-games.github.io/jellybolt-games/games/crystal-caves" target="_blank" class="jb-btn-share">🐦 Share</a>
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https://jellybolt-games.github.io/jellybolt-games/games/crystal-caves" target="_blank" class="jb-btn-share-fb">📘 Facebook</a>
+  <a href="https://wa.me/?text=Check%20out%20Crystal%20Caves!%20https://jellybolt-games.github.io/jellybolt-games/games/crystal-caves" target="_blank" class="jb-btn-share-wa">💬 WhatsApp</a>
+</div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial">
+  <div class="jb-interstitial-box">
+    <ins class="adsbygoogle" style="display:block;width:300px;height:250px" data-ad-client="ca-pub-8350556723025693" data-ad-slot="5123448325"></ins>
+    <button class="jb-interstitial-close" onclick="document.getElementById('jb-interstitial').style.display='none'">Continue</button>
+  </div>
+</div>
+
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+</body>
+</html>

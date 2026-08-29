@@ -1,0 +1,23 @@
+{
+  "defaultLanguage": "en-US",
+  "title": "Dungeon Bolt",
+  "shortDescription": "Roguelite dungeon crawler! 5 floors, 11 enemies, loot & permadeath ⚡ JellyBolt",
+  "fullDescription": "You descend. You fight. You die. You try again. ⚡\n\nDungeon Bolt is a roguelite dungeon crawler where every run is different and every death teaches you something. Navigate 5 floors of increasingly brutal dungeons, fight 11 unique enemy types, grab loot, visit shops, and face bosses that will end you if you're not ready.\n\nAnd when you die? You lose everything. Start over. That's the deal.\n\n⚔️ 5 FLOORS OF PAIN\nEach floor is harder than the last. New enemies, tighter corridors, nastier traps. Floor 1 feels easy. Floor 5 will humble you.\n\n👾 11 ENEMY TYPES\nFrom basic slimes to armored knights to boss-tier nightmares. Each enemy has its own attack pattern and behavior. Learn them or get wrecked.\n\n💰 LOOT & SHOPS\nFind gold, weapons, and power-ups scattered through the dungeon. Spend wisely at shops between floors.\n\n💀 PERMADEATH\nDie and you start from Floor 1 with nothing. No save states. No checkpoints. No mercy.\n\n⚡ INSTANT PLAY\nLoads in under a second. No 500 MB downloads. Works offline.\n\n✨ WHY YOU'LL LOVE IT\n• Addictive \"one more run\" roguelite loop\n• Simple controls, deep strategic decisions\n• No paywalls — the full game is free, forever\n• No internet needed — play offline anywhere\n• Built by JellyBolt Games — fun hits different ⚡\n\nThink you can beat all 5 floors? Prove it. ⚔️⚡",
+  "category": "GAME_ADVENTURE",
+  "contentRating": "EVERYONE",
+  "contactEmail": "tdsquadai@gmail.com",
+  "contactWebsite": "https://jellyboltgames.itch.io",
+  "privacyPolicyUrl": "https://jellybolt-games.github.io/jellybolt-games/store-listings/privacy-policy.html",
+  "appType": "GAME",
+  "isFreeApp": true,
+  "tags": [
+    "dungeon",
+    "adventure",
+    "rpg",
+    "dungeon crawler",
+    "html5",
+    "arcade",
+    "puzzle",
+    "strategy"
+  ]
+}

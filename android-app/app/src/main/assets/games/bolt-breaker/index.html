@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Bolt Breaker — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:none;user-select:none}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<canvas id="c"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',resize);
+
+const ST={MENU:0,PLAY:1,WIN:2,OVER:3};
+let state=ST.MENU;
+const NEON=['#ff6b6b','#00ff88','#58a6ff','#ffcc00','#bc8cff','#f778ba','#ff9f43','#00d4ff'];
+
+let paddle,ball,bricks,particles,powerups,
+    level,lives,score,highScore,ballSpeed,stickyBall,megaBall,widePaddle;
+highScore=parseInt(localStorage.getItem('bb2_high')||'0');
+
+const LEVELS=[
+  // Each level: rows of brick types (0=empty, 1-3=hits needed)
+  {name:'The Grid',rows:[[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]},
+  {name:'Diamond',rows:[[0,0,0,1,1,0,0,0],[0,0,1,1,1,1,0,0],[0,1,1,2,2,1,1,0],[0,0,1,1,1,1,0,0],[0,0,0,1,1,0,0,0]]},
+  {name:'Fortress',rows:[[2,2,2,2,2,2,2,2],[2,0,0,0,0,0,0,2],[2,0,1,1,1,1,0,2],[2,0,0,0,0,0,0,2],[2,2,2,2,2,2,2,2]]},
+  {name:'Zigzag',rows:[[1,1,0,0,1,1,0,0],[0,0,1,1,0,0,1,1],[1,1,0,0,1,1,0,0],[0,0,2,2,0,0,2,2],[1,1,0,0,1,1,0,0]]},
+  {name:'Bullseye',rows:[[0,0,1,1,1,1,0,0],[0,1,2,2,2,2,1,0],[1,2,3,3,3,3,2,1],[0,1,2,2,2,2,1,0],[0,0,1,1,1,1,0,0]]},
+  {name:'Invaders',rows:[[0,1,0,1,0,1,0,1],[1,2,1,2,1,2,1,2],[0,1,0,1,0,1,0,1],[0,0,1,0,0,1,0,0],[0,0,0,1,1,0,0,0]]},
+  {name:'Thick Wall',rows:[[2,2,2,2,2,2,2,2],[2,2,2,2,2,2,2,2],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[0,0,0,0,0,0,0,0]]},
+  {name:'Checkers',rows:[[2,0,2,0,2,0,2,0],[0,2,0,2,0,2,0,2],[2,0,3,0,3,0,2,0],[0,2,0,2,0,2,0,2],[2,0,2,0,2,0,2,0]]},
+  {name:'Gauntlet',rows:[[3,3,3,3,3,3,3,3],[1,0,1,0,0,1,0,1],[0,2,0,2,2,0,2,0],[1,0,1,0,0,1,0,1],[3,3,3,3,3,3,3,3]]},
+  {name:'Final Boss',rows:[[3,3,3,3,3,3,3,3],[3,2,2,2,2,2,2,3],[3,2,3,3,3,3,2,3],[3,2,2,2,2,2,2,3],[3,3,3,3,3,3,3,3]]},
+];
+
+function init(lvl){
+  level=lvl||0;lives=3;score=0;ballSpeed=4.5;stickyBall=false;megaBall=false;widePaddle=false;
+  loadLevel();
+}
+
+function loadLevel(){
+  const pw=widePaddle?120:80;
+  paddle={x:W/2-pw/2,y:H-35,w:pw,h:12};
+  ball={x:W/2,y:H-50,dx:3,dy:-ballSpeed,r:7,stuck:true};
+  bricks=[];particles=[];powerups=[];
+  const lv=LEVELS[level];
+  const cols=lv.rows[0].length;
+  const bw=Math.min(60,(W-20)/cols-4);
+  const bh=20;
+  const totalW=cols*(bw+4)-4;
+  const offX=(W-totalW)/2;
+  const offY=60;
+  lv.rows.forEach((row,r)=>{
+    row.forEach((hp,c)=>{
+      if(hp>0){
+        bricks.push({x:offX+c*(bw+4),y:offY+r*(bh+4),w:bw,h:bh,hp,maxHp:hp,
+          color:NEON[(r*cols+c)%NEON.length]});
+      }
+    });
+  });
+}
+
+function spawnPowerup(x,y){
+  if(Math.random()>0.25)return;
+  const types=['wide','life','mega','speed','sticky'];
+  const type=types[Math.floor(Math.random()*types.length)];
+  const icons={wide:'⬅➡',life:'❤️',mega:'💥',speed:'⬆️',sticky:'🧲'};
+  const colors={wide:'#58a6ff',life:'#ff6b6b',mega:'#ffcc00',speed:'#00ff88',sticky:'#bc8cff'};
+  powerups.push({x,y,vy:2,type,icon:icons[type],color:colors[type],w:30,h:16});
+}
+
+function applyPowerup(type){
+  if(type==='wide'){paddle.w=Math.min(160,paddle.w+30);widePaddle=true}
+  else if(type==='life'){lives=Math.min(5,lives+1)}
+  else if(type==='mega'){megaBall=true;setTimeout(()=>megaBall=false,5000)}
+  else if(type==='speed'){ballSpeed=Math.min(8,ballSpeed+1);const mag=Math.sqrt(ball.dx*ball.dx+ball.dy*ball.dy);ball.dx=ball.dx/mag*ballSpeed;ball.dy=ball.dy/mag*ballSpeed}
+  else if(type==='sticky'){stickyBall=true}
+}
+
+// Input
+let mouseX=W/2;
+canvas.addEventListener('mousemove',e=>{mouseX=e.clientX});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();mouseX=e.touches[0].clientX},{passive:false});
+canvas.addEventListener('click',()=>{
+  if(state===ST.MENU){state=ST.PLAY;init();return}
+  if(state===ST.OVER||state===ST.WIN){state=ST.MENU;return}
+  if(ball.stuck){ball.stuck=false;stickyBall=false}
+});
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  if(state===ST.MENU){state=ST.PLAY;init();return}
+  if(state===ST.OVER||state===ST.WIN){state=ST.MENU;return}
+  if(ball.stuck){ball.stuck=false;stickyBall=false}
+  mouseX=e.touches[0].clientX;
+},{passive:false});
+
+function update(){
+  if(state!==ST.PLAY)return;
+  // Paddle follows mouse
+  paddle.x=mouseX-paddle.w/2;
+  paddle.x=Math.max(0,Math.min(W-paddle.w,paddle.x));
+  // Ball stuck to paddle
+  if(ball.stuck){ball.x=paddle.x+paddle.w/2;ball.y=paddle.y-ball.r-1;return}
+  // Move ball
+  ball.x+=ball.dx;ball.y+=ball.dy;
+  // Wall bounces
+  if(ball.x-ball.r<=0){ball.x=ball.r;ball.dx=Math.abs(ball.dx)}
+  if(ball.x+ball.r>=W){ball.x=W-ball.r;ball.dx=-Math.abs(ball.dx)}
+  if(ball.y-ball.r<=0){ball.y=ball.r;ball.dy=Math.abs(ball.dy)}
+  // Paddle bounce
+  if(ball.dy>0&&ball.y+ball.r>=paddle.y&&ball.y-ball.r<=paddle.y+paddle.h&&
+     ball.x>=paddle.x-ball.r&&ball.x<=paddle.x+paddle.w+ball.r){
+    ball.dy=-Math.abs(ball.dy);
+    const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);
+    ball.dx=hit*ballSpeed;
+    ball.dy=-Math.sqrt(ballSpeed*ballSpeed-ball.dx*ball.dx)||(-ballSpeed);
+    if(stickyBall){ball.stuck=true;stickyBall=false}
+    for(let i=0;i<4;i++)particles.push({x:ball.x,y:paddle.y,vx:(Math.random()-.5)*3,vy:-1-Math.random()*2,life:1,color:'#58a6ff',size:2+Math.random()*2});
+  }
+  // Ball lost
+  if(ball.y>H+20){
+    lives--;
+    if(lives<=0){state=ST.OVER;if(score>highScore){highScore=score;localStorage.setItem('bb2_high',highScore.toString())}if(window.jbShowInterstitial)jbShowInterstitial();setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000)}
+    else{ball.stuck=true;ball.dx=3;ball.dy=-ballSpeed}
+  }
+  // Brick collisions
+  for(let i=bricks.length-1;i>=0;i--){
+    const b=bricks[i];
+    if(ball.x+ball.r>b.x&&ball.x-ball.r<b.x+b.w&&ball.y+ball.r>b.y&&ball.y-ball.r<b.y+b.h){
+      if(!megaBall){
+        const cx=ball.x-(b.x+b.w/2),cy=ball.y-(b.y+b.h/2);
+        if(Math.abs(cx/b.w)>Math.abs(cy/b.h))ball.dx=-ball.dx;
+        else ball.dy=-ball.dy;
+      }
+      b.hp--;
+      score+=10*(level+1);
+      for(let j=0;j<5;j++)particles.push({x:b.x+b.w/2,y:b.y+b.h/2,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:1,color:b.color,size:3+Math.random()*3});
+      if(b.hp<=0){bricks.splice(i,1);score+=20*(level+1);spawnPowerup(b.x+b.w/2,b.y+b.h/2)}
+      if(!megaBall)break;
+    }
+  }
+  // Check level clear
+  if(bricks.length===0){
+    if(level>=LEVELS.length-1){state=ST.WIN;if(score>highScore){highScore=score;localStorage.setItem('bb2_high',highScore.toString())}if(window.jbShowInterstitial)jbShowInterstitial();setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000)}
+    else{level++;loadLevel()}
+  }
+  // Powerups
+  powerups.forEach(p=>p.y+=p.vy);
+  for(let i=powerups.length-1;i>=0;i--){
+    const p=powerups[i];
+    if(p.y>H){powerups.splice(i,1);continue}
+    if(p.y+p.h>=paddle.y&&p.x+p.w>=paddle.x&&p.x<=paddle.x+paddle.w){
+      applyPowerup(p.type);
+      for(let j=0;j<6;j++)particles.push({x:p.x+p.w/2,y:p.y,vx:(Math.random()-.5)*4,vy:-2-Math.random()*2,life:1,color:p.color,size:3+Math.random()*2});
+      powerups.splice(i,1);
+    }
+  }
+  // Particles
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.025});
+  particles=particles.filter(p=>p.life>0);
+}
+
+function draw(){
+  ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+  // Stars
+  if(!draw.s){draw.s=[];for(let i=0;i<30;i++)draw.s.push({x:Math.random()*W,y:Math.random()*H,a:Math.random()})}
+  draw.s.forEach(s=>{ctx.fillStyle=`rgba(255,255,255,${.08+Math.sin(Date.now()*.001+s.a*10)*.05})`;ctx.fillRect(s.x,s.y,1.5,1.5)});
+
+  if(state===ST.MENU){
+    ctx.textAlign='center';
+    ctx.fillStyle='#ff9f43';ctx.shadowColor='#ff9f43';ctx.shadowBlur=25;
+    ctx.font='bold 48px system-ui';ctx.fillText('BOLT BREAKER',W/2,H/2-90);ctx.shadowBlur=0;
+    ctx.fillStyle='#58a6ff';ctx.font='18px system-ui';
+    ctx.fillText('Move paddle with mouse/touch. Break all bricks!',W/2,H/2-45);
+    ctx.fillText('10 levels • Powerups • Neon vibes',W/2,H/2-20);
+    ctx.fillStyle='#ffcc00';ctx.font='bold 26px system-ui';
+    ctx.fillText('TAP TO START',W/2,H/2+25);
+    ctx.fillStyle='#8b949e';ctx.font='15px system-ui';
+    ctx.fillText(`High Score: ${highScore}`,W/2,H/2+65);
+    // Demo bricks
+    for(let i=0;i<6;i++){ctx.fillStyle=NEON[i];ctx.fillRect(W/2-105+i*35,H/2+100,30,15)}
+    ctx.fillStyle='#484f58';ctx.font='13px system-ui';ctx.fillText('⚡ JellyBolt Games',W/2,H-25);
+    return;
+  }
+
+  // Bricks
+  bricks.forEach(b=>{
+    const alpha=b.hp/b.maxHp;
+    ctx.fillStyle=b.color;ctx.globalAlpha=0.4+alpha*0.6;
+    ctx.fillRect(b.x,b.y,b.w,b.h);
+    ctx.strokeStyle=b.color;ctx.lineWidth=1;ctx.globalAlpha=1;
+    ctx.strokeRect(b.x,b.y,b.w,b.h);
+    if(b.hp>1){ctx.fillStyle='#fff';ctx.font='bold 10px system-ui';ctx.textAlign='center';
+      ctx.fillText(b.hp,b.x+b.w/2,b.y+b.h/2+4)}
+  });
+  ctx.globalAlpha=1;
+
+  // Paddle
+  ctx.fillStyle='#58a6ff';ctx.shadowColor='#58a6ff';ctx.shadowBlur=10;
+  ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);ctx.shadowBlur=0;
+
+  // Ball
+  ctx.fillStyle=megaBall?'#ffcc00':'#00ff88';
+  ctx.shadowColor=megaBall?'#ffcc00':'#00ff88';ctx.shadowBlur=megaBall?20:12;
+  ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r+(megaBall?3:0),0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+
+  // Powerups
+  powerups.forEach(p=>{
+    ctx.fillStyle=p.color;ctx.globalAlpha=0.8;
+    ctx.fillRect(p.x,p.y,p.w,p.h);ctx.globalAlpha=1;
+    ctx.fillStyle='#fff';ctx.font='10px system-ui';ctx.textAlign='center';
+    ctx.fillText(p.icon,p.x+p.w/2,p.y+p.h/2+3);
+  });
+
+  // Particles
+  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;
+    ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size)});ctx.globalAlpha=1;
+
+  // HUD
+  ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='bold 18px system-ui';
+  ctx.fillText(`Score: ${score}`,10,25);
+  ctx.textAlign='center';ctx.fillStyle='#8b949e';ctx.font='14px system-ui';
+  ctx.fillText(`Lv ${level+1}: ${LEVELS[level].name}`,W/2,25);
+  ctx.textAlign='right';ctx.fillStyle='#ff6b6b';ctx.font='18px system-ui';
+  ctx.fillText('❤️'.repeat(lives),W-10,25);
+  if(megaBall){ctx.textAlign='center';ctx.fillStyle='#ffcc00';ctx.font='bold 14px system-ui';ctx.fillText('💥 MEGA BALL',W/2,45)}
+
+  if(state===ST.OVER){
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';
+    ctx.fillStyle='#ff6b6b';ctx.font='bold 44px system-ui';ctx.fillText('GAME OVER',W/2,H/2-40);
+    ctx.fillStyle='#ffcc00';ctx.font='bold 28px system-ui';ctx.fillText(`Score: ${score}`,W/2,H/2+5);
+    ctx.fillStyle='#8b949e';ctx.font='16px system-ui';ctx.fillText(`Reached Level ${level+1}: ${LEVELS[level].name}`,W/2,H/2+35);
+    if(score>=highScore&&score>0){ctx.fillStyle='#00ff88';ctx.font='bold 18px system-ui';ctx.fillText('🏆 NEW HIGH SCORE!',W/2,H/2+65)}
+    ctx.fillStyle='#8b949e';ctx.font='16px system-ui';ctx.fillText('Tap to continue',W/2,H/2+105);
+  }
+  if(state===ST.WIN){
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';
+    ctx.fillStyle='#ffcc00';ctx.font='bold 44px system-ui';ctx.fillText('🏆 YOU WIN!',W/2,H/2-40);
+    ctx.fillStyle='#00ff88';ctx.font='bold 28px system-ui';ctx.fillText(`Final Score: ${score}`,W/2,H/2+5);
+    ctx.fillStyle='#8b949e';ctx.font='16px system-ui';ctx.fillText('All 10 levels cleared!',W/2,H/2+35);
+    ctx.fillStyle='#8b949e';ctx.font='16px system-ui';ctx.fillText('Tap to continue',W/2,H/2+75);
+  }
+}
+
+function loop(){update();draw();requestAnimationFrame(loop)}
+loop();
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Bolt Breaker',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Bolt%20Breaker%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

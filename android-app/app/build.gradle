@@ -4,22 +4,22 @@ plugins {
 
 android {
     namespace 'com.jellybolt.games'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.jellybolt.games"
         minSdk 24
-        targetSdk 34
-        versionCode 2
-        versionName "1.1.0"
+        targetSdk 35
+        versionCode 5
+        versionName "1.4.0"
     }
 
     signingConfigs {
         release {
             storeFile file('../jellybolt-release.keystore')
-            storePassword 'jellybolt2024'
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("keystorePassword") ?: ""
             keyAlias 'jellybolt'
-            keyPassword 'jellybolt2024'
+            keyPassword System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("keystorePassword") ?: ""
         }
     }
 
@@ -41,4 +41,5 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.webkit:webkit:1.8.0'
     implementation 'com.google.android.material:material:1.10.0'
+    implementation 'com.google.android.gms:play-services-ads:23.6.0'
 }

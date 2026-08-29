@@ -19,11 +19,12 @@
     }
   },
   "adsense": {
-    "publisher_id": "ca-pub-PLACEHOLDER",
-    "status": "pending_signup"
+    "publisher_id": "",
+    "status": "not_configured",
+    "notes": "No real publisher ID yet. Sign up at adsense.google.com to get a ca-pub-XXXXXXXXXXXXXXXX ID, then update this file and replace the ad slots in games/shared/ads.js."
   },
   "gumroad": {
-    "store_url": "https://tdsquad.gumroad.com",
+    "store_url": "https://squadai.gumroad.com",
     "products": ["jnmqpd", "nnefv", "qtmyl"],
     "status": "active"
   },
@@ -32,7 +33,7 @@
     "status": "pending_setup"
   },
   "itchio": {
-    "store_url": "https://jellybolt.itch.io",
+    "store_url": "https://jellyboltgames.itch.io",
     "status": "active",
     "games": 24
   },

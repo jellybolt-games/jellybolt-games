@@ -1,6 +1,7 @@
 # ⚡ JellyBolt Games
 
 > **Fun, Free, Fair games — play instantly in your browser!**
+> 45 games available — growing fast!
 
 JellyBolt Games is an indie game studio focused on creating **free-to-play browser games** that are fun, polished, and instantly playable. No downloads, no installs — just click and play.
 
@@ -8,7 +9,9 @@ JellyBolt Games is an indie game studio focused on creating **free-to-play brows
 
 ---
 
-## 🎮 Game Portfolio
+## 🎮 Game Portfolio (45 Games)
+
+### Published on itch.io (16)
 
 | Game | Genre | Play Now | Status |
 |------|-------|----------|--------|
@@ -28,6 +31,40 @@ JellyBolt Games is an indie game studio focused on creating **free-to-play brows
 | **⚡ Dungeon Bolt** | Roguelite RPG | [▶ Play](https://jellyboltgames.itch.io/dungeon-bolt) | ✅ $2.99 Flagship |
 | **🏏 Bolt Breaker** | Breakout | [▶ Play](https://jellyboltgames.itch.io/bolt-breaker) | ✅ Published |
 | **🚀 Space Trader** | Trading Sim | [▶ Play](https://jellyboltgames.itch.io/space-trader) | ✅ Published |
+
+### Built — Pending itch.io Upload (29)
+
+| Game | Genre | Play Now | Status |
+|------|-------|----------|--------|
+| **🏹 Archery Quest** | Arcade | [▶ Play](games/archery-quest/index.html) | 🔜 Coming Soon |
+| **⚔️ Battle Arena** | Action | [▶ Play](games/battle-arena/index.html) | 🔜 Coming Soon |
+| **🎖️ Battle Royale** | Battle Royale | [▶ Play](games/battle-royale/index.html) | 🔜 Coming Soon |
+| **🌊 Block Storm** | Puzzle | [▶ Play](games/block-storm/index.html) | 🔜 Coming Soon |
+| **⚡ Bolt Blocks** | Puzzle | [▶ Play](games/bolt-blocks/index.html) | 🔜 Coming Soon |
+| **🃏 Bolt Solitaire** | Card | [▶ Play](games/bolt-solitaire/index.html) | 🔜 Coming Soon |
+| **🔲 Bolt Tiles** | Puzzle | [▶ Play](games/bolt-tiles/index.html) | 🔜 Coming Soon |
+| **🫧 Bubble Pop** | Puzzle | [▶ Play](games/bubble-pop/index.html) | 🔜 Coming Soon |
+| **🎨 Color Match** | Puzzle | [▶ Play](games/color-match/index.html) | 🔜 Coming Soon |
+| **💎 Crystal Caves** | Adventure | [▶ Play](games/crystal-caves/index.html) | 🔜 Coming Soon |
+| **🧊 Cube Runner** | Runner | [▶ Play](games/cube-runner/index.html) | 🔜 Coming Soon |
+| **⚔️ Dungeon Crawler Classic** | RPG | [▶ Play](games/dungeon-crawler/index.html) | 🔜 Coming Soon |
+| **🔐 Escape Room** | Puzzle Adventure | [▶ Play](games/escape-room/index.html) | 🔜 Coming Soon |
+| **🏃 Maze Runner** | Maze | [▶ Play](games/maze-runner/index.html) | 🔜 Coming Soon |
+| **🔀 Merge Master** | Puzzle | [▶ Play](games/merge-master/index.html) | 🔜 Coming Soon |
+| **💨 Neon Dash** | Runner | [▶ Play](games/neon-dash/index.html) | 🔜 Coming Soon |
+| **🌍 Planet Defense** | Tower Defense | [▶ Play](games/planet-defense/index.html) | 🔜 Coming Soon |
+| **⚔️ Quest RPG** | RPG | [▶ Play](games/quest-rpg/index.html) | 🔜 Coming Soon |
+| **🏎️ Racing 3D** | Racing | [▶ Play](games/racing-3d/index.html) | 🔜 Coming Soon |
+| **🧙 Riddle Master** | Puzzle | [▶ Play](games/riddle-master/index.html) | 🔜 Coming Soon |
+| **🎯 Sniper Elite** | Action | [▶ Play](games/sniper-elite/index.html) | 🔜 Coming Soon |
+| **🚀 Space Jump** | Platformer | [▶ Play](games/space-jump/index.html) | 🔜 Coming Soon |
+| **🪐 Space Orbit** | Arcade | [▶ Play](games/space-orbit/index.html) | 🔜 Coming Soon |
+| **🚀 Space Shooter 3D** | 3D Shooter | [▶ Play](games/space-shooter-3d/index.html) | 🔜 Coming Soon |
+| **⚡ Territory Bolt** | Strategy | [▶ Play](games/territory-bolt/index.html) | 🔜 Coming Soon |
+| **🏰 Tower Defense** | Tower Defense | [▶ Play](games/tower-defense/index.html) | 🔜 Coming Soon |
+| **🏗️ Tower Stack** | Arcade | [▶ Play](games/tower-stack/index.html) | 🔜 Coming Soon |
+| **💨 Typing Blitz** | Educational | [▶ Play](games/typing-blitz/index.html) | 🔜 Coming Soon |
+| **🧟 Zombie Shooter** | Shooter | [▶ Play](games/zombie-shooter/index.html) | 🔜 Coming Soon |
 
 ---
 
@@ -68,28 +105,60 @@ JellyBolt Games is an indie game studio focused on creating **free-to-play brows
 ## 📁 Repository Structure
 
 ```
-jellybolt-games/                # Studio HQ (this repo)
-├── games/
-│   ├── brainrot-quiz-battle/   # 🧠 Trivia quiz game
-│   ├── code-conquest/          # ⚔️ Strategy board game
-│   ├── bounce-blitz/           # 🟢 One-tap arcade game
-│   ├── neon-snake/             # 🐍 Neon snake game
-│   ├── asteroid-dash/          # 🚀 Space shooter
-│   ├── memory-matrix/          # 🧩 Pattern memory game
-│   ├── pixel-tower/            # 🏗️ Tower stacking game
-│   ├── word-rush/              # ⌨️ Typing speed game
-│   ├── hex-match/              # 🔷 Hex tile matching puzzle
-│   ├── rhythm-tap/             # 🎵 4-lane rhythm game
-│   ├── gravity-dash/           # 🔄 Gravity-flipping platformer
-│   ├── card-clash/             # 🃏 Card battle vs AI
-│   ├── light-trail/            # 💡 Tron-style arena game
-│   ├── dungeon-bolt/           # ⚡ Roguelite dungeon crawler (flagship)
-│   ├── bolt-breaker/           # 🏏 Breakout with 10 neon levels
-│   └── space-trader/           # 🚀 Interstellar trading sim
-├── store-listings/             # itch.io & store metadata
-├── docs/                       # Studio docs
-├── .squad/                     # Team configuration
-└── README.md                   # You are here
+jellybolt-games/                  # Studio HQ (this repo)
+├── games/                        # 45 game directories (all have index.html)
+│   ├── archery-quest/            # 🏹 Precision archery arcade
+│   ├── asteroid-dash/            # 🚀 Space shooter (published)
+│   ├── battle-arena/             # ⚔️ Arena combat action
+│   ├── battle-royale/            # 🎖️ Last-player-standing battle
+│   ├── block-storm/              # 🌊 Block-clearing storm
+│   ├── bolt-blocks/              # ⚡ Lightning-fast block puzzle
+│   ├── bolt-breaker/             # 🏏 Breakout — 10 neon levels (published)
+│   ├── bolt-solitaire/           # 🃏 Solitaire with a bolt twist
+│   ├── bolt-tiles/               # 🔲 Tile-matching puzzle
+│   ├── bounce-blitz/             # 🟢 One-tap arcade (published)
+│   ├── brainrot-quiz-battle/     # 🧠 Trivia quiz (published)
+│   ├── bubble-pop/               # 🫧 Classic bubble shooting
+│   ├── card-clash/               # 🃏 Card battle vs AI (published)
+│   ├── code-conquest/            # ⚔️ Strategy board game (published)
+│   ├── color-match/              # 🎨 Color puzzle
+│   ├── crystal-caves/            # 💎 Cave exploration adventure
+│   ├── cube-runner/              # 🧊 3D-style cube runner
+│   ├── dungeon-bolt/             # ⚡ Roguelite dungeon crawler — $2.99 flagship (published)
+│   ├── dungeon-crawler/          # ⚔️ Tile-based dungeon crawler with fog of war
+│   ├── escape-room/              # 🔐 Puzzle adventure — 5 rooms
+│   ├── gravity-dash/             # 🔄 Gravity-flipping platformer (published)
+│   ├── hex-match/                # 🔷 Hex tile matching puzzle (published)
+│   ├── light-trail/              # 💡 Tron-style arena game (published)
+│   ├── maze-runner/              # 🏃 Procedurally generated mazes
+│   ├── memory-matrix/            # 🧩 Pattern memory game (published)
+│   ├── merge-master/             # 🔀 Merge number puzzle
+│   ├── neon-dash/                # 💨 Neon-lit endless runner
+│   ├── neon-snake/               # 🐍 Neon snake — classic reimagined (published)
+│   ├── pixel-tower/              # 🏗️ Tower stacking game (published)
+│   ├── planet-defense/           # 🌍 Tower defense vs alien invasion
+│   ├── quest-rpg/                # ⚔️ Lightweight RPG quest
+│   ├── racing-3d/                # 🏎️ 3D racing action
+│   ├── rhythm-tap/               # 🎵 4-lane rhythm game (published)
+│   ├── riddle-master/            # 🧙 Brain teasers and riddles
+│   ├── sniper-elite/             # 🎯 Precision sniper challenge
+│   ├── space-jump/               # 🚀 Gravity-defying space platformer
+│   ├── space-orbit/              # 🪐 Orbit planets and collect resources
+│   ├── space-shooter-3d/         # 🚀 First-person 3D space combat
+│   ├── space-trader/             # 🚀 Interstellar trading sim (published)
+│   ├── territory-bolt/           # ⚡ Territory control strategy
+│   ├── tower-defense/            # 🏰 Classic tower defense
+│   ├── tower-stack/              # 🏗️ Stack towers with precision timing
+│   ├── typing-blitz/             # 💨 High-speed typing challenge
+│   ├── word-rush/                # ⌨️ Typing speed game (published)
+│   ├── zombie-shooter/           # 🧟 Wave-based zombie survival
+│   └── shared/                   # Shared monetization/navigation assets
+├── android-app*/                 # Android WebView wrapper apps (AAB builds)
+├── store-listings/               # itch.io & store metadata
+├── config/                       # Affiliate and monetization config
+├── docs/                         # Studio docs
+├── .squad/                       # Team configuration
+└── README.md                     # You are here
 ```
 
 ---
@@ -159,7 +228,7 @@ Love our games? Here's how you can support the studio:
 | 💰 **Pay what you want** | Most games have a "Name your price" option on itch.io |
 | ⚡ **Buy Dungeon Bolt** | [Our flagship game — $2.99](https://jellyboltgames.itch.io/dungeon-bolt) |
 | 📢 **Share with friends** | Tweet, post, tell your gamer friends! |
-| 🐛 **Report bugs** | [Open an issue](https://github.com/tamirdresher/jellybolt-games/issues) |
+| 🐛 **Report bugs** | Email us at [tdsquadai@gmail.com](mailto:tdsquadai@gmail.com) |
 
 > Every play, every star, every share helps us make more games. Thank you! ⚡
 

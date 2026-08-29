@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Planet Defense - JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;touch-action:manipulation;user-select:none}
+h1{font-size:1.5rem;text-align:center;padding:6px;background:linear-gradient(90deg,#ff006e,#8338ec,#3a86ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.game-wrap{flex:1;position:relative;overflow:hidden}
+#canvas{width:100%;height:100%;display:block;cursor:crosshair}
+#hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:10px;flex-wrap:wrap;font-size:.85rem;pointer-events:none;z-index:2}
+#hud span{background:rgba(0,0,0,.6);padding:4px 10px;border-radius:6px;backdrop-filter:blur(4px)}
+.cr{color:#f7b731}.wv{color:#8338ec}.hp{color:#ff006e}.sc{color:#3a86ff}.ki{color:#06d6a0}
+#turret-bar{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:8px;padding:8px;background:rgba(0,0,0,.7);z-index:2;backdrop-filter:blur(6px)}
+.t-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 14px;border:2px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.05);color:#fff;cursor:pointer;font-size:.75rem;transition:all .15s;min-width:72px}
+.t-btn:hover,.t-btn.selected{border-color:#3a86ff;background:rgba(58,134,255,.15)}
+.t-btn .icon{font-size:1.5rem}
+.t-btn .cost{color:#f7b731;font-weight:700}
+.t-btn:disabled{opacity:.3;cursor:default}
+#menu,#gameover,#shop{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,26,.95);z-index:20;gap:12px;padding:20px}
+#menu h2,#gameover h2,#shop h2{font-size:2.2rem;background:linear-gradient(90deg,#ff006e,#8338ec,#3a86ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.btn-start{padding:14px 40px;font-size:1.2rem;border:none;border-radius:12px;background:linear-gradient(135deg,#8338ec,#3a86ff);color:#fff;cursor:pointer;font-weight:700;transition:transform .15s}
+.btn-start:hover{transform:scale(1.05)}.btn-start:active{transform:scale(.97)}
+#shop{gap:8px}
+.shop-item{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);padding:10px 16px;border-radius:10px;width:min(340px,90vw);cursor:pointer;border:1px solid rgba(255,255,255,.08);transition:all .15s}
+.shop-item:hover{border-color:#3a86ff;background:rgba(58,134,255,.1)}
+.shop-item.cant{opacity:.4;cursor:default}
+.shop-item .si-icon{font-size:1.6rem;width:36px;text-align:center}
+.shop-item .si-info{flex:1}.shop-item .si-name{font-weight:700;font-size:.95rem}
+.shop-item .si-desc{font-size:.75rem;color:#aaa}
+.shop-item .si-cost{color:#f7b731;font-weight:700;font-size:.95rem}
+#wave-banner{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);font-size:2.5rem;font-weight:900;color:#fff;text-shadow:0 0 30px rgba(131,56,236,.6);z-index:5;pointer-events:none;opacity:0;transition:opacity .3s}
+footer{text-align:center;padding:6px;font-size:.7rem;color:#555;background:rgba(0,0,0,.3);z-index:3}
+footer a{color:#8338ec;text-decoration:none;margin:0 6px}
+footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<h1>⚡ Planet Defense</h1>
+<div class="game-wrap" id="game-wrap">
+  <div id="menu">
+    <h2>Planet Defense</h2>
+    <p style="color:#aaa;max-width:320px;text-align:center;line-height:1.4">Defend your planet from alien invaders! Place turrets, upgrade them, and survive as long as you can.</p>
+    <button class="btn-start" id="btn-start">▶ PLAY</button>
+    <p style="color:#666;font-size:.85rem" id="menu-hi">High Score: 0</p>
+  </div>
+  <div id="gameover" style="display:none">
+    <h2>Planet Lost</h2>
+    <div style="font-size:2.5rem;color:#3a86ff" id="final-score">0</div>
+    <p style="color:#aaa" id="go-wave">Reached Wave: 1</p>
+    <p style="color:#aaa" id="go-kills">Enemies Destroyed: 0</p>
+    <button class="btn-start" id="btn-restart">↻ PLAY AGAIN</button>
+  </div>
+  <div id="shop" style="display:none">
+    <h2>⚙ Upgrade Shop</h2>
+    <p style="color:#f7b731;font-size:1.1rem" id="shop-credits">Credits: 0</p>
+    <div id="shop-items"></div>
+    <button class="btn-start" id="btn-next-wave" style="margin-top:8px">▶ Next Wave</button>
+  </div>
+  <div id="hud" style="display:none">
+    <span class="cr" id="h-credits">💰 100</span>
+    <span class="wv" id="h-wave">Wave: 1</span>
+    <span class="hp" id="h-hp">Planet: 100%</span>
+    <span class="sc" id="h-score">Score: 0</span>
+    <span class="ki" id="h-kills">Kills: 0</span>
+  </div>
+  <div id="wave-banner"></div>
+  <canvas id="canvas"></canvas>
+  <div id="turret-bar" style="display:none">
+    <button class="t-btn selected" data-type="laser"><span class="icon">🔫</span><span>Laser</span><span class="cost">$25</span></button>
+    <button class="t-btn" data-type="missile"><span class="icon">🚀</span><span>Missile</span><span class="cost">$50</span></button>
+    <button class="t-btn" data-type="freeze"><span class="icon">❄️</span><span>Freeze</span><span class="cost">$40</span></button>
+    <button class="t-btn" data-type="sell"><span class="icon">💰</span><span>Sell</span><span class="cost">50%</span></button>
+  </div>
+</div>
+<footer>
+  <span>⚡ JellyBolt Games</span><br>
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank">☕ Buy Me a Coffee</a>
+  <a href="https://jellyboltgames.itch.io" target="_blank">🎮 More Games on itch.io</a>
+</footer>
+<script>
+(function(){
+const canvas=document.getElementById('canvas'),cx=canvas.getContext('2d');
+const $=s=>document.querySelector(s);const $$=s=>document.querySelectorAll(s);
+const TAU=Math.PI*2;
+let W,H,CX,CY,PLANET_R;
+function resize(){W=canvas.width=canvas.parentElement.clientWidth;H=canvas.height=canvas.parentElement.clientHeight;CX=W/2;CY=H/2;PLANET_R=Math.min(W,H)*.08}
+window.addEventListener('resize',resize);resize();
+
+const TURRET_TYPES={
+  laser:{cost:25,range:120,fireRate:500,damage:8,color:'#3a86ff',projSpeed:6,projColor:'#3a86ff',name:'Laser'},
+  missile:{cost:50,range:160,fireRate:1200,damage:30,color:'#ff006e',projSpeed:3.5,projColor:'#ff006e',name:'Missile',splash:40},
+  freeze:{cost:40,range:130,fireRate:800,damage:4,color:'#00e5ff',projSpeed:5,projColor:'#00e5ff',name:'Freeze',slow:.4,slowDur:2000}
+};
+
+let turrets=[],enemies=[],projectiles=[],particles=[],explosions=[];
+let credits=100,score=0,kills=0,wave=0,planetHP=100,playing=false,waveActive=false;
+let selectedType='laser',hiScore=parseInt(localStorage.getItem('pd_hi'))||0;
+let globalDmgMult=1,globalRangeMult=1,globalFireRateMult=1;
+$('#menu-hi').textContent='High Score: '+hiScore;
+
+// Turret bar selection
+$$('.t-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    $$('.t-btn').forEach(x=>x.classList.remove('selected'));
+    b.classList.add('selected');
+    selectedType=b.dataset.type;
+  });
+});
+
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function angle(a,b){return Math.atan2(b.y-a.y,b.x-a.x)}
+function lerp(a,b,t){return a+(b-a)*t}
+
+function spawnParticles(x,y,color,count,spd){
+  for(let i=0;i<count;i++){
+    const a=Math.random()*TAU,s=(spd||2)+Math.random()*2;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,color,size:2+Math.random()*3});
+  }
+}
+
+function drawPlanet(){
+  const grd=cx.createRadialGradient(CX,CY,PLANET_R*.2,CX,CY,PLANET_R);
+  grd.addColorStop(0,'#4a90d9');grd.addColorStop(.6,'#2563a0');grd.addColorStop(1,'#1a3a5c');
+  cx.beginPath();cx.arc(CX,CY,PLANET_R,0,TAU);cx.fillStyle=grd;cx.fill();
+  cx.strokeStyle='rgba(58,134,255,.3)';cx.lineWidth=3;cx.stroke();
+  // Shield glow based on HP
+  cx.beginPath();cx.arc(CX,CY,PLANET_R+6,0,TAU);
+  cx.strokeStyle=planetHP>60?'rgba(6,214,160,.4)':planetHP>30?'rgba(247,183,49,.4)':'rgba(255,0,110,.4)';
+  cx.lineWidth=2;cx.stroke();
+  // HP text
+  cx.fillStyle='#fff';cx.font='bold '+Math.max(10,PLANET_R*.35)+'px sans-serif';cx.textAlign='center';cx.textBaseline='middle';
+  cx.fillText(Math.ceil(planetHP)+'%',CX,CY);
+}
+
+function drawTurret(t){
+  const tt=TURRET_TYPES[t.type];
+  cx.save();cx.translate(t.x,t.y);
+  // Range circle when placing
+  if(t.showRange){
+    cx.beginPath();cx.arc(0,0,tt.range*globalRangeMult,0,TAU);
+    cx.strokeStyle=tt.color+'33';cx.lineWidth=1;cx.stroke();
+  }
+  // Base
+  cx.beginPath();cx.arc(0,0,10,0,TAU);cx.fillStyle='#1a1a2e';cx.fill();
+  cx.strokeStyle=tt.color;cx.lineWidth=2;cx.stroke();
+  // Barrel
+  cx.rotate(t.angle||0);
+  cx.fillStyle=tt.color;cx.fillRect(0,-2,16,4);
+  cx.restore();
+  // Level indicator
+  if(t.level>1){cx.fillStyle='#f7b731';cx.font='bold 9px sans-serif';cx.textAlign='center';cx.fillText('★'.repeat(Math.min(t.level-1,3)),t.x,t.y+18)}
+}
+
+function drawEnemy(e){
+  cx.save();cx.translate(e.x,e.y);
+  const slowFactor=e.slowTimer>0?.6:1;
+  if(e.boss){
+    cx.beginPath();cx.arc(0,0,e.size,0,TAU);
+    const g=cx.createRadialGradient(0,0,0,0,0,e.size);
+    g.addColorStop(0,'#ff006e');g.addColorStop(1,'#8b0000');
+    cx.fillStyle=g;cx.fill();cx.strokeStyle='#ff006e';cx.lineWidth=2;cx.stroke();
+    cx.fillStyle='#fff';cx.font='bold 10px sans-serif';cx.textAlign='center';cx.fillText('BOSS',0,4);
+  }else{
+    cx.beginPath();
+    for(let i=0;i<e.sides;i++){
+      const a=TAU/e.sides*i-Math.PI/2;
+      const r=e.size;
+      i===0?cx.moveTo(Math.cos(a)*r,Math.sin(a)*r):cx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+    }
+    cx.closePath();cx.fillStyle=e.slowTimer>0?'#00e5ff':e.color;cx.fill();
+    cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;cx.stroke();
+  }
+  // HP bar
+  if(e.hp<e.maxHP){
+    const bw=e.size*2,bh=3;
+    cx.fillStyle='rgba(0,0,0,.5)';cx.fillRect(-bw/2,-e.size-8,bw,bh);
+    cx.fillStyle='#ff006e';cx.fillRect(-bw/2,-e.size-8,bw*(e.hp/e.maxHP),bh);
+  }
+  cx.restore();
+}
+
+function drawProjectile(p){
+  cx.beginPath();cx.arc(p.x,p.y,p.size||3,0,TAU);
+  cx.fillStyle=p.color;cx.fill();
+  cx.shadowColor=p.color;cx.shadowBlur=8;cx.fill();cx.shadowBlur=0;
+}
+
+function updateParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.life-=.03;
+    if(p.life<=0){particles.splice(i,1);continue}
+    cx.globalAlpha=p.life;cx.fillStyle=p.color;
+    cx.beginPath();cx.arc(p.x,p.y,p.size*p.life,0,TAU);cx.fill();
+  }
+  cx.globalAlpha=1;
+}
+
+function spawnWave(){
+  wave++;waveActive=true;
+  const isBoss=wave%5===0;
+  const count=isBoss?Math.floor(wave*.6)+2:5+wave*2;
+  const colors=['#ff006e','#f7b731','#8338ec','#06d6a0'];
+  const baseHP=8+wave*4;const baseSpd=.3+wave*.02;
+  for(let i=0;i<count;i++){
+    const a=Math.random()*TAU;
+    const r=Math.max(W,H)*.7+Math.random()*100;
+    const boss=isBoss&&i===count-1;
+    enemies.push({
+      x:CX+Math.cos(a)*r,y:CY+Math.sin(a)*r,
+      hp:boss?baseHP*8:baseHP,maxHP:boss?baseHP*8:baseHP,
+      speed:boss?baseSpd*.5:baseSpd*(0.7+Math.random()*.6),
+      size:boss?22:7+Math.random()*4,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      sides:3+Math.floor(Math.random()*4),
+      boss,reward:boss?50:5+Math.floor(wave/2),
+      slowTimer:0,damage:boss?8:2+Math.floor(wave/3),
+      spawnDelay:i*300
+    });
+  }
+  showWaveBanner(isBoss?'⚠ BOSS WAVE '+wave:'Wave '+wave);
+}
+
+function showWaveBanner(text){
+  const el=$('#wave-banner');el.textContent=text;el.style.opacity='1';
+  setTimeout(()=>{el.style.opacity='0'},2000);
+}
+
+function updateHUD(){
+  $('#h-credits').textContent='💰 '+credits;
+  $('#h-wave').textContent='Wave: '+wave;
+  $('#h-hp').textContent='Planet: '+Math.ceil(planetHP)+'%';
+  $('#h-score').textContent='Score: '+score;
+  $('#h-kills').textContent='Kills: '+kills;
+}
+
+function openShop(){
+  waveActive=false;
+  const shopEl=$('#shop');const itemsEl=$('#shop-items');
+  shopEl.style.display='flex';
+  $('#shop-credits').textContent='Credits: '+credits;
+  const upgrades=[
+    {id:'dmg',icon:'⚔️',name:'Damage +15%',desc:'All turrets deal more damage',cost:40+wave*10,action:()=>{globalDmgMult*=1.15}},
+    {id:'range',icon:'🎯',name:'Range +10%',desc:'All turrets see further',cost:35+wave*8,action:()=>{globalRangeMult*=1.1}},
+    {id:'rate',icon:'⏩',name:'Fire Rate +10%',desc:'All turrets shoot faster',cost:45+wave*10,action:()=>{globalFireRateMult*=1.1}},
+    {id:'heal',icon:'💚',name:'Repair Planet',desc:'Restore 25% planet HP',cost:30+wave*5,action:()=>{planetHP=Math.min(100,planetHP+25)}},
+    {id:'cred',icon:'💰',name:'Investment',desc:'Gain 30 bonus credits next wave',cost:20,action:()=>{credits+=30}},
+  ];
+  itemsEl.innerHTML='';
+  upgrades.forEach(u=>{
+    const el=document.createElement('div');
+    el.className='shop-item'+(credits<u.cost?' cant':'');
+    el.innerHTML='<div class="si-icon">'+u.icon+'</div><div class="si-info"><div class="si-name">'+u.name+'</div><div class="si-desc">'+u.desc+'</div></div><div class="si-cost">$'+u.cost+'</div>';
+    if(credits>=u.cost){
+      el.addEventListener('click',()=>{
+        credits-=u.cost;u.action();
+        openShop(); // Refresh
+      });
+    }
+    itemsEl.appendChild(el);
+  });
+}
+
+function startGame(){
+  turrets=[];enemies=[];projectiles=[];particles=[];
+  credits=100;score=0;kills=0;wave=0;planetHP=100;playing=true;
+  globalDmgMult=1;globalRangeMult=1;globalFireRateMult=1;
+  selectedType='laser';
+  $$('.t-btn').forEach(b=>b.classList.remove('selected'));
+  $$('.t-btn')[0].classList.add('selected');
+  $('#menu').style.display='none';$('#gameover').style.display='none';$('#shop').style.display='none';
+  $('#hud').style.display='flex';$('#turret-bar').style.display='flex';
+  updateHUD();spawnWave();requestAnimationFrame(gameLoop);
+}
+
+function endGame(){
+  playing=false;
+  if(score>hiScore){hiScore=score;localStorage.setItem('pd_hi',hiScore)}
+  $('#hud').style.display='none';$('#turret-bar').style.display='none';
+  $('#final-score').textContent=score;
+  $('#go-wave').textContent='Reached Wave: '+wave;
+  $('#go-kills').textContent='Enemies Destroyed: '+kills;
+  $('#gameover').style.display='flex';
+}
+
+// Place turret on click
+canvas.addEventListener('click',e=>{
+  if(!playing||!waveActive)return;
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(W/rect.width);
+  const my=(e.clientY-rect.top)*(H/rect.height);
+  if(selectedType==='sell'){
+    // Find nearest turret to sell
+    let nearest=null,nd=30;
+    turrets.forEach(t=>{const d=dist(t,{x:mx,y:my});if(d<nd){nd=d;nearest=t}});
+    if(nearest){
+      const refund=Math.floor(TURRET_TYPES[nearest.type].cost*nearest.level*.5);
+      credits+=refund;turrets=turrets.filter(t=>t!==nearest);
+      spawnParticles(nearest.x,nearest.y,'#f7b731',10);updateHUD();
+    }
+    return;
+  }
+  const tt=TURRET_TYPES[selectedType];
+  if(!tt||credits<tt.cost)return;
+  // Don't place on planet
+  if(dist({x:mx,y:my},{x:CX,y:CY})<PLANET_R+20)return;
+  // Don't overlap turrets
+  for(const t of turrets){if(dist(t,{x:mx,y:my})<25)return}
+  credits-=tt.cost;
+  turrets.push({x:mx,y:my,type:selectedType,angle:0,lastFire:0,level:1,showRange:false});
+  spawnParticles(mx,my,tt.color,8);
+  updateHUD();
+});
+
+// Show range on hover
+canvas.addEventListener('mousemove',e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(W/rect.width);
+  const my=(e.clientY-rect.top)*(H/rect.height);
+  turrets.forEach(t=>{t.showRange=dist(t,{x:mx,y:my})<15});
+});
+
+let lastTime=0;
+function gameLoop(ts){
+  if(!playing)return;
+  const dt=Math.min(ts-lastTime,50);lastTime=ts;
+  cx.clearRect(0,0,W,H);
+
+  // Stars background
+  if(!gameLoop._stars){
+    gameLoop._stars=[];for(let i=0;i<80;i++)gameLoop._stars.push({x:Math.random()*W,y:Math.random()*H,s:Math.random()*1.5+.5,b:Math.random()});
+  }
+  gameLoop._stars.forEach(s=>{
+    s.b+=.01;cx.fillStyle='rgba(255,255,255,'+(Math.sin(s.b)*.3+.3)+')';
+    cx.beginPath();cx.arc(s.x,s.y,s.s,0,TAU);cx.fill();
+  });
+
+  drawPlanet();
+
+  // Update enemies
+  const now=ts;
+  for(let i=enemies.length-1;i>=0;i--){
+    const e=enemies[i];
+    if(e.spawnDelay>0){e.spawnDelay-=dt;continue}
+    const a=angle(e,{x:CX,y:CY});
+    const spd=e.slowTimer>0?e.speed*.4:e.speed;
+    e.x+=Math.cos(a)*spd*(dt/16);
+    e.y+=Math.sin(a)*spd*(dt/16);
+    if(e.slowTimer>0)e.slowTimer-=dt;
+    // Hit planet
+    if(dist(e,{x:CX,y:CY})<PLANET_R+e.size){
+      planetHP-=e.damage;
+      spawnParticles(e.x,e.y,'#ff006e',12,3);
+      enemies.splice(i,1);
+      if(planetHP<=0){planetHP=0;updateHUD();setTimeout(endGame,500);return}
+      continue;
+    }
+    drawEnemy(e);
+  }
+
+  // Update turrets
+  turrets.forEach(t=>{
+    const tt=TURRET_TYPES[t.type];
+    const range=tt.range*globalRangeMult;
+    let target=null,minD=range;
+    enemies.forEach(e=>{
+      if(e.spawnDelay>0)return;
+      const d=dist(t,e);if(d<minD){minD=d;target=e}
+    });
+    if(target){
+      t.angle=angle(t,target);
+      const fr=tt.fireRate/globalFireRateMult/(1+t.level*.1);
+      if(now-t.lastFire>fr){
+        t.lastFire=now;
+        projectiles.push({
+          x:t.x+Math.cos(t.angle)*16,y:t.y+Math.sin(t.angle)*16,
+          vx:Math.cos(t.angle)*tt.projSpeed,vy:Math.sin(t.angle)*tt.projSpeed,
+          damage:tt.damage*globalDmgMult*(1+t.level*.15),color:tt.projColor,
+          splash:tt.splash,slow:tt.slow,slowDur:tt.slowDur,size:t.type==='missile'?4:3,
+          life:80
+        });
+      }
+    }
+    drawTurret(t);
+  });
+
+  // Update projectiles
+  for(let i=projectiles.length-1;i>=0;i--){
+    const p=projectiles[i];
+    p.x+=p.vx*(dt/16);p.y+=p.vy*(dt/16);p.life--;
+    if(p.life<=0||p.x<-20||p.x>W+20||p.y<-20||p.y>H+20){projectiles.splice(i,1);continue}
+    let hit=false;
+    for(let j=enemies.length-1;j>=0;j--){
+      const e=enemies[j];
+      if(e.spawnDelay>0)continue;
+      if(dist(p,e)<e.size+p.size){
+        hit=true;
+        if(p.splash){
+          enemies.forEach(e2=>{if(dist(p,e2)<p.splash){e2.hp-=p.damage*.5;if(p.slow)e2.slowTimer=p.slowDur}});
+          spawnParticles(p.x,p.y,p.color,12,3);
+        }
+        e.hp-=p.damage;
+        if(p.slow)e.slowTimer=p.slowDur||2000;
+        spawnParticles(p.x,p.y,p.color,5);
+        if(e.hp<=0){
+          score+=e.reward;credits+=e.reward;kills++;
+          spawnParticles(e.x,e.y,e.color,20,4);
+          enemies.splice(j,1);
+        }
+        break;
+      }
+    }
+    if(hit){projectiles.splice(i,1);continue}
+    drawProjectile(p);
+  }
+
+  updateParticles(dt);
+  updateHUD();
+
+  // Check wave complete
+  if(waveActive&&enemies.length===0){
+    waveActive=false;
+    credits+=10+wave*3;
+    setTimeout(openShop,800);
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+$('#btn-start').addEventListener('click',startGame);
+$('#btn-restart').addEventListener('click',startGame);
+$('#btn-next-wave').addEventListener('click',()=>{
+  $('#shop').style.display='none';
+  spawnWave();
+});
+})();
+</script>
+</body>
+</html>

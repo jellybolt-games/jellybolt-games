@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Color Match - JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;touch-action:manipulation;user-select:none;display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+.game-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+h1{font-size:2rem;text-align:center;margin-top:12px;background:linear-gradient(90deg,#ff006e,#8338ec,#3a86ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none}
+#hud{display:flex;gap:24px;justify-content:center;padding:10px;font-size:1.1rem}
+#hud span{background:rgba(255,255,255,.07);padding:6px 14px;border-radius:8px}
+.lives{color:#ff006e}.score-val{color:#3a86ff}.combo-val{color:#f7b731}.hi-val{color:#8338ec}
+#flash-zone{width:min(280px,70vw);height:min(280px,70vw);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:18px auto;transition:background .15s,box-shadow .15s,transform .15s;border:4px solid rgba(255,255,255,.08);position:relative}
+#flash-zone.correct{transform:scale(1.08);box-shadow:0 0 60px rgba(0,255,120,.5)}
+#flash-zone.wrong{transform:scale(.92);box-shadow:0 0 60px rgba(255,0,60,.5)}
+#flash-zone .inner-text{font-size:2.2rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;pointer-events:none;text-shadow:0 0 20px rgba(255,255,255,.3)}
+#buttons{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:10px 20px;max-width:400px;width:100%}
+.color-btn{height:70px;border:none;border-radius:14px;font-size:1.1rem;font-weight:700;cursor:pointer;transition:transform .1s,box-shadow .1s;text-transform:uppercase;letter-spacing:1px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.color-btn:active{transform:scale(.93)}
+.color-btn:hover{box-shadow:0 0 25px rgba(255,255,255,.15)}
+#menu,#gameover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,26,.95);z-index:10;gap:18px}
+#menu h2,#gameover h2{font-size:2.5rem;background:linear-gradient(90deg,#ff006e,#8338ec,#3a86ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.btn-start{padding:16px 48px;font-size:1.3rem;border:none;border-radius:12px;background:linear-gradient(135deg,#8338ec,#3a86ff);color:#fff;cursor:pointer;font-weight:700;transition:transform .15s}
+.btn-start:hover{transform:scale(1.05)}
+.btn-start:active{transform:scale(.97)}
+#gameover .final-score{font-size:3rem;color:#3a86ff}
+#timer-bar{width:min(350px,85vw);height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;margin-top:4px}
+#timer-fill{height:100%;background:linear-gradient(90deg,#ff006e,#f7b731);border-radius:4px;transition:width .05s linear}
+.particles{position:absolute;pointer-events:none;z-index:5}
+footer{text-align:center;padding:10px;font-size:.8rem;color:#555;background:rgba(0,0,0,.3)}
+footer a{color:#8338ec;text-decoration:none;margin:0 8px}
+footer a:hover{text-decoration:underline}
+@keyframes popIn{0%{transform:scale(0);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+@keyframes fadeUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-60px)}}
+.combo-popup{position:absolute;font-size:1.8rem;font-weight:900;color:#f7b731;animation:fadeUp .8s ease-out forwards;pointer-events:none;z-index:6;text-shadow:0 0 15px rgba(247,183,49,.5)}
+</style>
+</head>
+<body>
+<h1>⚡ Color Match</h1>
+<div class="game-wrap" id="game-wrap">
+  <div id="menu">
+    <h2>Color Match</h2>
+    <p style="color:#aaa;max-width:300px;text-align:center;line-height:1.5">Match the flashing color as fast as you can! Speed increases with each correct answer. Don't get tricked by the color name!</p>
+    <button class="btn-start" id="btn-start">▶ PLAY</button>
+    <p style="color:#666;font-size:.85rem" id="menu-hi">High Score: 0</p>
+  </div>
+  <div id="gameover" style="display:none">
+    <h2>Game Over</h2>
+    <div class="final-score" id="final-score">0</div>
+    <p style="color:#aaa" id="go-combo">Best Combo: 0x</p>
+    <p style="color:#aaa" id="go-hi">High Score: 0</p>
+    <button class="btn-start" id="btn-restart">↻ PLAY AGAIN</button>
+  </div>
+  <div id="hud" style="display:none">
+    <span class="lives" id="lives">❤❤❤</span>
+    <span class="score-val" id="score">Score: 0</span>
+    <span class="combo-val" id="combo">Combo: 0x</span>
+  </div>
+  <div id="timer-bar" style="display:none"><div id="timer-fill" style="width:100%"></div></div>
+  <div id="flash-zone" style="display:none"><span class="inner-text" id="flash-text">RED</span></div>
+  <div id="buttons" style="display:none"></div>
+</div>
+<canvas class="particles" id="particles"></canvas>
+<footer>
+  <span>⚡ JellyBolt Games</span><br>
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank">☕ Buy Me a Coffee</a>
+  <a href="https://jellyboltgames.itch.io" target="_blank">🎮 More Games on itch.io</a>
+</footer>
+<script>
+(function(){
+const COLORS=[
+  {name:'Red',hex:'#ff006e',dark:'#cc0058'},
+  {name:'Blue',hex:'#3a86ff',dark:'#2e6bcc'},
+  {name:'Green',hex:'#06d6a0',dark:'#04a87d'},
+  {name:'Yellow',hex:'#f7b731',dark:'#c99527'},
+  {name:'Purple',hex:'#8338ec',dark:'#6a2dbd'},
+  {name:'Orange',hex:'#ff8c00',dark:'#cc7000'},
+  {name:'Cyan',hex:'#00e5ff',dark:'#00b8cc'},
+  {name:'Pink',hex:'#ff69b4',dark:'#cc5490'}
+];
+const ACTIVE_COUNT=4;
+let score=0,lives=3,combo=0,bestCombo=0,hiScore=0,roundColors=[],targetColor=null,trickMode=false;
+let timerInterval=null,timeLeft=0,maxTime=3000,playing=false,speed=1;
+const $=s=>document.querySelector(s);
+const flashZone=$('#flash-zone'),flashText=$('#flash-text'),buttonsDiv=$('#buttons');
+const hudEl=$('#hud'),timerBar=$('#timer-bar'),timerFill=$('#timer-fill');
+const menuEl=$('#menu'),goEl=$('#gameover'),canvas=$('#particles'),ctx=canvas.getContext('2d');
+let particles=[];
+
+hiScore=parseInt(localStorage.getItem('cm_hi'))||0;
+$('#menu-hi').textContent='High Score: '+hiScore;
+
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}
+window.addEventListener('resize',resizeCanvas);resizeCanvas();
+
+function pickRandom(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function spawnParticles(x,y,color,count){
+  for(let i=0;i<count;i++){
+    const angle=Math.random()*Math.PI*2,spd=2+Math.random()*4;
+    particles.push({x,y,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd,life:1,color,size:3+Math.random()*4});
+  }
+}
+
+function animateParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles=particles.filter(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.08;p.life-=.02;
+    if(p.life<=0)return false;
+    ctx.globalAlpha=p.life;ctx.fillStyle=p.color;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();
+    return true;
+  });
+  ctx.globalAlpha=1;
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+function startGame(){
+  score=0;lives=3;combo=0;bestCombo=0;speed=1;playing=true;
+  menuEl.style.display='none';goEl.style.display='none';
+  hudEl.style.display='flex';timerBar.style.display='block';
+  flashZone.style.display='flex';buttonsDiv.style.display='grid';
+  updateHUD();nextRound();
+}
+
+function endGame(){
+  playing=false;clearInterval(timerInterval);
+  hudEl.style.display='none';timerBar.style.display='none';
+  flashZone.style.display='none';buttonsDiv.style.display='none';
+  if(score>hiScore){hiScore=score;localStorage.setItem('cm_hi',hiScore)}
+  $('#final-score').textContent=score;
+  $('#go-combo').textContent='Best Combo: '+bestCombo+'x';
+  $('#go-hi').textContent='High Score: '+hiScore;
+  goEl.style.display='flex';
+}
+
+function updateHUD(){
+  $('#lives').textContent='❤'.repeat(lives)+'🖤'.repeat(3-lives);
+  $('#score').textContent='Score: '+score;
+  $('#combo').textContent='Combo: '+combo+'x';
+}
+
+function nextRound(){
+  if(!playing)return;
+  roundColors=shuffle([...COLORS]).slice(0,ACTIVE_COUNT);
+  targetColor=pickRandom(roundColors);
+  trickMode=Math.random()<Math.min(.15+speed*.05,.5);
+  if(trickMode){
+    const others=roundColors.filter(c=>c!==targetColor);
+    const trickName=pickRandom(others).name;
+    flashText.textContent=trickName;
+  }else{
+    flashText.textContent=targetColor.name;
+  }
+  flashZone.style.background=targetColor.hex;
+  flashZone.style.boxShadow='0 0 40px '+targetColor.hex+'66';
+  flashText.style.color='rgba(255,255,255,0.9)';
+  flashZone.classList.remove('correct','wrong');
+  buttonsDiv.innerHTML='';
+  roundColors.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='color-btn';
+    btn.textContent=c.name;
+    btn.style.background='linear-gradient(135deg,'+c.hex+','+c.dark+')';
+    btn.style.boxShadow='0 4px 15px '+c.hex+'33';
+    btn.addEventListener('click',()=>handleAnswer(c));
+    btn.addEventListener('touchstart',e=>{e.preventDefault();handleAnswer(c)},{passive:false});
+    buttonsDiv.appendChild(btn);
+  });
+  maxTime=Math.max(1200,3000-speed*150);
+  timeLeft=maxTime;
+  timerFill.style.width='100%';
+  clearInterval(timerInterval);
+  const step=50;
+  timerInterval=setInterval(()=>{
+    timeLeft-=step;
+    timerFill.style.width=Math.max(0,timeLeft/maxTime*100)+'%';
+    if(timeLeft<=0){clearInterval(timerInterval);handleAnswer(null)}
+  },step);
+}
+
+function showComboPopup(){
+  const el=document.createElement('div');
+  el.className='combo-popup';
+  el.textContent=combo+'x COMBO!';
+  el.style.left=Math.random()*60+20+'%';
+  el.style.top='30%';
+  document.getElementById('game-wrap').appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+function handleAnswer(chosen){
+  if(!playing)return;
+  clearInterval(timerInterval);
+  const correct=chosen&&chosen.name===targetColor.name;
+  if(correct){
+    combo++;
+    if(combo>bestCombo)bestCombo=combo;
+    const bonus=Math.floor(10*speed*(1+combo*.1));
+    score+=bonus;
+    speed+=.12;
+    flashZone.classList.add('correct');
+    const rect=flashZone.getBoundingClientRect();
+    spawnParticles(rect.left+rect.width/2,rect.top+rect.height/2,targetColor.hex,15);
+    if(combo>0&&combo%5===0)showComboPopup();
+  }else{
+    combo=0;lives--;
+    flashZone.classList.add('wrong');
+    if(lives<=0){updateHUD();setTimeout(endGame,400);return}
+  }
+  updateHUD();
+  setTimeout(nextRound,correct?350:600);
+}
+
+$('#btn-start').addEventListener('click',startGame);
+$('#btn-restart').addEventListener('click',startGame);
+document.addEventListener('keydown',e=>{
+  if(!playing)return;
+  const idx=parseInt(e.key)-1;
+  if(idx>=0&&idx<roundColors.length)handleAnswer(roundColors[idx]);
+});
+})();
+</script>
+</body>
+</html>

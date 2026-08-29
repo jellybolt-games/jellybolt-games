@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Word Rush — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a2e;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;height:100vh}
+#app{width:100%;height:100vh;position:relative}
+.screen{display:none;position:absolute;top:0;left:0;width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center}
+.screen.active{display:flex}
+.title{font-size:2.8em;font-weight:900;background:linear-gradient(135deg,#ff9f43,#ffcc00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:5px}
+.sub{color:#8b949e;font-size:1.05em;margin-bottom:30px}
+.btn{padding:14px 40px;font-size:1.2em;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:all .2s;margin:5px}
+.btn:hover{transform:translateY(-2px)}
+.btn-play{background:linear-gradient(135deg,#ff9f43,#ffcc00);color:#0a0a2e;box-shadow:0 4px 20px #ffcc0044}
+.btn-again{background:linear-gradient(135deg,#58a6ff,#388bfd);color:#fff;box-shadow:0 4px 20px #58a6ff44}
+.credit{color:#484f58;font-size:.8em;margin-top:30px}
+canvas{display:block;width:100%;height:100%}
+#input-area{position:absolute;bottom:0;left:0;width:100%;padding:10px 15px;background:rgba(13,17,23,0.95);display:flex;gap:8px;align-items:center;z-index:10}
+#word-input{flex:1;padding:14px 18px;font-size:1.3em;font-weight:700;border:2px solid #30363d;border-radius:12px;background:#161b22;color:#fff;outline:none;font-family:inherit}
+#word-input:focus{border-color:#58a6ff;box-shadow:0 0 10px #58a6ff33}
+#word-input::placeholder{color:#484f58}
+.hud-bar{position:absolute;top:0;left:0;width:100%;padding:8px 15px;display:flex;justify-content:space-between;background:rgba(10,10,46,.9);z-index:10;font-size:.95em;color:#8b949e}
+.hud-bar span{color:#00ff88;font-weight:700}
+.lives-display{color:#ff6b6b !important}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="app">
+  <div id="menu" class="screen active">
+    <div class="title">⌨️ Word Rush</div>
+    <div class="sub">Type the falling words before they reach the bottom!</div>
+    <button class="btn btn-play" onclick="startGame()">▶ PLAY</button>
+    <div style="margin-top:15px;color:#8b949e;font-size:.9em;max-width:350px;text-align:center">
+      <p>Words fall from the top. Type them to destroy them!</p>
+      <p>Miss 3 words and it's game over. Speed increases each level.</p>
+    </div>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+
+  <div id="game-screen" class="screen">
+    <div class="hud-bar">
+      <div>Score: <span id="score">0</span></div>
+      <div>Level: <span id="level">1</span></div>
+      <div>WPM: <span id="wpm">0</span></div>
+      <div class="lives-display">❤️ <span id="lives">3</span></div>
+    </div>
+    <canvas id="c"></canvas>
+    <div id="input-area">
+      <input type="text" id="word-input" placeholder="Type here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+  </div>
+
+  <div id="results" class="screen">
+    <div style="font-size:1.2em;color:#8b949e">Game Over</div>
+    <div style="font-size:3.5em;font-weight:900;color:#ff9f43;text-shadow:0 0 30px #ff9f4344" id="final-score">0</div>
+    <div style="color:#aaa;margin:5px" id="result-words"></div>
+    <div style="color:#aaa;margin:5px" id="result-wpm"></div>
+    <div style="color:#aaa;margin:5px" id="result-level"></div>
+    <div id="result-rank" style="margin:15px 0"></div>
+    <button class="btn btn-again" onclick="startGame()">🔄 Play Again</button>
+    <button class="btn btn-play" onclick="showMenu()" style="font-size:.95em;padding:10px 25px">🏠 Menu</button>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+</div>
+
+<script>
+const WORDS=[
+  'cat','dog','run','fly','hot','ice','sun','cup','red','key','box','pen','map','fog','sky','web','bug','hat',
+  'code','game','fire','rain','star','moon','wave','tree','bird','fish','jump','fast','cool','dark','wind','glow',
+  'pixel','tower','snake','blitz','space','light','dream','storm','flame','spark','ocean','ninja','robot','sonic',
+  'galaxy','rocket','matrix','plasma','energy','turbo','quest','magic','power','bonus','super','cyber','laser',
+  'neon','blast','crash','swift','ghost','frost','pulse','prism','orbit','comet','flash','forge','nexus','glitch',
+  'thunder','phoenix','crystal','quantum','voltage','digital','tornado','gravity','inferno','horizon','circuit',
+  'firewall','asteroid','spectrum','dynamite','champion','particle','velocity','electron','magnetic','supernova'
+];
+
+const canvas=document.getElementById('c');const ctx=canvas.getContext('2d');const input=document.getElementById('word-input');
+let W,H;
+function resizeCanvas(){W=canvas.width=canvas.parentElement.clientWidth;H=canvas.height=canvas.parentElement.clientHeight-55-40}
+resizeCanvas();window.addEventListener('resize',resizeCanvas);
+
+let fallingWords=[],score=0,lives=3,level=1,wordsTyped=0,startTime,highScore=parseInt(localStorage.getItem('wr_high')||'0');
+let gameActive=false,spawnTimer=0,particles=[];
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function showMenu(){showScreen('menu')}
+
+function startGame(){
+  fallingWords=[];particles=[];score=0;lives=3;level=1;wordsTyped=0;spawnTimer=0;
+  startTime=Date.now();gameActive=true;showScreen('game-screen');
+  input.value='';input.focus();updateHUD();
+}
+
+function getWordForLevel(){
+  let pool;
+  if(level<=2)pool=WORDS.filter(w=>w.length<=4);
+  else if(level<=5)pool=WORDS.filter(w=>w.length<=6);
+  else pool=WORDS;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function spawnWord(){
+  const word=getWordForLevel();
+  const fontSize=Math.max(16,24-level*0.5);
+  ctx.font=`bold ${fontSize}px system-ui`;
+  const tw=ctx.measureText(word).width;
+  const x=20+Math.random()*(W-tw-40);
+  const speed=0.4+level*0.12+Math.random()*0.3;
+  const colors=['#00ff88','#58a6ff','#ffcc00','#ff9f43','#bc8cff','#f778ba','#ff6b6b'];
+  fallingWords.push({word,x,y:-10,speed,fontSize,color:colors[Math.floor(Math.random()*colors.length)],matched:''});
+}
+
+function updateHUD(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('level').textContent=level;
+  document.getElementById('lives').textContent=lives;
+  const elapsed=(Date.now()-startTime)/60000;
+  document.getElementById('wpm').textContent=elapsed>0?Math.round(wordsTyped/elapsed):0;
+}
+
+input.addEventListener('input',()=>{
+  if(!gameActive)return;
+  const typed=input.value.toLowerCase().trim();
+  if(!typed)return;
+  let bestMatch=null,bestIdx=-1;
+  fallingWords.forEach((fw,i)=>{
+    if(fw.word.startsWith(typed)){fw.matched=typed;if(fw.word===typed){bestMatch=fw;bestIdx=i}}
+    else{if(fw.matched.length>0&&!fw.word.startsWith(typed))fw.matched=''}
+  });
+  if(bestMatch){
+    score+=bestMatch.word.length*10+Math.floor(bestMatch.y>0?(H-bestMatch.y)/H*50:50);
+    wordsTyped++;
+    if(wordsTyped%8===0)level++;
+    for(let i=0;i<12;i++)particles.push({x:bestMatch.x+40,y:bestMatch.y,vx:(Math.random()-.5)*6,vy:-2-Math.random()*3,life:1,color:bestMatch.color,size:3+Math.random()*3});
+    fallingWords.splice(bestIdx,1);input.value='';updateHUD();
+  }
+});
+input.addEventListener('keydown',e=>{if(e.key==='Enter')e.preventDefault()});
+
+function update(){
+  if(!gameActive)return;
+  spawnTimer++;
+  const spawnRate=Math.max(30,80-level*4);
+  if(spawnTimer>=spawnRate&&fallingWords.length<8+level){spawnWord();spawnTimer=0}
+  fallingWords.forEach(fw=>{fw.y+=fw.speed});
+  const missed=fallingWords.filter(fw=>fw.y>H-10);
+  missed.forEach(fw=>{lives--;for(let i=0;i<8;i++)particles.push({x:fw.x,y:H-10,vx:(Math.random()-.5)*4,vy:-2-Math.random()*2,life:1,color:'#ff6b6b',size:3+Math.random()*3})});
+  fallingWords=fallingWords.filter(fw=>fw.y<=H-10);
+  if(lives<=0){endGame();return}
+  updateHUD();
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.025});
+  particles=particles.filter(p=>p.life>0);
+}
+
+function draw(){
+  ctx.fillStyle='#0a0a2e';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#0d0d35';ctx.lineWidth=0.5;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  ctx.fillStyle='rgba(255,107,107,0.05)';ctx.fillRect(0,H-60,W,60);
+  ctx.strokeStyle='#ff6b6b33';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,H-60);ctx.lineTo(W,H-60);ctx.stroke();
+  fallingWords.forEach(fw=>{
+    ctx.font=`bold ${fw.fontSize}px system-ui`;
+    ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillText(fw.word,fw.x+2,fw.y+2);
+    if(fw.matched){
+      ctx.fillStyle='#00ff88';ctx.fillText(fw.matched,fw.x,fw.y);
+      const mw=ctx.measureText(fw.matched).width;
+      ctx.fillStyle=fw.color;ctx.fillText(fw.word.substring(fw.matched.length),fw.x+mw,fw.y);
+    }else{ctx.fillStyle=fw.color;ctx.shadowColor=fw.color;ctx.shadowBlur=8;ctx.fillText(fw.word,fw.x,fw.y);ctx.shadowBlur=0}
+  });
+  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size)});
+  ctx.globalAlpha=1;
+}
+
+function endGame(){
+  gameActive=false;
+  if(score>highScore){highScore=score;localStorage.setItem('wr_high',highScore.toString())}
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000);
+  const elapsed=(Date.now()-startTime)/60000;const wpm=elapsed>0?Math.round(wordsTyped/elapsed):0;
+  document.getElementById('final-score').textContent=score;
+  document.getElementById('result-words').textContent=`${wordsTyped} words typed`;
+  document.getElementById('result-wpm').textContent=`${wpm} WPM average`;
+  document.getElementById('result-level').textContent=`Reached Level ${level}`;
+  let rank='';
+  if(wpm>=60)rank='<div style="font-size:1.3em;color:#ffcc00">🏆 KEYBOARD LEGEND</div>';
+  else if(wpm>=40)rank='<div style="font-size:1.3em;color:#00ff88">⚡ SPEED DEMON</div>';
+  else if(wpm>=25)rank='<div style="font-size:1.3em;color:#58a6ff">👍 FAST FINGERS</div>';
+  else if(wpm>=15)rank='<div style="font-size:1.3em;color:#bc8cff">🐌 WARMING UP</div>';
+  else rank='<div style="font-size:1.3em;color:#ff6b6b">🦥 HUNT & PECK</div>';
+  document.getElementById('result-rank').innerHTML=rank;
+  showScreen('results');
+}
+
+function loop(){update();draw();requestAnimationFrame(loop)}
+loop();
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Word Rush',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Word%20Rush%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

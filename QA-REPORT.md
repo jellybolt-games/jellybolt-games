@@ -62,7 +62,7 @@
 - ✅ Social sharing buttons (Support, More Games, Share Score, Facebook, WhatsApp)
 - ✅ "More Games" links to jellyboltgames.itch.io
 - ✅ Mobile-friendly (touch controls documented)
-- ✅ No personal names found (Tamir/tamirdresher) in any game
+- ✅ No personal names found in any game
 - ✅ High score / state persistence
 
 ## Top 3 Games (Expert Pick)

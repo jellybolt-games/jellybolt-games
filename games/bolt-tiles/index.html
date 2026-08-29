@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Bolt Tiles – Mahjong Solitaire | JellyBolt Games</title>
+<meta name="description" content="Classic Mahjong Solitaire with neon-dark style. Match free tiles, clear the board, beat your best time!">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#0a0a1a;color:#e0e0e0}
+body{display:flex;flex-direction:column;align-items:center;background:linear-gradient(145deg,#0a0a1a 0%,#0d0d24 100%)}
+
+/* Ad banner */
+.jb-ad-banner{text-align:center;padding:4px 0;min-height:50px}
+
+/* HUD */
+#hud{width:100%;display:flex;justify-content:center;align-items:center;gap:12px;padding:6px 10px;background:rgba(8,12,20,.92);border-bottom:1px solid #1a2235;font-size:.82rem;flex-wrap:wrap;z-index:100}
+#hud span{display:inline-flex;align-items:center;gap:3px}
+.hud-label{color:#667;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px}
+.hud-val{color:#00ff88;font-weight:700;font-size:.95rem;min-width:36px;text-align:center}
+#hud-layout{color:#7af;font-weight:600}
+
+/* Action buttons */
+#actions{display:flex;justify-content:center;gap:8px;padding:6px 10px;flex-wrap:wrap;z-index:100}
+.act-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px solid #2a2a5a;border-radius:8px;background:rgba(26,26,58,.7);color:#c0c0e0;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;user-select:none}
+.act-btn:hover:not(:disabled){background:rgba(42,42,90,.9);border-color:#4a4a8a;transform:scale(1.04)}
+.act-btn:disabled{opacity:.35;cursor:default}
+.act-btn .badge{background:#00ff88;color:#000;border-radius:10px;padding:0 5px;font-size:.68rem;font-weight:700}
+
+/* Canvas area */
+#game-wrap{flex:1;width:100%;display:flex;justify-content:center;align-items:center;position:relative;overflow:hidden}
+#gameCanvas{display:block;cursor:pointer;touch-action:none}
+
+/* Start screen */
+#start-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,26,.97);z-index:5000;display:flex;justify-content:center;align-items:center}
+#start-screen.hidden{display:none}
+.start-box{text-align:center;max-width:420px;padding:32px 24px}
+.start-box h1{font-size:2.2rem;margin-bottom:4px;background:linear-gradient(90deg,#00ff88,#00ccff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.start-box .sub{color:#667;font-size:.85rem;margin-bottom:24px}
+.layout-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.layout-btn{padding:14px 10px;border:2px solid #2a2a5a;border-radius:12px;background:rgba(26,26,58,.5);color:#c0c0e0;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .15s}
+.layout-btn:hover{border-color:#00ff88;color:#00ff88;background:rgba(0,255,136,.06);transform:scale(1.03)}
+.layout-btn .ldesc{font-size:.68rem;color:#556;font-weight:400;margin-top:3px}
+.layout-btn.full-width{grid-column:1/-1}
+
+/* Overlays */
+.overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:6000;justify-content:center;align-items:center}
+.overlay.active{display:flex}
+.overlay-box{background:#0f1520;border:1px solid #1a2235;border-radius:16px;padding:32px 28px;text-align:center;max-width:380px}
+.overlay-box h2{font-size:1.6rem;margin-bottom:8px}
+.overlay-box .stat{color:#889;font-size:.85rem;margin:4px 0}
+.overlay-box .stat b{color:#00ff88}
+.ov-btn{margin-top:16px;padding:10px 28px;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:.95rem;transition:transform .12s}
+.ov-btn:hover{transform:scale(1.05)}
+.ov-btn.secondary{background:linear-gradient(135deg,#2a2a5a,#3a3a7a);color:#c0c0e0;margin-left:8px}
+
+/* Interstitial */
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:9999;justify-content:center;align-items:center}
+#jb-interstitial.active{display:flex}
+.jb-interstitial-box{background:#0f1520;border:1px solid #1a2235;border-radius:16px;padding:24px;text-align:center}
+.jb-interstitial-close{margin-top:14px;padding:10px 28px;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:.95rem}
+
+/* Monetization bar */
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:8px;padding:7px 10px;background:rgba(8,12,20,.96);border-top:1px solid #1a2235;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:.8rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.06)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+</style>
+</head>
+<body>
+
+<!-- Ad top -->
+<div class="jb-ad-banner" id="ad-top">
+  <ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="BOLT_TILES_TOP" style="display:inline-block;width:320px;height:50px"></ins>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <span id="hud-layout">Turtle</span>
+  <span><span class="hud-label">Time</span><span class="hud-val" id="hud-time">0:00</span></span>
+  <span><span class="hud-label">Moves</span><span class="hud-val" id="hud-moves">0</span></span>
+  <span><span class="hud-label">Score</span><span class="hud-val" id="hud-score">0</span></span>
+  <span><span class="hud-label">Best</span><span class="hud-val" id="hud-best">—</span></span>
+  <span><span class="hud-label">Tiles</span><span class="hud-val" id="hud-tiles">144</span></span>
+</div>
+
+<!-- Canvas -->
+<div id="game-wrap"><canvas id="gameCanvas"></canvas></div>
+
+<!-- Actions -->
+<div id="actions">
+  <button class="act-btn" id="btn-hint" onclick="useHint()">💡 Hint <span class="badge" id="hint-count">3</span></button>
+  <button class="act-btn" id="btn-shuffle" onclick="useShuffle()">🔀 Shuffle <span class="badge" id="shuffle-count">2</span></button>
+  <button class="act-btn" id="btn-undo" onclick="useUndo()">↩ Undo <span class="badge" id="undo-count">5</span></button>
+</div>
+
+<!-- Start screen -->
+<div id="start-screen">
+  <div class="start-box">
+    <h1>⚡ Bolt Tiles</h1>
+    <div class="sub">Mahjong Solitaire • Match free tiles to clear the board</div>
+    <div class="layout-grid">
+      <button class="layout-btn" onclick="startGame('turtle')">🐢 Turtle<div class="ldesc">Classic – 5 layers</div></button>
+      <button class="layout-btn" onclick="startGame('pyramid')">🔺 Pyramid<div class="ldesc">Steep stacking</div></button>
+      <button class="layout-btn" onclick="startGame('cross')">✚ Cross<div class="ldesc">Spread formation</div></button>
+      <button class="layout-btn" onclick="startGame('fortress')">🏰 Fortress<div class="ldesc">Walled layers</div></button>
+      <button class="layout-btn full-width" onclick="startGame('bridge')">🌉 Bridge<div class="ldesc">Arched span</div></button>
+    </div>
+  </div>
+</div>
+
+<!-- Win overlay -->
+<div class="overlay" id="win-overlay">
+  <div class="overlay-box">
+    <h2 style="color:#00ff88">🎉 Board Cleared!</h2>
+    <div class="stat">Time: <b id="win-time"></b></div>
+    <div class="stat">Moves: <b id="win-moves"></b></div>
+    <div class="stat">Score: <b id="win-score"></b></div>
+    <div class="stat" id="win-best-line"></div>
+    <button class="ov-btn" onclick="backToMenu()">Play Again</button>
+    <button class="ov-btn secondary" onclick="shareScore()">📤 Share</button>
+  </div>
+</div>
+
+<!-- Stuck overlay -->
+<div class="overlay" id="stuck-overlay">
+  <div class="overlay-box">
+    <h2 style="color:#ff6644">😵 No Moves Left</h2>
+    <div class="stat">Tiles remaining: <b id="stuck-remaining"></b></div>
+    <div class="stat">Score: <b id="stuck-score"></b></div>
+    <button class="ov-btn" onclick="backToMenu()">Try Again</button>
+    <button class="ov-btn secondary" onclick="useShuffle()">🔀 Shuffle</button>
+  </div>
+</div>
+
+<!-- Interstitial -->
+<div id="jb-interstitial">
+  <div class="jb-interstitial-box">
+    <div style="color:#888;font-size:.75rem;letter-spacing:1px;margin-bottom:12px">ADVERTISEMENT</div>
+    <ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-8350556723025693" data-ad-slot="BOLT_TILES_INTER"></ins>
+    <div style="color:#555;font-size:.8rem;margin-top:10px" id="jb-inter-timer"></div>
+    <button class="jb-interstitial-close" id="jb-inter-close" style="opacity:0;pointer-events:none" onclick="closeInterstitial()">Continue Playing ▶</button>
+  </div>
+</div>
+
+<!-- Monetization bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener noreferrer">☕ Support</a>
+  <a class="jb-btn-games" href="../../index.html">🎮 More Games</a>
+  <a class="jb-btn-share" id="jb-bar-share" href="#" onclick="shareScore();return false">📤 Share</a>
+</div>
+
+<script>
+/* ============================================================
+   BOLT TILES – Mahjong Solitaire
+   JellyBolt Games – single-file, no dependencies
+   ============================================================ */
+
+// ── Canvas & sizing ──
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ── Tile dimensions (base, scaled later) ──
+const BASE_TW = 56, BASE_TH = 72, BASE_DEPTH = 4;
+let TW, TH, DEPTH, SCALE = 1;
+
+// ── Tile types ──
+const SUITS = {
+  circles:    { symbols: ['①','②','③','④','⑤','⑥','⑦','⑧','⑨'], color: '#00ccff' },
+  bamboo:     { symbols: ['❶','❷','❸','❹','❺','❻','❼','❽','❾'], color: '#00ff88' },
+  characters: { symbols: ['一','二','三','四','五','六','七','八','九'], color: '#ff6688' },
+};
+const WINDS   = { symbols: ['🌑','🌓','🌕','🌗'], color: '#ccaaff' };
+const DRAGONS = { symbols: ['🔴','🟢','⚪'], color: '#ffcc00' };
+const FLOWERS = { symbols: ['🌸','🌺','🌻','🌷'], color: '#ff88cc', bonus: true };
+const SEASONS = { symbols: ['🌱','☀️','🍂','❄️'], color: '#88ddff', bonus: true };
+
+// Build tile set: each non-bonus tile appears 4x, bonus tiles appear 1x each (matched in groups of same category)
+function buildTileTypes() {
+  const types = [];
+  let id = 0;
+  // Suited tiles: 9 * 3 = 27 types, 4 each = 108
+  for (const [suit, info] of Object.entries(SUITS)) {
+    for (let i = 0; i < info.symbols.length; i++) {
+      for (let c = 0; c < 4; c++) {
+        types.push({ id: id++, suit, symbol: info.symbols[i], color: info.color, matchKey: suit + '_' + i });
+      }
+    }
+  }
+  // Winds: 4 types, 4 each = 16
+  for (let i = 0; i < WINDS.symbols.length; i++) {
+    for (let c = 0; c < 4; c++) {
+      types.push({ id: id++, suit: 'wind', symbol: WINDS.symbols[i], color: WINDS.color, matchKey: 'wind_' + i });
+    }
+  }
+  // Dragons: 3 types, 4 each = 12
+  for (let i = 0; i < DRAGONS.symbols.length; i++) {
+    for (let c = 0; c < 4; c++) {
+      types.push({ id: id++, suit: 'dragon', symbol: DRAGONS.symbols[i], color: DRAGONS.color, matchKey: 'dragon_' + i });
+    }
+  }
+  // Flowers: 4 unique, matched by category = 4 (need pairs, so we double to 8 treated as 4 pairs, each pair matches any flower)
+  for (let i = 0; i < FLOWERS.symbols.length; i++) {
+    types.push({ id: id++, suit: 'flower', symbol: FLOWERS.symbols[i], color: FLOWERS.color, matchKey: 'flower' });
+  }
+  // Seasons: same as flowers = 4
+  for (let i = 0; i < SEASONS.symbols.length; i++) {
+    types.push({ id: id++, suit: 'season', symbol: SEASONS.symbols[i], color: SEASONS.color, matchKey: 'season' });
+  }
+  // Total: 108 + 16 + 12 + 4 + 4 = 144
+  return types;
+}
+
+// ── Layouts ──
+// Each layout is an array of {x, y, z} positions. x,y in half-tile grid units.
+function makeLayout(name) {
+  const pos = [];
+  if (name === 'turtle') {
+    // Layer 0 (bottom): 12x8 with some cutouts - classic turtle
+    const L0 = [];
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 12; c++) L0.push([c, r]);
+    // Remove corners
+    const remove0 = [[0,0],[11,0],[0,7],[11,7],[0,1],[11,1],[0,6],[11,6]];
+    const filtered0 = L0.filter(p => !remove0.some(r => r[0]===p[0]&&r[1]===p[1]));
+    // Add wing tiles
+    filtered0.push([-1, 3.5]);
+    filtered0.push([12, 3.5]);
+    filtered0.push([-2, 3.5]);
+    filtered0.push([13, 3.5]);
+    for (const p of filtered0) pos.push({ x: p[0], y: p[1], z: 0 });
+
+    // Layer 1: 10x6
+    for (let r = 1; r < 7; r++) for (let c = 1; c < 11; c++) pos.push({ x: c + 0.5, y: r + 0.5, z: 1 });
+    // Remove some for count
+    // Layer 2: 8x4
+    for (let r = 2; r < 6; r++) for (let c = 2; c < 10; c++) pos.push({ x: c + 1, y: r + 1, z: 2 });
+    // Layer 3: 6x2
+    for (let r = 3; r < 5; r++) for (let c = 3; c < 9; c++) pos.push({ x: c + 1.5, y: r + 1.5, z: 3 });
+    // Layer 4: cap
+    pos.push({ x: 6, y: 4.5, z: 4 });
+    pos.push({ x: 7, y: 4.5, z: 4 });
+
+  } else if (name === 'pyramid') {
+    // Base 10x10, each layer shrinks by 2 on each side
+    for (let z = 0; z < 5; z++) {
+      const size = 10 - z * 2;
+      const off = z;
+      for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+        pos.push({ x: c + off + z * 0.5, y: r + off + z * 0.5, z });
+      }
+    }
+  } else if (name === 'cross') {
+    // Cross shape: center block + four arms
+    // Center 4x4, arms extend 4 tiles out
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) pos.push({ x: c + 4, y: r + 4, z: 0 });
+    // Arms
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) pos.push({ x: c, y: r + 4, z: 0 }); // left
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) pos.push({ x: c + 8, y: r + 4, z: 0 }); // right
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) pos.push({ x: c + 4, y: r, z: 0 }); // top
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) pos.push({ x: c + 4, y: r + 8, z: 0 }); // bottom
+    // Layer 1: center 2x2
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) pos.push({ x: c + 4.5 + 0.5, y: r + 4.5 + 0.5, z: 1 });
+    // Small stacks on arm tips
+    for (const [ox, oy] of [[1, 5], [9, 5], [5, 1], [5, 9]]) pos.push({ x: ox + 0.5, y: oy + 0.5, z: 1 });
+
+  } else if (name === 'fortress') {
+    // Outer wall ring + inner layers
+    // Outer 12x8
+    for (let c = 0; c < 12; c++) { pos.push({ x: c, y: 0, z: 0 }); pos.push({ x: c, y: 7, z: 0 }); }
+    for (let r = 1; r < 7; r++) { pos.push({ x: 0, y: r, z: 0 }); pos.push({ x: 11, y: r, z: 0 }); }
+    // Inner block 8x4
+    for (let r = 2; r < 6; r++) for (let c = 2; c < 10; c++) pos.push({ x: c, y: r, z: 0 });
+    // Layer 1: 6x2 center
+    for (let r = 3; r < 5; r++) for (let c = 3; c < 9; c++) pos.push({ x: c + 0.5, y: r + 0.5, z: 1 });
+    // Layer 2: 4x2
+    for (let r = 3; r < 5; r++) for (let c = 4; c < 8; c++) pos.push({ x: c + 1, y: r + 1, z: 2 });
+    // Layer 3: 2x2
+    pos.push({ x: 6, y: 4.5, z: 3 }); pos.push({ x: 7, y: 4.5, z: 3 });
+
+  } else if (name === 'bridge') {
+    // Two pillars + arch span
+    // Left pillar 3x6
+    for (let r = 1; r < 7; r++) for (let c = 0; c < 3; c++) pos.push({ x: c, y: r, z: 0 });
+    // Right pillar 3x6
+    for (let r = 1; r < 7; r++) for (let c = 9; c < 12; c++) pos.push({ x: c, y: r, z: 0 });
+    // Bridge deck 12x2
+    for (let c = 0; c < 12; c++) for (let r = 3; r < 5; r++) pos.push({ x: c, y: r, z: 1 });
+    // Railing
+    for (let c = 3; c < 9; c++) { pos.push({ x: c, y: 2, z: 0 }); pos.push({ x: c, y: 5, z: 0 }); }
+    // Upper deck
+    for (let c = 2; c < 10; c++) pos.push({ x: c + 0.5, y: 3.5 + 0.5, z: 2 });
+    // Top
+    for (let c = 4; c < 8; c++) pos.push({ x: c + 1, y: 4, z: 3 });
+  }
+
+  // Trim to exactly 144 (or nearest even) positions
+  while (pos.length > 144) pos.pop();
+  while (pos.length < 144) {
+    // Add filler tiles near center
+    const cx = 6, cy = 4;
+    const z = pos.length < 140 ? 0 : 1;
+    const angle = (pos.length / 144) * Math.PI * 2;
+    const r = 2 + (pos.length % 5);
+    pos.push({ x: cx + Math.cos(angle) * r * 0.3, y: cy + Math.sin(angle) * r * 0.3, z });
+  }
+  // Ensure even count
+  if (pos.length % 2 !== 0) pos.pop();
+
+  return pos;
+}
+
+// ── Game state ──
+let tiles = [];
+let selectedTile = null;
+let layoutName = 'turtle';
+let layoutPositions = [];
+let score = 0, moves = 0, elapsed = 0;
+let hintsLeft = 3, shufflesLeft = 2, undosLeft = 5;
+let timerInterval = null;
+let gameRunning = false;
+let lastMatchTime = 0;
+let comboCount = 0;
+let undoStack = [];
+let hintPair = null;
+let animations = []; // {tile, type, start, duration, ...}
+let matchFlashes = []; // {x,y,start}
+
+// ── Solvable tile placement ──
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function placeTilesSolvable(positions) {
+  // Build the set of 144 tile types
+  const typeSet = buildTileTypes();
+  shuffleArray(typeSet);
+
+  // Simple approach: shuffle positions and assign tiles randomly
+  // Then verify solvability by ensuring pairs exist
+  const posArr = positions.map((p, i) => ({ ...p, idx: i }));
+  shuffleArray(posArr);
+
+  const result = [];
+  for (let i = 0; i < posArr.length; i++) {
+    const p = posArr[i];
+    result.push({
+      id: i,
+      type: typeSet[i],
+      x: p.x,
+      y: p.y,
+      z: p.z,
+      removed: false,
+      animScale: 1,
+      animAlpha: 1,
+    });
+  }
+  return result;
+}
+
+// ── Free tile detection ──
+function tilesOverlap(a, b) {
+  // Two tiles overlap if their x ranges and y ranges intersect (using ~1 tile unit)
+  return Math.abs(a.x - b.x) < 0.9 && Math.abs(a.y - b.y) < 0.9;
+}
+
+function isFree(tile) {
+  if (tile.removed) return false;
+  // Check no tile on top
+  for (const t of tiles) {
+    if (t.removed || t === tile) continue;
+    if (t.z > tile.z && tilesOverlap(t, tile)) return false;
+  }
+  // Check left or right side is open
+  let leftBlocked = false, rightBlocked = false;
+  for (const t of tiles) {
+    if (t.removed || t === tile) continue;
+    if (t.z !== tile.z) continue;
+    if (Math.abs(t.y - tile.y) < 0.9) {
+      if (t.x >= tile.x - 1.05 && t.x < tile.x - 0.1) leftBlocked = true;
+      if (t.x <= tile.x + 1.05 && t.x > tile.x + 0.1) rightBlocked = true;
+    }
+  }
+  return !leftBlocked || !rightBlocked;
+}
+
+function tilesMatch(a, b) {
+  return a.type.matchKey === b.type.matchKey;
+}
+
+function findAllMatches() {
+  const free = tiles.filter(t => !t.removed && isFree(t));
+  const pairs = [];
+  for (let i = 0; i < free.length; i++) {
+    for (let j = i + 1; j < free.length; j++) {
+      if (tilesMatch(free[i], free[j])) {
+        pairs.push([free[i], free[j]]);
+      }
+    }
+  }
+  return pairs;
+}
+
+// ── Coordinate transforms ──
+let offsetX = 0, offsetY = 0;
+
+function recalcOffset() {
+  if (tiles.length === 0) return;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const t of tiles) {
+    const px = t.x * TW - t.z * DEPTH;
+    const py = t.y * TH - t.z * DEPTH;
+    if (px < minX) minX = px;
+    if (px + TW > maxX) maxX = px + TW;
+    if (py < minY) minY = py;
+    if (py + TH > maxY) maxY = py + TH;
+  }
+  const boardW = maxX - minX;
+  const boardH = maxY - minY;
+  offsetX = (canvas.width / 2) - (minX + boardW / 2);
+  offsetY = (canvas.height / 2) - (minY + boardH / 2);
+}
+
+function tileScreenPos(t) {
+  return {
+    sx: t.x * TW - t.z * DEPTH + offsetX,
+    sy: t.y * TH - t.z * DEPTH + offsetY,
+  };
+}
+
+// ── Rendering ──
+function drawTile(t, now) {
+  if (t.removed && t.animAlpha <= 0) return;
+
+  const free = !t.removed && isFree(t);
+  const { sx, sy } = tileScreenPos(t);
+  const selected = selectedTile === t;
+  const isHint = hintPair && (hintPair[0] === t || hintPair[1] === t);
+
+  ctx.save();
+
+  // Animate
+  if (t.animAlpha < 1) {
+    ctx.globalAlpha = t.animAlpha;
+  }
+  if (t.animScale !== 1) {
+    const cx = sx + TW / 2, cy = sy + TH / 2;
+    ctx.translate(cx, cy);
+    ctx.scale(t.animScale, t.animScale);
+    ctx.translate(-cx, -cy);
+  }
+
+  const cornerR = 6 * SCALE;
+  const depth = DEPTH;
+
+  // 3D side (right + bottom)
+  ctx.fillStyle = '#0e0e2a';
+  ctx.beginPath();
+  roundRect(ctx, sx + depth, sy + depth, TW, TH, cornerR);
+  ctx.fill();
+
+  // Tile face
+  const faceColor = free ? '#1e1e42' : '#151530';
+  const borderColor = selected ? '#00ff88' : isHint ? '#ffcc00' : (free ? '#2e2e6a' : '#1a1a3a');
+
+  // Glow for selected/hint
+  if (selected || isHint) {
+    ctx.shadowColor = selected ? '#00ff88' : '#ffcc00';
+    ctx.shadowBlur = 14 * SCALE;
+  }
+
+  ctx.fillStyle = faceColor;
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = selected ? 2.5 : (isHint ? 2 : 1);
+  ctx.beginPath();
+  roundRect(ctx, sx, sy, TW, TH, cornerR);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+
+  // Symbol
+  const sym = t.type.symbol;
+  const col = t.type.color;
+  ctx.fillStyle = free ? col : mixColor(col, '#333333', 0.4);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Detect emoji vs text
+  const isEmoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/u.test(sym);
+  const fontSize = isEmoji ? TH * 0.45 : TH * 0.48;
+  ctx.font = `${isEmoji ? '' : 'bold '}${fontSize}px 'Segoe UI Emoji','Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(sym, sx + TW / 2, sy + TH / 2 + (isEmoji ? 1 : 0));
+
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function mixColor(c1, c2, t) {
+  const p = (s, i) => parseInt(s.slice(1 + i * 2, 3 + i * 2), 16);
+  const m = (i) => Math.round(p(c1, i) * (1 - t) + p(c2, i) * t);
+  return `rgb(${m(0)},${m(1)},${m(2)})`;
+}
+
+function drawMatchFlashes(now) {
+  for (let i = matchFlashes.length - 1; i >= 0; i--) {
+    const f = matchFlashes[i];
+    const age = now - f.start;
+    if (age > 500) { matchFlashes.splice(i, 1); continue; }
+    const alpha = 1 - age / 500;
+    const radius = 20 + age * 0.15;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.5;
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, radius * SCALE, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function render() {
+  const now = performance.now();
+
+  // Update animations
+  for (const t of tiles) {
+    if (t.removed) {
+      t.animAlpha = Math.max(0, t.animAlpha - 0.06);
+      t.animScale = Math.max(0.3, t.animScale - 0.04);
+    } else {
+      t.animAlpha = Math.min(1, t.animAlpha + 0.1);
+      t.animScale = Math.min(1, t.animScale + 0.05);
+    }
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Sort tiles for draw order: lower z first, then top-to-bottom, left-to-right
+  const sorted = [...tiles].filter(t => !t.removed || t.animAlpha > 0.01)
+    .sort((a, b) => a.z - b.z || a.y - b.y || a.x - b.x);
+
+  for (const t of sorted) drawTile(t, now);
+
+  drawMatchFlashes(now);
+
+  if (gameRunning) requestAnimationFrame(render);
+}
+
+// ── Resize ──
+function resize() {
+  const wrap = document.getElementById('game-wrap');
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  canvas.width = w * devicePixelRatio;
+  canvas.height = h * devicePixelRatio;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+
+  // Compute scale to fit layout
+  if (tiles.length > 0) {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const t of tiles) {
+      if (t.x < minX) minX = t.x;
+      if (t.x > maxX) maxX = t.x;
+      if (t.y < minY) minY = t.y;
+      if (t.y > maxY) maxY = t.y;
+    }
+    const boardCols = maxX - minX + 1;
+    const boardRows = maxY - minY + 1;
+    const needW = boardCols * BASE_TW + 40;
+    const needH = boardRows * BASE_TH + 40;
+    SCALE = Math.min(w / needW, h / needH, 1.4);
+    SCALE = Math.max(SCALE, 0.35);
+  } else {
+    SCALE = 1;
+  }
+  TW = Math.round(BASE_TW * SCALE);
+  TH = Math.round(BASE_TH * SCALE);
+  DEPTH = Math.round(BASE_DEPTH * SCALE);
+  recalcOffset();
+}
+
+window.addEventListener('resize', () => { resize(); });
+
+// ── Input ──
+function getClickedTile(mx, my) {
+  // Iterate in reverse draw order (top tiles first)
+  const sorted = [...tiles].filter(t => !t.removed)
+    .sort((a, b) => b.z - a.z || b.y - a.y || b.x - a.x);
+  for (const t of sorted) {
+    const { sx, sy } = tileScreenPos(t);
+    if (mx >= sx && mx <= sx + TW && my >= sy && my <= sy + TH) {
+      return t;
+    }
+  }
+  return null;
+}
+
+function handleClick(mx, my) {
+  if (!gameRunning) return;
+  const t = getClickedTile(mx, my);
+  if (!t) { selectedTile = null; hintPair = null; return; }
+
+  if (!isFree(t)) return;
+
+  if (!selectedTile) {
+    selectedTile = t;
+    hintPair = null;
+  } else if (selectedTile === t) {
+    selectedTile = null;
+  } else {
+    // Attempt match
+    if (tilesMatch(selectedTile, t)) {
+      doMatch(selectedTile, t);
+    } else {
+      selectedTile = t;
+    }
+    hintPair = null;
+  }
+}
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  handleClick(e.clientX - rect.left, e.clientY - rect.top);
+});
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  handleClick(touch.clientX - rect.left, touch.clientY - rect.top);
+}, { passive: false });
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if (!gameRunning) return;
+  if (e.key === 'h' || e.key === 'H') useHint();
+  if (e.key === 's' || e.key === 'S') useShuffle();
+  if (e.key === 'z' || e.key === 'Z') useUndo();
+});
+
+// ── Match logic ──
+function doMatch(a, b) {
+  a.removed = true;
+  b.removed = true;
+
+  // Flash
+  const posA = tileScreenPos(a), posB = tileScreenPos(b);
+  matchFlashes.push({ x: posA.sx + TW / 2, y: posA.sy + TH / 2, start: performance.now() });
+  matchFlashes.push({ x: posB.sx + TW / 2, y: posB.sy + TH / 2, start: performance.now() });
+
+  // Undo stack
+  undoStack.push({ a: { tile: a, type: a.type }, b: { tile: b, type: b.type } });
+
+  selectedTile = null;
+  moves++;
+
+  // Combo scoring
+  const now = Date.now();
+  if (now - lastMatchTime < 3000) {
+    comboCount++;
+  } else {
+    comboCount = 1;
+  }
+  lastMatchTime = now;
+
+  // Score: base 100 + combo bonus + speed bonus
+  const comboBonus = Math.min(comboCount - 1, 5) * 50;
+  const speedBonus = elapsed < 60 ? 50 : (elapsed < 180 ? 25 : 0);
+  score += 100 + comboBonus + speedBonus;
+
+  updateHUD();
+
+  // Check win
+  const remaining = tiles.filter(t => !t.removed).length;
+  if (remaining === 0) {
+    setTimeout(() => gameWin(), 600);
+    return;
+  }
+
+  // Check stuck (deferred slightly)
+  setTimeout(() => {
+    if (gameRunning && findAllMatches().length === 0) {
+      gameStuck();
+    }
+  }, 300);
+}
+
+// ── Hint ──
+function useHint() {
+  if (!gameRunning || hintsLeft <= 0) return;
+  const matches = findAllMatches();
+  if (matches.length === 0) return;
+  hintsLeft--;
+  hintPair = matches[Math.floor(Math.random() * matches.length)];
+  document.getElementById('hint-count').textContent = hintsLeft;
+  if (hintsLeft <= 0) document.getElementById('btn-hint').disabled = true;
+  // Clear hint after 3 seconds
+  setTimeout(() => { if (hintPair) hintPair = null; }, 3000);
+}
+
+// ── Shuffle ──
+function useShuffle() {
+  if (!gameRunning || shufflesLeft <= 0) return;
+  shufflesLeft--;
+  document.getElementById('shuffle-count').textContent = shufflesLeft;
+  if (shufflesLeft <= 0) document.getElementById('btn-shuffle').disabled = true;
+
+  // Close stuck overlay if open
+  document.getElementById('stuck-overlay').classList.remove('active');
+
+  // Gather remaining tiles and their positions
+  const remaining = tiles.filter(t => !t.removed);
+  const types = remaining.map(t => t.type);
+  shuffleArray(types);
+  for (let i = 0; i < remaining.length; i++) {
+    remaining[i].type = types[i];
+  }
+  selectedTile = null;
+  hintPair = null;
+}
+
+// ── Undo ──
+function useUndo() {
+  if (!gameRunning || undosLeft <= 0 || undoStack.length === 0) return;
+  undosLeft--;
+  document.getElementById('undo-count').textContent = undosLeft;
+  if (undosLeft <= 0) document.getElementById('btn-undo').disabled = true;
+
+  const last = undoStack.pop();
+  last.a.tile.removed = false;
+  last.a.tile.animAlpha = 0;
+  last.a.tile.animScale = 0.3;
+  last.b.tile.removed = false;
+  last.b.tile.animAlpha = 0;
+  last.b.tile.animScale = 0.3;
+
+  moves = Math.max(0, moves - 1);
+  score = Math.max(0, score - 100);
+  selectedTile = null;
+  updateHUD();
+}
+
+// ── Timer ──
+function startTimer() {
+  elapsed = 0;
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (!gameRunning) return;
+    elapsed++;
+    document.getElementById('hud-time').textContent = formatTime(elapsed);
+  }, 1000);
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+// ── HUD ──
+function updateHUD() {
+  document.getElementById('hud-moves').textContent = moves;
+  document.getElementById('hud-score').textContent = score;
+  document.getElementById('hud-tiles').textContent = tiles.filter(t => !t.removed).length;
+  const best = getBestScore();
+  document.getElementById('hud-best').textContent = best > 0 ? best : '—';
+}
+
+function getBestScore() {
+  try { return parseInt(localStorage.getItem('bolt_tiles_best_' + layoutName)) || 0; } catch { return 0; }
+}
+
+function saveBestScore(s) {
+  try { localStorage.setItem('bolt_tiles_best_' + layoutName, s); } catch {}
+}
+
+// ── Game flow ──
+function startGame(layout) {
+  layoutName = layout;
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('hud-layout').textContent = layout.charAt(0).toUpperCase() + layout.slice(1);
+
+  // Reset state
+  score = 0; moves = 0; comboCount = 0; lastMatchTime = 0;
+  hintsLeft = 3; shufflesLeft = 2; undosLeft = 5;
+  undoStack = [];
+  selectedTile = null;
+  hintPair = null;
+  matchFlashes = [];
+
+  document.getElementById('hint-count').textContent = hintsLeft;
+  document.getElementById('shuffle-count').textContent = shufflesLeft;
+  document.getElementById('undo-count').textContent = undosLeft;
+  document.getElementById('btn-hint').disabled = false;
+  document.getElementById('btn-shuffle').disabled = false;
+  document.getElementById('btn-undo').disabled = false;
+
+  // Build layout
+  layoutPositions = makeLayout(layout);
+  tiles = placeTilesSolvable(layoutPositions);
+
+  // Init visuals
+  for (const t of tiles) { t.animAlpha = 0; t.animScale = 0.5; }
+
+  gameRunning = true;
+  resize();
+  updateHUD();
+  startTimer();
+  render();
+
+  // Ensure at least one valid move exists; if not, shuffle automatically
+  setTimeout(() => {
+    if (findAllMatches().length === 0) {
+      const remaining = tiles.filter(t => !t.removed);
+      const types = remaining.map(t => t.type);
+      shuffleArray(types);
+      for (let i = 0; i < remaining.length; i++) remaining[i].type = types[i];
+    }
+  }, 100);
+}
+
+function gameWin() {
+  gameRunning = false;
+  clearInterval(timerInterval);
+
+  const best = getBestScore();
+  const isNewBest = score > best;
+  if (isNewBest) saveBestScore(score);
+
+  document.getElementById('win-time').textContent = formatTime(elapsed);
+  document.getElementById('win-moves').textContent = moves;
+  document.getElementById('win-score').textContent = score;
+  document.getElementById('win-best-line').innerHTML = isNewBest
+    ? '🏆 <b style="color:#ffcc00">New High Score!</b>'
+    : 'Best: <b>' + Math.max(score, best) + '</b>';
+
+  showInterstitial(() => {
+    document.getElementById('win-overlay').classList.add('active');
+  });
+}
+
+function gameStuck() {
+  // Only show stuck if no shuffles remain
+  if (shufflesLeft > 0) {
+    document.getElementById('stuck-remaining').textContent = tiles.filter(t => !t.removed).length;
+    document.getElementById('stuck-score').textContent = score;
+    document.getElementById('stuck-overlay').classList.add('active');
+    return;
+  }
+
+  gameRunning = false;
+  clearInterval(timerInterval);
+
+  document.getElementById('stuck-remaining').textContent = tiles.filter(t => !t.removed).length;
+  document.getElementById('stuck-score').textContent = score;
+
+  showInterstitial(() => {
+    document.getElementById('stuck-overlay').classList.add('active');
+  });
+}
+
+function backToMenu() {
+  gameRunning = false;
+  clearInterval(timerInterval);
+  document.getElementById('win-overlay').classList.remove('active');
+  document.getElementById('stuck-overlay').classList.remove('active');
+  document.getElementById('start-screen').classList.remove('hidden');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// ── Interstitial ──
+function showInterstitial(callback) {
+  const el = document.getElementById('jb-interstitial');
+  const closeBtn = document.getElementById('jb-inter-close');
+  const timerEl = document.getElementById('jb-inter-timer');
+
+  el.classList.add('active');
+  closeBtn.style.opacity = '0';
+  closeBtn.style.pointerEvents = 'none';
+
+  let countdown = 3;
+  timerEl.textContent = 'Continue in ' + countdown + 's...';
+
+  const iv = setInterval(() => {
+    countdown--;
+    if (countdown <= 0) {
+      clearInterval(iv);
+      timerEl.textContent = '';
+      closeBtn.style.opacity = '1';
+      closeBtn.style.pointerEvents = 'auto';
+    } else {
+      timerEl.textContent = 'Continue in ' + countdown + 's...';
+    }
+  }, 1000);
+
+  window._interstitialCallback = callback;
+}
+
+function closeInterstitial() {
+  document.getElementById('jb-interstitial').classList.remove('active');
+  if (window._interstitialCallback) {
+    window._interstitialCallback();
+    window._interstitialCallback = null;
+  }
+}
+
+// ── Share ──
+function shareScore() {
+  const text = '⚡ Bolt Tiles | Score: ' + score + ' | Layout: ' + layoutName + ' | Time: ' + formatTime(elapsed) + '\nhttps://jellybolt-games.github.io/jellybolt-games/games/bolt-tiles/';
+  if (navigator.share) {
+    navigator.share({ title: 'Bolt Tiles', text: text }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+}
+
+// ── Init ──
+resize();
+</script>
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+</body>
+</html>

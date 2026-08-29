@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Archery Quest — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:none;user-select:none}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="game-container"></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank" class="jb-btn-coffee">☕ Support Us</a>
+  <a href="https://jellybolt-games.github.io/jellybolt-games" target="_blank" class="jb-btn-games">🎮 More Games</a>
+  <a href="https://twitter.com/intent/tweet?text=Check%20out%20Archery%20Quest!&url=https://jellybolt-games.github.io/jellybolt-games/games/archery-quest" target="_blank" class="jb-btn-share">🐦 Share</a>
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https://jellybolt-games.github.io/jellybolt-games/games/archery-quest" target="_blank" class="jb-btn-share-fb">📘 Facebook</a>
+  <a href="https://wa.me/?text=Check%20out%20Archery%20Quest!%20https://jellybolt-games.github.io/jellybolt-games/games/archery-quest" target="_blank" class="jb-btn-share-wa">💬 WhatsApp</a>
+</div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial">
+  <div class="jb-interstitial-box">
+    <h2 style="color:#00ff88;margin-bottom:12px">Level Complete!</h2>
+    <p style="color:#ccc">Play more amazing games at JellyBolt.com</p>
+    <button class="jb-interstitial-close" onclick="closeInterstitial()">Continue</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+const GAME_STATE = {
+  currentLevel: 1,
+  levelStars: {},
+  totalStars: 0
+};
+
+function loadProgress() {
+  const saved = localStorage.getItem('archery_quest_progress');
+  if (saved) {
+    const data = JSON.parse(saved);
+    GAME_STATE.currentLevel = data.currentLevel || 1;
+    GAME_STATE.levelStars = data.levelStars || {};
+    GAME_STATE.totalStars = data.totalStars || 0;
+  }
+}
+
+function saveProgress() {
+  localStorage.setItem('archery_quest_progress', JSON.stringify(GAME_STATE));
+}
+
+loadProgress();
+
+const LEVEL_CONFIGS = [
+  { type: 'stationary', targetCount: 3, timeLimit: 60, arrows: 5, distance: 400, targetSize: 40, description: 'Stationary Targets' },
+  { type: 'stationary', targetCount: 4, timeLimit: 50, arrows: 6, distance: 450, targetSize: 35, description: 'More Targets' },
+  { type: 'moving', targetCount: 3, timeLimit: 60, arrows: 6, distance: 400, targetSize: 40, moveSpeed: 50, description: 'Moving Targets' },
+  { type: 'moving', targetCount: 4, timeLimit: 50, arrows: 7, distance: 450, targetSize: 35, moveSpeed: 70, description: 'Faster Movement' },
+  { type: 'bouncing', targetCount: 3, timeLimit: 60, arrows: 7, distance: 400, targetSize: 35, description: 'Bouncing Targets' },
+  { type: 'challenge', challengeType: 'apple', timeLimit: 45, arrows: 3, distance: 350, description: 'Apple Shot' },
+  { type: 'moving', targetCount: 5, timeLimit: 45, arrows: 8, distance: 500, targetSize: 30, moveSpeed: 100, description: 'Speed Challenge' },
+  { type: 'bouncing', targetCount: 4, timeLimit: 50, arrows: 8, distance: 450, targetSize: 30, description: 'Multiple Bouncers' },
+  { type: 'challenge', challengeType: 'candle', timeLimit: 40, arrows: 3, distance: 380, description: 'Candle Snuff' },
+  { type: 'boss', targetCount: 6, timeLimit: 60, arrows: 10, distance: 550, targetSize: 25, moveSpeed: 120, description: 'Final Challenge' }
+];
+
+let game;
+let currentScene;
+
+class BootScene extends Phaser.Scene {
+  constructor() {
+    super('BootScene');
+  }
+  
+  preload() {
+    this.load.setBaseURL('');
+  }
+  
+  create() {
+    this.scene.start('MenuScene');
+  }
+}
+
+class MenuScene extends Phaser.Scene {
+  constructor() {
+    super('MenuScene');
+  }
+  
+  create() {
+    currentScene = this;
+    const { width, height } = this.cameras.main;
+    
+    this.add.rectangle(0, 0, width, height, 0x0a0a1a).setOrigin(0);
+    
+    const title = this.add.text(width / 2, height * 0.2, 'Archery Quest', {
+      fontSize: '56px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#00ff88',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    const subtitle = this.add.text(width / 2, height * 0.3, 'Master the bow and arrow', {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#58a6ff'
+    }).setOrigin(0.5);
+    
+    const startBtn = this.add.rectangle(width / 2, height * 0.5, 200, 60, 0x00ff88)
+      .setInteractive({ useHandCursor: true });
+    const startText = this.add.text(width / 2, height * 0.5, 'Start Game', {
+      fontSize: '24px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#000000',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    startBtn.on('pointerdown', () => {
+      this.scene.start('LevelSelectScene');
+    });
+    
+    startBtn.on('pointerover', () => {
+      startBtn.setFillStyle(0x00cc66);
+    });
+    
+    startBtn.on('pointerout', () => {
+      startBtn.setFillStyle(0x00ff88);
+    });
+    
+    const levelsBtn = this.add.rectangle(width / 2, height * 0.65, 200, 60, 0x58a6ff)
+      .setInteractive({ useHandCursor: true });
+    const levelsText = this.add.text(width / 2, height * 0.65, 'Levels', {
+      fontSize: '24px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    levelsBtn.on('pointerdown', () => {
+      this.scene.start('LevelSelectScene');
+    });
+    
+    levelsBtn.on('pointerover', () => {
+      levelsBtn.setFillStyle(0x4080cc);
+    });
+    
+    levelsBtn.on('pointerout', () => {
+      levelsBtn.setFillStyle(0x58a6ff);
+    });
+    
+    const starsText = this.add.text(width / 2, height * 0.85, `Total Stars: ${GAME_STATE.totalStars}/30`, {
+      fontSize: '18px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffcc00'
+    }).setOrigin(0.5);
+  }
+}
+
+class LevelSelectScene extends Phaser.Scene {
+  constructor() {
+    super('LevelSelectScene');
+  }
+  
+  create() {
+    currentScene = this;
+    const { width, height } = this.cameras.main;
+    
+    this.add.rectangle(0, 0, width, height, 0x0a0a1a).setOrigin(0);
+    
+    const title = this.add.text(width / 2, 60, 'Select Level', {
+      fontSize: '40px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#00ff88',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    const cols = 5;
+    const btnSize = Math.min(80, (width - 100) / cols);
+    const startX = (width - (cols * btnSize + (cols - 1) * 20)) / 2;
+    const startY = 150;
+    
+    for (let i = 0; i < 10; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = startX + col * (btnSize + 20) + btnSize / 2;
+      const y = startY + row * (btnSize + 40);
+      const level = i + 1;
+      
+      const unlocked = level <= GAME_STATE.currentLevel;
+      const stars = GAME_STATE.levelStars[level] || 0;
+      
+      const btn = this.add.rectangle(x, y, btnSize, btnSize, unlocked ? 0x00ff88 : 0x333333)
+        .setStrokeStyle(2, 0xffffff);
+      
+      if (unlocked) {
+        btn.setInteractive({ useHandCursor: true });
+        btn.on('pointerdown', () => {
+          this.scene.start('GameScene', { level });
+        });
+        
+        btn.on('pointerover', () => {
+          btn.setFillStyle(0x00cc66);
+        });
+        
+        btn.on('pointerout', () => {
+          btn.setFillStyle(0x00ff88);
+        });
+      }
+      
+      this.add.text(x, y - 10, level.toString(), {
+        fontSize: '32px',
+        fontFamily: 'Arial, sans-serif',
+        color: unlocked ? '#000000' : '#666666',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+      
+      if (unlocked && stars > 0) {
+        const starStr = '★'.repeat(stars);
+        this.add.text(x, y + 20, starStr, {
+          fontSize: '16px',
+          fontFamily: 'Arial, sans-serif',
+          color: '#ffcc00'
+        }).setOrigin(0.5);
+      }
+    }
+    
+    const backBtn = this.add.rectangle(width / 2, height - 100, 150, 50, 0x58a6ff)
+      .setInteractive({ useHandCursor: true });
+    const backText = this.add.text(width / 2, height - 100, 'Back', {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    backBtn.on('pointerdown', () => {
+      this.scene.start('MenuScene');
+    });
+  }
+}
+
+class GameScene extends Phaser.Scene {
+  constructor() {
+    super('GameScene');
+  }
+  
+  init(data) {
+    this.levelNumber = data.level || 1;
+    this.levelConfig = LEVEL_CONFIGS[this.levelNumber - 1];
+  }
+  
+  create() {
+    currentScene = this;
+    const { width, height } = this.cameras.main;
+    
+    this.physics.world.setBounds(0, 0, width, height);
+    this.physics.world.gravity.y = 800;
+    
+    this.add.rectangle(0, 0, width, height, 0x87ceeb).setOrigin(0);
+    
+    this.add.rectangle(0, height - 50, width, 50, 0x228b22).setOrigin(0);
+    
+    this.targets = this.physics.add.group();
+    this.arrows = [];
+    this.hitTargets = [];
+    
+    this.windSpeed = Phaser.Math.Between(-100, 100);
+    this.arrowsLeft = this.levelConfig.arrows;
+    this.score = 0;
+    this.timeLeft = this.levelConfig.timeLimit;
+    
+    this.isCharging = false;
+    this.chargeStartTime = 0;
+    this.chargePower = 0;
+    this.aimAngle = -45;
+    
+    this.bowX = 100;
+    this.bowY = height - 100;
+    
+    this.bow = this.add.rectangle(this.bowX, this.bowY, 10, 60, 0x8b4513);
+    this.bowString = this.add.line(0, 0, this.bowX - 5, this.bowY - 30, this.bowX - 5, this.bowY + 30, 0x654321).setOrigin(0);
+    
+    this.aimLine = this.add.line(0, 0, this.bowX, this.bowY, this.bowX + 100, this.bowY - 100, 0xff0000, 0.5).setOrigin(0);
+    this.aimLine.setLineWidth(2);
+    
+    this.createTargets();
+    
+    this.scoreText = this.add.text(16, 16, `Score: ${this.score}`, {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#000000',
+      backgroundColor: '#ffffff',
+      padding: { x: 10, y: 5 }
+    });
+    
+    this.arrowsText = this.add.text(16, 50, `Arrows: ${this.arrowsLeft}`, {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#000000',
+      backgroundColor: '#ffffff',
+      padding: { x: 10, y: 5 }
+    });
+    
+    this.timeText = this.add.text(16, 84, `Time: ${this.timeLeft}s`, {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#000000',
+      backgroundColor: '#ffffff',
+      padding: { x: 10, y: 5 }
+    });
+    
+    this.windText = this.add.text(16, 118, `Wind: ${this.windSpeed > 0 ? '→' : '←'} ${Math.abs(this.windSpeed)}`, {
+      fontSize: '18px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#000000',
+      backgroundColor: '#ffffff',
+      padding: { x: 10, y: 5 }
+    });
+    
+    this.levelText = this.add.text(width - 16, 16, `Level ${this.levelNumber}: ${this.levelConfig.description}`, {
+      fontSize: '18px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#000000',
+      backgroundColor: '#ffffff',
+      padding: { x: 10, y: 5 }
+    }).setOrigin(1, 0);
+    
+    this.powerBar = this.add.rectangle(this.bowX, this.bowY - 80, 60, 10, 0xff0000);
+    this.powerBar.setVisible(false);
+    
+    this.input.on('pointerdown', this.startCharge, this);
+    this.input.on('pointerup', this.releaseArrow, this);
+    this.input.on('pointermove', this.updateAim, this);
+    
+    this.timer = this.time.addEvent({
+      delay: 1000,
+      callback: this.updateTimer,
+      callbackScope: this,
+      loop: true
+    });
+    
+    this.gameOver = false;
+  }
+  
+  createTargets() {
+    const { width, height } = this.cameras.main;
+    const config = this.levelConfig;
+    
+    if (config.type === 'challenge') {
+      if (config.challengeType === 'apple') {
+        const person = this.add.rectangle(width - 200, height - 150, 30, 80, 0xffa500);
+        const head = this.add.circle(width - 200, height - 200, 20, 0xffdbac);
+        const apple = this.physics.add.sprite(width - 200, height - 230, null);
+        apple.setCircle(15);
+        apple.displayWidth = 30;
+        apple.displayHeight = 30;
+        apple.body.setAllowGravity(false);
+        apple.body.setImmovable(true);
+        apple.setTint(0xff0000);
+        apple.hitPoints = 1;
+        apple.isChallenge = true;
+        this.targets.add(apple);
+      } else if (config.challengeType === 'candle') {
+        const candle = this.physics.add.sprite(width - 300, height - 120, null);
+        candle.displayWidth = 15;
+        candle.displayHeight = 60;
+        candle.body.setSize(15, 60);
+        candle.body.setAllowGravity(false);
+        candle.body.setImmovable(true);
+        candle.setTint(0xffe4b5);
+        const flame = this.add.circle(candle.x, candle.y - 35, 5, 0xff6600);
+        candle.flame = flame;
+        candle.hitPoints = 1;
+        candle.isChallenge = true;
+        this.targets.add(candle);
+      }
+    } else {
+      const targetCount = config.targetCount;
+      const spacing = 100;
+      
+      for (let i = 0; i < targetCount; i++) {
+        const x = width - 200 - (i * 30);
+        const y = height - 100 - (i * spacing);
+        
+        const target = this.physics.add.sprite(x, y, null);
+        target.displayWidth = config.targetSize;
+        target.displayHeight = config.targetSize;
+        target.setCircle(config.targetSize / 2);
+        target.body.setAllowGravity(false);
+        target.body.setImmovable(true);
+        
+        target.setTint(0xff0000);
+        const middle = this.add.circle(x, y, config.targetSize * 0.6 / 2, 0xffffff);
+        const center = this.add.circle(x, y, config.targetSize * 0.3 / 2, 0xff0000);
+        target.rings = [middle, center];
+        
+        target.hitPoints = 3;
+        target.initialY = y;
+        target.moveSpeed = config.moveSpeed || 0;
+        target.moveDirection = Phaser.Math.Between(0, 1) === 0 ? -1 : 1;
+        target.bounceVelocity = config.type === 'bouncing' ? Phaser.Math.Between(80, 150) : 0;
+        
+        if (config.type === 'moving' || config.type === 'boss') {
+          target.body.setVelocityY(target.moveSpeed * target.moveDirection);
+        } else if (config.type === 'bouncing') {
+          target.body.setVelocityY(target.bounceVelocity);
+          target.body.setBounce(1);
+          target.body.setCollideWorldBounds(true);
+        }
+        
+        this.targets.add(target);
+      }
+    }
+  }
+  
+  updateAim(pointer) {
+    if (this.gameOver) return;
+    
+    const dx = pointer.x - this.bowX;
+    const dy = pointer.y - this.bowY;
+    this.aimAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+    
+    if (this.aimAngle > 0) this.aimAngle = 0;
+    if (this.aimAngle < -90) this.aimAngle = -90;
+    
+    const length = 150;
+    const endX = this.bowX + Math.cos(this.aimAngle * Math.PI / 180) * length;
+    const endY = this.bowY + Math.sin(this.aimAngle * Math.PI / 180) * length;
+    
+    this.aimLine.setTo(this.bowX, this.bowY, endX, endY);
+  }
+  
+  startCharge(pointer) {
+    if (this.gameOver || this.arrowsLeft <= 0) return;
+    
+    this.isCharging = true;
+    this.chargeStartTime = this.time.now;
+    this.powerBar.setVisible(true);
+  }
+  
+  releaseArrow(pointer) {
+    if (!this.isCharging || this.gameOver) return;
+    
+    this.isCharging = false;
+    const chargeTime = this.time.now - this.chargeStartTime;
+    this.chargePower = Math.min(chargeTime / 1000, 2);
+    
+    this.powerBar.setVisible(false);
+    
+    this.shootArrow();
+  }
+  
+  shootArrow() {
+    if (this.arrowsLeft <= 0) return;
+    
+    const arrow = this.physics.add.sprite(this.bowX, this.bowY, null);
+    arrow.displayWidth = 40;
+    arrow.displayHeight = 5;
+    arrow.body.setSize(40, 5);
+    arrow.setTint(0x8b4513);
+    arrow.rotation = this.aimAngle * Math.PI / 180;
+    
+    const power = 300 + (this.chargePower * 400);
+    const vx = Math.cos(this.aimAngle * Math.PI / 180) * power;
+    const vy = Math.sin(this.aimAngle * Math.PI / 180) * power;
+    
+    arrow.body.setVelocity(vx, vy);
+    arrow.windEffect = this.windSpeed;
+    
+    this.arrows.push(arrow);
+    this.arrowsLeft--;
+    this.arrowsText.setText(`Arrows: ${this.arrowsLeft}`);
+    
+    this.physics.add.overlap(arrow, this.targets, this.hitTarget, null, this);
+  }
+  
+  hitTarget(arrow, target) {
+    if (arrow.hasHit) return;
+    
+    arrow.hasHit = true;
+    arrow.body.setVelocity(0, 0);
+    arrow.body.setAllowGravity(false);
+    
+    const distance = Phaser.Math.Distance.Between(arrow.x, arrow.y, target.x, target.y);
+    let points = 0;
+    
+    if (target.isChallenge) {
+      points = 500;
+      if (target.flame) {
+        target.flame.destroy();
+      }
+    } else {
+      const radius = target.displayWidth / 2;
+      if (distance < radius * 0.3) {
+        points = 300;
+      } else if (distance < radius * 0.6) {
+        points = 200;
+      } else {
+        points = 100;
+      }
+    }
+    
+    this.score += points;
+    this.scoreText.setText(`Score: ${this.score}`);
+    
+    const hitText = this.add.text(target.x, target.y - 40, `+${points}`, {
+      fontSize: '24px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffcc00',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    this.tweens.add({
+      targets: hitText,
+      y: hitText.y - 50,
+      alpha: 0,
+      duration: 1000,
+      onComplete: () => hitText.destroy()
+    });
+    
+    target.hitPoints--;
+    if (target.hitPoints <= 0) {
+      if (target.rings) {
+        target.rings.forEach(ring => ring.destroy());
+      }
+      this.hitTargets.push(target);
+      target.destroy();
+      
+      if (this.hitTargets.length >= (this.levelConfig.targetCount || 1)) {
+        this.winLevel();
+      }
+    }
+  }
+  
+  update() {
+    if (this.gameOver) return;
+    
+    if (this.isCharging) {
+      const chargeTime = this.time.now - this.chargeStartTime;
+      const power = Math.min(chargeTime / 1000, 2) / 2;
+      this.powerBar.setScale(power, 1);
+    }
+    
+    this.arrows.forEach(arrow => {
+      if (!arrow.hasHit && arrow.active) {
+        arrow.body.velocity.x += arrow.windEffect * 0.5;
+        arrow.rotation = Math.atan2(arrow.body.velocity.y, arrow.body.velocity.x);
+        
+        if (arrow.y > this.cameras.main.height - 50 || arrow.x > this.cameras.main.width || arrow.x < 0 || arrow.y < 0) {
+          arrow.destroy();
+        }
+      }
+    });
+    
+    this.targets.children.entries.forEach(target => {
+      if (target.rings) {
+        target.rings.forEach(ring => {
+          ring.x = target.x;
+          ring.y = target.y;
+        });
+      }
+      
+      if (target.moveSpeed && this.levelConfig.type === 'moving') {
+        if (target.y < target.initialY - 100 || target.y > target.initialY + 100) {
+          target.body.velocity.y *= -1;
+        }
+      }
+      
+      if (target.flame) {
+        target.flame.x = target.x;
+        target.flame.y = target.y - 35;
+      }
+    });
+    
+    if (this.arrowsLeft === 0 && this.arrows.every(a => !a.active || a.hasHit)) {
+      if (this.hitTargets.length < (this.levelConfig.targetCount || 1)) {
+        this.loseLevel();
+      }
+    }
+  }
+  
+  updateTimer() {
+    if (this.gameOver) return;
+    
+    this.timeLeft--;
+    this.timeText.setText(`Time: ${this.timeLeft}s`);
+    
+    if (this.timeLeft <= 0) {
+      this.loseLevel();
+    }
+  }
+  
+  winLevel() {
+    if (this.gameOver) return;
+    this.gameOver = true;
+    
+    this.timer.remove();
+    
+    const accuracy = this.hitTargets.length / (this.levelConfig.targetCount || 1);
+    const timeBonus = this.timeLeft > 30 ? 3 : (this.timeLeft > 15 ? 2 : 1);
+    const stars = Math.min(3, Math.floor(accuracy * 3));
+    
+    const currentStars = GAME_STATE.levelStars[this.levelNumber] || 0;
+    if (stars > currentStars) {
+      GAME_STATE.totalStars += (stars - currentStars);
+      GAME_STATE.levelStars[this.levelNumber] = stars;
+    }
+    
+    if (this.levelNumber === GAME_STATE.currentLevel && this.levelNumber < 10) {
+      GAME_STATE.currentLevel = this.levelNumber + 1;
+    }
+    
+    saveProgress();
+    
+    const { width, height } = this.cameras.main;
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0);
+    
+    const panel = this.add.rectangle(width / 2, height / 2, 400, 300, 0x14142a).setStrokeStyle(3, 0x00ff88);
+    
+    this.add.text(width / 2, height / 2 - 100, 'Level Complete!', {
+      fontSize: '36px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#00ff88',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    this.add.text(width / 2, height / 2 - 40, `Score: ${this.score}`, {
+      fontSize: '24px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    
+    const starStr = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+    this.add.text(width / 2, height / 2, starStr, {
+      fontSize: '32px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffcc00'
+    }).setOrigin(0.5);
+    
+    const nextBtn = this.add.rectangle(width / 2 - 80, height / 2 + 80, 120, 50, 0x00ff88)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(width / 2 - 80, height / 2 + 80, this.levelNumber < 10 ? 'Next' : 'Levels', {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#000000',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    nextBtn.on('pointerdown', () => {
+      if (this.levelNumber < 10) {
+        this.scene.start('GameScene', { level: this.levelNumber + 1 });
+      } else {
+        this.scene.start('LevelSelectScene');
+      }
+    });
+    
+    const menuBtn = this.add.rectangle(width / 2 + 80, height / 2 + 80, 120, 50, 0x58a6ff)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(width / 2 + 80, height / 2 + 80, 'Menu', {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    menuBtn.on('pointerdown', () => {
+      this.scene.start('MenuScene');
+    });
+    
+    if (this.levelNumber % 3 === 0) {
+      showInterstitial();
+    }
+  }
+  
+  loseLevel() {
+    if (this.gameOver) return;
+    this.gameOver = true;
+    
+    this.timer.remove();
+    
+    const { width, height } = this.cameras.main;
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0);
+    
+    const panel = this.add.rectangle(width / 2, height / 2, 400, 250, 0x14142a).setStrokeStyle(3, 0xff6b6b);
+    
+    this.add.text(width / 2, height / 2 - 60, 'Level Failed', {
+      fontSize: '36px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ff6b6b',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    this.add.text(width / 2, height / 2, `Score: ${this.score}`, {
+      fontSize: '24px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    
+    const retryBtn = this.add.rectangle(width / 2 - 80, height / 2 + 60, 120, 50, 0xff6b6b)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(width / 2 - 80, height / 2 + 60, 'Retry', {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    retryBtn.on('pointerdown', () => {
+      this.scene.start('GameScene', { level: this.levelNumber });
+    });
+    
+    const menuBtn = this.add.rectangle(width / 2 + 80, height / 2 + 60, 120, 50, 0x58a6ff)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(width / 2 + 80, height / 2 + 60, 'Menu', {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    menuBtn.on('pointerdown', () => {
+      this.scene.start('MenuScene');
+    });
+  }
+}
+
+function showInterstitial() {
+  const interstitial = document.getElementById('jb-interstitial');
+  if (interstitial) {
+    interstitial.style.display = 'flex';
+  }
+}
+
+function closeInterstitial() {
+  const interstitial = document.getElementById('jb-interstitial');
+  if (interstitial) {
+    interstitial.style.display = 'none';
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  parent: 'game-container',
+  width: window.innerWidth,
+  height: window.innerHeight - 140,
+  backgroundColor: '#0a0a1a',
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 800 },
+      debug: false
+    }
+  },
+  scene: [BootScene, MenuScene, LevelSelectScene, GameScene],
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  }
+};
+
+game = new Phaser.Game(config);
+
+window.addEventListener('resize', () => {
+  game.scale.resize(window.innerWidth, window.innerHeight - 140);
+});
+</script>
+</body>
+</html>

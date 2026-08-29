@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Space Orbit — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#050510;overflow:hidden;font-family:'Segoe UI',Arial,sans-serif;color:#fff;touch-action:none;}
+canvas{display:block;}
+#hud{position:fixed;top:15px;left:50%;transform:translateX(-50%);text-align:center;z-index:10;pointer-events:none;}
+#level-display{font-size:22px;font-weight:700;color:#ffaa00;text-shadow:0 0 15px #ff8800;}
+#status{font-size:14px;color:#88aaff;margin-top:4px;}
+#instructions{font-size:13px;color:#556;margin-top:4px;}
+#overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(3,3,12,0.94);}
+#overlay.hidden{display:none;}
+#overlay h1{font-size:clamp(30px,6vw,52px);background:linear-gradient(135deg,#ffaa00,#ff4488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
+#overlay .sub{font-size:16px;color:#88aaff;margin-bottom:24px;}
+#overlay .msg{font-size:18px;color:#0f0;margin-bottom:16px;display:none;}
+#overlay button{padding:14px 48px;font-size:20px;border:2px solid #ffaa00;background:transparent;color:#ffaa00;border-radius:8px;cursor:pointer;transition:all .2s;}
+#overlay button:hover{background:#ffaa00;color:#000;}
+#aim-line{position:fixed;z-index:5;pointer-events:none;}
+#footer{position:fixed;bottom:0;width:100%;text-align:center;padding:10px;font-size:13px;z-index:10;background:rgba(3,3,12,0.85);border-top:1px solid #1a1a2e;}
+#footer a{color:#ffaa00;text-decoration:none;margin:0 10px;transition:color .2s;}
+#footer a:hover{color:#ff4488;}
+.share-btn{display:inline-block;margin:0 6px;padding:4px 10px;border:1px solid #333;border-radius:4px;font-size:12px;color:#aaa;text-decoration:none;transition:all .2s;}
+.share-btn:hover{border-color:#ffaa00;color:#ffaa00;}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="level-display">Level 1</div>
+  <div id="status">Click to aim, release to launch!</div>
+  <div id="instructions">🖱️ Click & drag to aim · Release to launch satellite</div>
+</div>
+<div id="overlay">
+  <h1>SPACE ORBIT</h1>
+  <div class="sub">by JellyBolt Games</div>
+  <div class="msg" id="overlay-msg"></div>
+  <button id="start-btn">LAUNCH</button>
+</div>
+<div id="footer">
+  <span style="color:#555;">JellyBolt Games</span>
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank">☕ Support</a>
+  <a href="https://jellyboltgames.itch.io" target="_blank">🎮 More Games</a>
+  <a class="share-btn" href="https://twitter.com/intent/tweet?text=Playing%20Space%20Orbit%20by%20JellyBolt%20Games!&url=https://jellyboltgames.itch.io" target="_blank">𝕏 Share</a>
+  <a class="share-btn" href="https://wa.me/?text=Play%20Space%20Orbit%20by%20JellyBolt%20Games!%20https://jellyboltgames.itch.io" target="_blank">WhatsApp</a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,500);
+camera.position.set(0,25,20);
+camera.lookAt(0,0,0);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x050510);
+document.body.insertBefore(renderer.domElement,document.body.firstChild);
+
+// Lights
+scene.add(new THREE.AmbientLight(0x222244,0.6));
+const sunLight=new THREE.PointLight(0xffddaa,1.5,100);
+sunLight.position.set(0,5,0);
+scene.add(sunLight);
+
+// Stars
+const starGeo=new THREE.BufferGeometry();
+const sp=new Float32Array(6000);
+for(let i=0;i<6000;i++){sp[i*3]=(Math.random()-0.5)*300;sp[i*3+1]=(Math.random()-0.5)*300;sp[i*3+2]=(Math.random()-0.5)*300;}
+starGeo.setAttribute('position',new THREE.BufferAttribute(sp,3));
+const sc=new Float32Array(2000);
+for(let i=0;i<2000;i++){const v=0.5+Math.random()*0.5;sc[i*3]=v;sc[i*3+1]=v;sc[i*3+2]=v+Math.random()*0.3;}
+starGeo.setAttribute('color',new THREE.BufferAttribute(sc,3));
+scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({size:0.3,vertexColors:true,transparent:true,opacity:0.8})));
+
+// Grid
+const grid=new THREE.GridHelper(40,40,0x111133,0x0a0a22);
+grid.position.y=-0.5;
+scene.add(grid);
+
+// Levels
+const levels=[
+  {planets:[{x:0,z:0,r:1.2,mass:200,color:0x4488ff}],target:{x:8,z:-6,r:1},launchPos:{x:-10,z:8}},
+  {planets:[{x:0,z:0,r:1.5,mass:280,color:0xff6644},{x:6,z:-4,r:0.7,mass:80,color:0x44ff88}],target:{x:-7,z:-8,r:1.2},launchPos:{x:-8,z:10}},
+  {planets:[{x:-3,z:2,r:1,mass:160,color:0xff44aa},{x:4,z:-3,r:1.1,mass:200,color:0x44aaff},{x:0,z:7,r:0.6,mass:60,color:0xaaff44}],target:{x:8,z:8,r:1.3},launchPos:{x:-10,z:-8}},
+  {planets:[{x:0,z:0,r:1.8,mass:350,color:0xffaa22},{x:-6,z:-6,r:0.8,mass:100,color:0x8844ff},{x:6,z:6,r:0.9,mass:120,color:0xff4444}],target:{x:10,z:-2,r:1},launchPos:{x:-12,z:0}},
+  {planets:[{x:0,z:0,r:2,mass:400,color:0xff8800},{x:-5,z:5,r:0.7,mass:80,color:0x00ffaa},{x:5,z:-5,r:0.7,mass:80,color:0xaa00ff},{x:7,z:7,r:0.5,mass:50,color:0xff0066}],target:{x:-8,z:-10,r:1.5},launchPos:{x:10,z:10}}
+];
+
+let currentLevel=0;
+let planetMeshes=[],targetMesh=null,launchMarker=null;
+let satellite=null,satVel=new THREE.Vector3(),satActive=false;
+let trailPoints=[],trailLine=null;
+let aiming=false,aimStart=new THREE.Vector2(),aimEnd=new THREE.Vector2();
+let aimLineMesh=null;
+let gamePhase='menu'; // menu, aiming, flying, won, lost
+
+function clearLevel(){
+  planetMeshes.forEach(p=>{scene.remove(p);if(p.userData.ring)scene.remove(p.userData.ring);if(p.userData.glow)scene.remove(p.userData.glow);});
+  planetMeshes=[];
+  if(targetMesh){scene.remove(targetMesh);if(targetMesh.userData.ring)scene.remove(targetMesh.userData.ring);targetMesh=null;}
+  if(launchMarker){scene.remove(launchMarker);launchMarker=null;}
+  if(satellite){scene.remove(satellite);satellite=null;}
+  if(trailLine){scene.remove(trailLine);trailLine=null;}
+  if(aimLineMesh){scene.remove(aimLineMesh);aimLineMesh=null;}
+  trailPoints=[];
+}
+
+function buildLevel(idx){
+  clearLevel();
+  const lv=levels[idx%levels.length];
+
+  // Planets
+  lv.planets.forEach(p=>{
+    const geo=new THREE.SphereGeometry(p.r,32,32);
+    const mat=new THREE.MeshPhongMaterial({color:p.color,emissive:new THREE.Color(p.color).multiplyScalar(0.3),shininess:60});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set(p.x,0,p.z);
+    mesh.userData={mass:p.mass,radius:p.r};
+    scene.add(mesh);
+
+    // Atmosphere glow
+    const glowGeo=new THREE.SphereGeometry(p.r*1.3,32,32);
+    const glowMat=new THREE.MeshBasicMaterial({color:p.color,transparent:true,opacity:0.08,side:THREE.BackSide});
+    const glowMesh=new THREE.Mesh(glowGeo,glowMat);
+    glowMesh.position.copy(mesh.position);
+    scene.add(glowMesh);
+    mesh.userData.glow=glowMesh;
+
+    // Orbit ring
+    const ringGeo=new THREE.RingGeometry(p.r*2,p.r*2+0.05,64);
+    const ringMat=new THREE.MeshBasicMaterial({color:p.color,transparent:true,opacity:0.15,side:THREE.DoubleSide});
+    const ring=new THREE.Mesh(ringGeo,ringMat);
+    ring.rotation.x=-Math.PI/2;
+    ring.position.copy(mesh.position);
+    ring.position.y=0.01;
+    scene.add(ring);
+    mesh.userData.ring=ring;
+
+    planetMeshes.push(mesh);
+  });
+
+  // Target
+  const tGeo=new THREE.TorusGeometry(lv.target.r,0.15,16,32);
+  const tMat=new THREE.MeshPhongMaterial({color:0x00ff88,emissive:0x004422});
+  targetMesh=new THREE.Mesh(tGeo,tMat);
+  targetMesh.position.set(lv.target.x,0,lv.target.z);
+  targetMesh.rotation.x=Math.PI/2;
+  targetMesh.userData={radius:lv.target.r};
+  scene.add(targetMesh);
+
+  // Target glow ring
+  const trGeo=new THREE.RingGeometry(lv.target.r*0.5,lv.target.r*1.2,32);
+  const trMat=new THREE.MeshBasicMaterial({color:0x00ff88,transparent:true,opacity:0.1,side:THREE.DoubleSide});
+  const trMesh=new THREE.Mesh(trGeo,trMat);
+  trMesh.rotation.x=-Math.PI/2;
+  trMesh.position.set(lv.target.x,0.02,lv.target.z);
+  scene.add(trMesh);
+  targetMesh.userData.ring=trMesh;
+
+  // Launch marker
+  const lGeo=new THREE.ConeGeometry(0.3,0.6,8);
+  const lMat=new THREE.MeshPhongMaterial({color:0xffaa00,emissive:0x553300});
+  launchMarker=new THREE.Mesh(lGeo,lMat);
+  launchMarker.position.set(lv.launchPos.x,0.3,lv.launchPos.z);
+  scene.add(launchMarker);
+
+  document.getElementById('level-display').textContent='Level '+(idx+1);
+  document.getElementById('status').textContent='Click to aim, release to launch!';
+  gamePhase='aiming';
+}
+
+function launchSatellite(vx,vz){
+  const lv=levels[currentLevel%levels.length];
+  const sGeo=new THREE.SphereGeometry(0.2,16,16);
+  const sMat=new THREE.MeshPhongMaterial({color:0xffff00,emissive:0x886600});
+  satellite=new THREE.Mesh(sGeo,sMat);
+  satellite.position.set(lv.launchPos.x,0,lv.launchPos.z);
+  scene.add(satellite);
+
+  // Glow
+  const gGeo=new THREE.SphereGeometry(0.35,16,16);
+  const gMat=new THREE.MeshBasicMaterial({color:0xffff00,transparent:true,opacity:0.2,side:THREE.BackSide});
+  satellite.add(new THREE.Mesh(gGeo,gMat));
+
+  satVel.set(vx,0,vz);
+  satActive=true;
+  trailPoints=[];
+  gamePhase='flying';
+  document.getElementById('status').textContent='Satellite in flight...';
+}
+
+function screenToWorld(sx,sy){
+  const raycaster=new THREE.Raycaster();
+  const mouse=new THREE.Vector2((sx/window.innerWidth)*2-1,-(sy/window.innerHeight)*2+1);
+  raycaster.setFromCamera(mouse,camera);
+  const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+  const pt=new THREE.Vector3();
+  raycaster.ray.intersectPlane(plane,pt);
+  return pt;
+}
+
+// Mouse / Touch controls
+let pointerDown=false;
+function onPointerDown(x,y){
+  if(gamePhase!=='aiming')return;
+  pointerDown=true;
+  aimStart.set(x,y);
+  aimEnd.set(x,y);
+}
+function onPointerMove(x,y){
+  if(!pointerDown)return;
+  aimEnd.set(x,y);
+  // Draw aim line
+  if(aimLineMesh)scene.remove(aimLineMesh);
+  const lv=levels[currentLevel%levels.length];
+  const start=new THREE.Vector3(lv.launchPos.x,0.1,lv.launchPos.z);
+  const dx=aimEnd.x-aimStart.x,dy=aimEnd.y-aimStart.y;
+  const power=Math.min(Math.sqrt(dx*dx+dy*dy)*0.04,12);
+  const angle=Math.atan2(-dy,-dx);
+  const worldDir=new THREE.Vector3(Math.cos(angle)*power,0,Math.sin(angle)*power*0.8);
+  const end=start.clone().add(worldDir);
+  const geo=new THREE.BufferGeometry().setFromPoints([start,end]);
+  aimLineMesh=new THREE.Line(geo,new THREE.LineBasicMaterial({color:0xffaa00,transparent:true,opacity:0.8}));
+  scene.add(aimLineMesh);
+}
+function onPointerUp(){
+  if(!pointerDown||gamePhase!=='aiming')return;
+  pointerDown=false;
+  const dx=aimEnd.x-aimStart.x,dy=aimEnd.y-aimStart.y;
+  const power=Math.min(Math.sqrt(dx*dx+dy*dy)*0.04,12);
+  if(power<0.5)return;
+  const angle=Math.atan2(-dy,-dx);
+  const vx=Math.cos(angle)*power*0.08;
+  const vz=Math.sin(angle)*power*0.06;
+  if(aimLineMesh){scene.remove(aimLineMesh);aimLineMesh=null;}
+  launchSatellite(vx,vz);
+}
+
+renderer.domElement.addEventListener('mousedown',e=>onPointerDown(e.clientX,e.clientY));
+renderer.domElement.addEventListener('mousemove',e=>onPointerMove(e.clientX,e.clientY));
+renderer.domElement.addEventListener('mouseup',()=>onPointerUp());
+renderer.domElement.addEventListener('touchstart',e=>{e.preventDefault();onPointerDown(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+renderer.domElement.addEventListener('touchmove',e=>{e.preventDefault();onPointerMove(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+renderer.domElement.addEventListener('touchend',e=>{e.preventDefault();onPointerUp();},{passive:false});
+
+document.getElementById('start-btn').addEventListener('click',()=>{
+  document.getElementById('overlay').classList.add('hidden');
+  buildLevel(currentLevel);
+});
+
+let simTime=0;
+const clock=new THREE.Clock();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+  simTime+=dt;
+
+  // Rotate planets
+  planetMeshes.forEach((p,i)=>{
+    p.rotation.y+=dt*0.3*(i%2===0?1:-1);
+  });
+
+  // Rotate target
+  if(targetMesh)targetMesh.rotation.z+=dt*2;
+
+  // Float launch marker
+  if(launchMarker)launchMarker.position.y=0.3+Math.sin(simTime*3)*0.15;
+
+  // Satellite physics
+  if(satActive&&satellite){
+    const substeps=4;
+    const sdt=dt/substeps;
+    for(let s=0;s<substeps;s++){
+      // Gravity from planets
+      const accel=new THREE.Vector3();
+      planetMeshes.forEach(p=>{
+        const diff=new THREE.Vector3().subVectors(p.position,satellite.position);
+        diff.y=0;
+        const dist=diff.length();
+        if(dist<p.userData.radius*0.8){
+          // Crashed into planet
+          satActive=false;
+          document.getElementById('status').textContent='Crashed! Click to retry.';
+          gamePhase='aiming';
+          scene.remove(satellite);satellite=null;
+          return;
+        }
+        const G=0.0001;
+        const force=G*p.userData.mass/(dist*dist);
+        accel.add(diff.normalize().multiplyScalar(force));
+      });
+      if(!satActive)break;
+      satVel.add(accel.multiplyScalar(sdt*60));
+      satellite.position.add(satVel.clone().multiplyScalar(sdt*60));
+      satellite.position.y=0;
+    }
+
+    if(satActive&&satellite){
+      // Trail
+      trailPoints.push(satellite.position.clone());
+      if(trailPoints.length>500)trailPoints.shift();
+      if(trailLine)scene.remove(trailLine);
+      if(trailPoints.length>2){
+        const tGeo=new THREE.BufferGeometry().setFromPoints(trailPoints);
+        trailLine=new THREE.Line(tGeo,new THREE.LineBasicMaterial({color:0xffff44,transparent:true,opacity:0.5}));
+        scene.add(trailLine);
+      }
+
+      // Check target
+      const dist2d=new THREE.Vector2(satellite.position.x-targetMesh.position.x,satellite.position.z-targetMesh.position.z).length();
+      if(dist2d<targetMesh.userData.radius*1.2){
+        satActive=false;
+        gamePhase='won';
+        document.getElementById('status').textContent='Target reached! 🎉';
+        setTimeout(()=>{
+          currentLevel++;
+          if(currentLevel>=levels.length){
+            const msg=document.getElementById('overlay-msg');
+            msg.textContent='🏆 All levels complete! You\'re an orbital genius!';
+            msg.style.display='block';
+            document.getElementById('start-btn').textContent='PLAY AGAIN';
+            document.getElementById('overlay').classList.remove('hidden');
+            currentLevel=0;
+          } else {
+            buildLevel(currentLevel);
+          }
+        },1500);
+      }
+
+      // Out of bounds
+      if(satellite&&(Math.abs(satellite.position.x)>25||Math.abs(satellite.position.z)>25)){
+        satActive=false;
+        document.getElementById('status').textContent='Lost in space! Click to retry.';
+        gamePhase='aiming';
+        scene.remove(satellite);satellite=null;
+      }
+    }
+  }
+
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+})();
+</script>
+</body>
+</html>

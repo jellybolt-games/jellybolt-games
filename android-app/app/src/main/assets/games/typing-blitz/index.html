@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Typing Blitz - JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+.game-wrap{flex:1;position:relative;overflow:hidden}
+h1{font-size:1.6rem;text-align:center;padding:8px;background:linear-gradient(90deg,#ff006e,#8338ec,#3a86ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#hud{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:4px 10px;font-size:.95rem}
+#hud span{background:rgba(255,255,255,.07);padding:4px 12px;border-radius:8px}
+.sc{color:#3a86ff}.wv{color:#8338ec}.wpm{color:#06d6a0}.acc{color:#f7b731}.lv{color:#ff006e}
+#canvas{width:100%;height:100%;display:block}
+#input-row{display:flex;gap:8px;padding:8px 12px;background:rgba(0,0,0,.4)}
+#word-input{flex:1;padding:12px 16px;font-size:1.2rem;border:2px solid #8338ec;border-radius:10px;background:rgba(255,255,255,.05);color:#fff;outline:none;font-family:inherit}
+#word-input:focus{border-color:#3a86ff;box-shadow:0 0 15px rgba(58,134,255,.3)}
+#power-ups{display:flex;gap:8px}
+.pu-btn{width:48px;height:48px;border:2px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.05);color:#fff;font-size:1.3rem;cursor:pointer;position:relative;transition:transform .1s}
+.pu-btn:active{transform:scale(.9)}
+.pu-btn:disabled{opacity:.3;cursor:default}
+.pu-btn .badge{position:absolute;top:-5px;right:-5px;background:#ff006e;border-radius:50%;width:18px;height:18px;font-size:.65rem;display:flex;align-items:center;justify-content:center}
+#menu,#gameover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,26,.95);z-index:10;gap:14px;padding:20px}
+#menu h2,#gameover h2{font-size:2.4rem;background:linear-gradient(90deg,#ff006e,#8338ec,#3a86ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.btn-start{padding:14px 44px;font-size:1.2rem;border:none;border-radius:12px;background:linear-gradient(135deg,#8338ec,#3a86ff);color:#fff;cursor:pointer;font-weight:700;transition:transform .15s}
+.btn-start:hover{transform:scale(1.05)}.btn-start:active{transform:scale(.97)}
+#leaderboard{background:rgba(255,255,255,.05);border-radius:12px;padding:12px 20px;max-width:320px;width:100%}
+#leaderboard h3{color:#8338ec;margin-bottom:8px;text-align:center}
+#lb-list{list-style:none;font-size:.9rem}
+#lb-list li{padding:4px 0;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.05)}
+#lb-list li span:first-child{color:#aaa}#lb-list li span:last-child{color:#3a86ff;font-weight:700}
+.flash-fx{position:absolute;inset:0;pointer-events:none;z-index:3;animation:flashFx .3s ease-out forwards}
+@keyframes flashFx{0%{background:rgba(6,214,160,.15)}100%{background:transparent}}
+.slow-fx{position:absolute;inset:0;pointer-events:none;z-index:3;border:3px solid #00e5ff;animation:slowPulse 3s ease-out forwards;border-radius:8px}
+@keyframes slowPulse{0%{opacity:1}100%{opacity:0}}
+footer{text-align:center;padding:8px;font-size:.75rem;color:#555;background:rgba(0,0,0,.3)}
+footer a{color:#8338ec;text-decoration:none;margin:0 6px}
+footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<h1>⚡ Typing Blitz</h1>
+<div class="game-wrap" id="game-wrap">
+  <div id="menu">
+    <h2>Typing Blitz</h2>
+    <p style="color:#aaa;max-width:320px;text-align:center;line-height:1.5">Words fall from the sky — type them before they hit the ground! Collect power-ups and chase the high score.</p>
+    <button class="btn-start" id="btn-start">▶ PLAY</button>
+    <div id="leaderboard"><h3>🏆 Leaderboard</h3><ol id="lb-list"></ol></div>
+  </div>
+  <div id="gameover" style="display:none">
+    <h2>Game Over</h2>
+    <div style="font-size:2.8rem;color:#3a86ff" id="final-score">0</div>
+    <p style="color:#aaa" id="go-stats">WPM: 0 | Accuracy: 0%</p>
+    <button class="btn-start" id="btn-restart">↻ PLAY AGAIN</button>
+    <div id="leaderboard2"><h3>🏆 Leaderboard</h3><ol id="lb-list2"></ol></div>
+  </div>
+  <div id="hud" style="display:none">
+    <span class="sc" id="h-score">Score: 0</span>
+    <span class="wv" id="h-wave">Wave: 1</span>
+    <span class="wpm" id="h-wpm">WPM: 0</span>
+    <span class="acc" id="h-acc">Acc: 100%</span>
+    <span class="lv" id="h-lives">❤❤❤</span>
+  </div>
+  <canvas id="canvas"></canvas>
+</div>
+<div id="input-row" style="display:none">
+  <input type="text" id="word-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Type the words...">
+  <div id="power-ups">
+    <button class="pu-btn" id="pu-slow" title="Slow Time" disabled>🕐<span class="badge" id="pu-slow-n">0</span></button>
+    <button class="pu-btn" id="pu-clear" title="Clear Screen" disabled>💥<span class="badge" id="pu-clear-n">0</span></button>
+    <button class="pu-btn" id="pu-double" title="Double Points" disabled>✨<span class="badge" id="pu-double-n">0</span></button>
+  </div>
+</div>
+<footer>
+  <span>⚡ JellyBolt Games</span><br>
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank">☕ Buy Me a Coffee</a>
+  <a href="https://jellyboltgames.itch.io" target="_blank">🎮 More Games on itch.io</a>
+</footer>
+<script>
+(function(){
+const WORDS_EASY='the and for are but not you all can had her was one our out day get has him his how its let may new now old see way who did got'.split(' ');
+const WORDS_MED='about after again being below could every first found great house large might never other place point right small sound still their think those under water where which world would write young'.split(' ');
+const WORDS_HARD='abstract between brother capture digital element fantasy general however imagine journey kitchen liberty messagenatural opinion private quality serious trouble umbrella victory weather'.split(' ');
+const WORDS_EPIC='algorithm beautiful challenge dangerous education frequency generator horizontal interface knowledge landscape management navigation operation philosophy restaurantechnology understand vocabulary'.split(' ');
+
+const canvas=document.getElementById('canvas'),cx=canvas.getContext('2d');
+const $=s=>document.querySelector(s);
+const input=$('#word-input'),menuEl=$('#menu'),goEl=$('#gameover'),hudEl=$('#hud'),inputRow=$('#input-row');
+
+let words=[],score=0,lives=3,wave=1,playing=false,lastFrame=0,spawnTimer=0;
+let totalTyped=0,correctTyped=0,wordsCompleted=0,startTime=0;
+let fallSpeed=.6,spawnInterval=2500,maxWords=3;
+let powerUps={slow:0,clear:0,double:0};
+let doubleActive=false,doubleTimer=0,slowActive=false,slowTimer=0;
+let leaderboard=JSON.parse(localStorage.getItem('tb_lb')||'[]');
+
+function resize(){canvas.width=canvas.parentElement.clientWidth;canvas.height=canvas.parentElement.clientHeight}
+window.addEventListener('resize',resize);resize();
+
+function getWordPool(){
+  if(wave<=3)return WORDS_EASY.concat(WORDS_MED.slice(0,5));
+  if(wave<=6)return WORDS_MED.concat(WORDS_HARD.slice(0,5));
+  if(wave<=10)return WORDS_HARD.concat(WORDS_EPIC.slice(0,3));
+  return WORDS_HARD.concat(WORDS_EPIC);
+}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+
+function spawnWord(){
+  if(words.length>=maxWords)return;
+  const pool=getWordPool();
+  let text=pick(pool);
+  if(wave>5&&Math.random()<.3)text=pick(pool)+' '+pick(WORDS_EASY);
+  const x=40+Math.random()*(canvas.width-80);
+  const isPU=Math.random()<.08;
+  words.push({text,x,y:-20,speed:fallSpeed*(0.7+Math.random()*0.6),matched:0,isPowerUp:isPU,alpha:1,done:false});
+}
+
+function drawWord(w){
+  cx.save();
+  const sz=Math.min(22,Math.max(14,canvas.width/25));
+  cx.font='bold '+sz+'px "Segoe UI",system-ui,sans-serif';
+  cx.textAlign='center';
+  cx.globalAlpha=w.alpha;
+  const inputVal=input.value.toLowerCase();
+  const wLow=w.text.toLowerCase();
+  let matchLen=0;
+  if(wLow.startsWith(inputVal)&&inputVal.length>0)matchLen=inputVal.length;
+  for(let i=0;i<w.text.length;i++){
+    const ch=w.text[i];
+    const totalW=cx.measureText(w.text).width;
+    const before=cx.measureText(w.text.slice(0,i)).width;
+    const charX=w.x-totalW/2+before+cx.measureText(ch).width/2;
+    if(i<matchLen){cx.fillStyle='#06d6a0';cx.shadowColor='#06d6a0';cx.shadowBlur=10}
+    else if(w.isPowerUp){cx.fillStyle='#f7b731';cx.shadowColor='#f7b731';cx.shadowBlur=8}
+    else{cx.fillStyle='#fff';cx.shadowColor='transparent';cx.shadowBlur=0}
+    cx.fillText(ch,charX,w.y);
+  }
+  if(w.isPowerUp){cx.fillStyle='#f7b731';cx.font='bold '+(sz*.7)+'px sans-serif';cx.fillText('⭐',w.x,w.y-sz)}
+  cx.restore();
+}
+
+function updateHUD(){
+  const elapsed=(Date.now()-startTime)/60000;
+  const wpm=elapsed>0?Math.round(wordsCompleted/elapsed):0;
+  const acc=totalTyped>0?Math.round(correctTyped/totalTyped*100):100;
+  $('#h-score').textContent='Score: '+score;
+  $('#h-wave').textContent='Wave: '+wave;
+  $('#h-wpm').textContent='WPM: '+wpm;
+  $('#h-acc').textContent='Acc: '+acc+'%';
+  $('#h-lives').textContent='❤'.repeat(lives)+'🖤'.repeat(3-lives);
+  $('#pu-slow-n').textContent=powerUps.slow;$('#pu-slow').disabled=powerUps.slow<=0;
+  $('#pu-clear-n').textContent=powerUps.clear;$('#pu-clear').disabled=powerUps.clear<=0;
+  $('#pu-double-n').textContent=powerUps.double;$('#pu-double').disabled=powerUps.double<=0;
+}
+
+function showLB(listEl){
+  listEl.innerHTML='';
+  leaderboard.slice(0,8).forEach((e,i)=>{
+    const li=document.createElement('li');
+    li.innerHTML='<span>#'+(i+1)+'</span><span>'+e.score+' ('+e.wpm+' WPM)</span>';
+    listEl.appendChild(li);
+  });
+  if(!leaderboard.length)listEl.innerHTML='<li style="color:#555;text-align:center">No scores yet</li>';
+}
+
+function startGame(){
+  score=0;lives=3;wave=1;playing=true;words=[];
+  totalTyped=0;correctTyped=0;wordsCompleted=0;startTime=Date.now();
+  fallSpeed=.6;spawnInterval=2500;maxWords=3;spawnTimer=0;
+  powerUps={slow:1,clear:1,double:1};
+  doubleActive=false;slowActive=false;
+  menuEl.style.display='none';goEl.style.display='none';
+  hudEl.style.display='flex';inputRow.style.display='flex';
+  input.value='';input.focus();
+  updateHUD();lastFrame=performance.now();requestAnimationFrame(gameLoop);
+}
+
+function endGame(){
+  playing=false;
+  hudEl.style.display='none';inputRow.style.display='none';
+  const elapsed=(Date.now()-startTime)/60000;
+  const wpm=elapsed>0?Math.round(wordsCompleted/elapsed):0;
+  const acc=totalTyped>0?Math.round(correctTyped/totalTyped*100):100;
+  leaderboard.push({score,wpm,acc});
+  leaderboard.sort((a,b)=>b.score-a.score);
+  leaderboard=leaderboard.slice(0,10);
+  localStorage.setItem('tb_lb',JSON.stringify(leaderboard));
+  $('#final-score').textContent=score;
+  $('#go-stats').textContent='WPM: '+wpm+' | Accuracy: '+acc+'%';
+  showLB($('#lb-list2'));
+  goEl.style.display='flex';
+}
+
+function flashEffect(){
+  const el=document.createElement('div');el.className='flash-fx';
+  document.getElementById('game-wrap').appendChild(el);setTimeout(()=>el.remove(),350);
+}
+
+function gameLoop(ts){
+  if(!playing)return;
+  const dt=ts-lastFrame;lastFrame=ts;
+  const speedMult=slowActive?.4:1;
+
+  spawnTimer+=dt;
+  if(spawnTimer>=spawnInterval){spawnTimer=0;spawnWord()}
+
+  cx.clearRect(0,0,canvas.width,canvas.height);
+  // Draw ground line
+  cx.strokeStyle='rgba(255,0,110,.3)';cx.lineWidth=2;
+  cx.beginPath();cx.moveTo(0,canvas.height-5);cx.lineTo(canvas.width,canvas.height-5);cx.stroke();
+
+  if(doubleActive){doubleTimer-=dt;if(doubleTimer<=0)doubleActive=false}
+  if(slowActive){slowTimer-=dt;if(slowTimer<=0)slowActive=false;
+    cx.fillStyle='rgba(0,229,255,.03)';cx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  for(let i=words.length-1;i>=0;i--){
+    const w=words[i];
+    if(w.done){w.alpha-=.05;if(w.alpha<=0){words.splice(i,1);continue}}
+    else{w.y+=w.speed*speedMult*(dt/16)}
+    drawWord(w);
+    if(!w.done&&w.y>canvas.height){
+      lives--;w.done=true;
+      if(lives<=0){updateHUD();setTimeout(endGame,300);return}
+    }
+  }
+
+  // Wave progression
+  if(wordsCompleted>0&&wordsCompleted%8===0&&wave<Math.floor(wordsCompleted/8)+1){
+    wave=Math.floor(wordsCompleted/8)+1;
+    fallSpeed=.6+wave*.08;
+    spawnInterval=Math.max(800,2500-wave*150);
+    maxWords=Math.min(8,3+Math.floor(wave/2));
+    if(wave%3===0){powerUps.slow++;powerUps.clear++;powerUps.double++}
+  }
+  updateHUD();
+  requestAnimationFrame(gameLoop);
+}
+
+input.addEventListener('input',()=>{
+  if(!playing)return;
+  const val=input.value.toLowerCase().trim();
+  totalTyped++;
+  let matched=false;
+  for(const w of words){
+    if(w.done)continue;
+    if(w.text.toLowerCase()===val){
+      matched=true;
+      w.done=true;
+      wordsCompleted++;
+      let pts=w.text.length*10;
+      if(doubleActive)pts*=2;
+      if(w.isPowerUp){
+        const r=Math.random();
+        if(r<.33)powerUps.slow++;else if(r<.66)powerUps.clear++;else powerUps.double++;
+      }
+      score+=pts;
+      correctTyped+=w.text.length;
+      input.value='';
+      flashEffect();
+      break;
+    }
+  }
+  if(matched)return;
+  // Check partial match
+  let anyPartial=false;
+  for(const w of words){
+    if(!w.done&&w.text.toLowerCase().startsWith(val))anyPartial=true;
+  }
+  if(anyPartial)correctTyped++;
+});
+
+input.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){input.value=''}
+});
+
+$('#pu-slow').addEventListener('click',()=>{
+  if(powerUps.slow<=0||!playing)return;
+  powerUps.slow--;slowActive=true;slowTimer=4000;
+  const el=document.createElement('div');el.className='slow-fx';
+  document.getElementById('game-wrap').appendChild(el);setTimeout(()=>el.remove(),3500);
+  input.focus();
+});
+$('#pu-clear').addEventListener('click',()=>{
+  if(powerUps.clear<=0||!playing)return;
+  powerUps.clear--;
+  words.forEach(w=>{if(!w.done){w.done=true;score+=w.text.length*5;wordsCompleted++}});
+  flashEffect();input.focus();
+});
+$('#pu-double').addEventListener('click',()=>{
+  if(powerUps.double<=0||!playing)return;
+  powerUps.double--;doubleActive=true;doubleTimer=8000;input.focus();
+});
+
+$('#btn-start').addEventListener('click',startGame);
+$('#btn-restart').addEventListener('click',startGame);
+showLB($('#lb-list'));
+})();
+</script>
+</body>
+</html>

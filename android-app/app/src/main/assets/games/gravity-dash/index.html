@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Gravity Dash — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:none;user-select:none}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<canvas id="c"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',resize);
+
+const ST={MENU:0,PLAY:1,OVER:2};
+let state=ST.MENU;
+let player,obstacles,stars,collectibles,particles,
+    score,highScore,speed,gravFlipped,frameCount,starCount,
+    screenShake=0,trailPoints=[];
+highScore=parseInt(localStorage.getItem('gd_high')||'0');
+
+const FLOOR_H=40;
+const CEIL_H=40;
+const GRAVITY=0.55;
+
+function init(){
+  const midY=H/2;
+  player={x:80,y:midY,vy:0,w:20,h:20,onFloor:true};
+  obstacles=[];obstacles.length=0;
+  stars=[];collectibles=[];particles=[];trailPoints=[];
+  score=0;speed=4;gravFlipped=false;frameCount=0;starCount=0;
+  screenShake=0;
+  // Pre-generate some obstacles ahead
+  for(let i=0;i<8;i++)spawnObstacle(W+i*250);
+}
+
+function floorY(){return H-FLOOR_H}
+function ceilY(){return CEIL_H}
+
+function spawnObstacle(x){
+  if(typeof x==='undefined')x=W+50;
+  const types=['gap','spike_floor','spike_ceil','double','moving'];
+  const type=types[Math.floor(Math.random()*Math.min(types.length,2+score/500))];
+  const midH=floorY()-ceilY();
+  if(type==='gap'){
+    const gapH=80+Math.random()*60;
+    const gapY=ceilY()+40+Math.random()*(midH-gapH-80);
+    obstacles.push({x,w:40,type:'wall_top',y:ceilY(),h:gapY-ceilY()});
+    obstacles.push({x,w:40,type:'wall_bot',y:gapY+gapH,h:floorY()-(gapY+gapH)});
+  }else if(type==='spike_floor'){
+    obstacles.push({x,w:30,type:'spike',y:floorY()-35,h:35,onFloor:true});
+  }else if(type==='spike_ceil'){
+    obstacles.push({x,w:30,type:'spike',y:ceilY(),h:35,onFloor:false});
+  }else if(type==='double'){
+    obstacles.push({x,w:25,type:'spike',y:floorY()-30,h:30,onFloor:true});
+    obstacles.push({x:x+15,w:25,type:'spike',y:ceilY(),h:30,onFloor:false});
+  }else if(type==='moving'){
+    const baseY=ceilY()+60+Math.random()*(midH-120);
+    obstacles.push({x,w:35,type:'moving',y:baseY,h:30,baseY,amp:40+Math.random()*30,phase:Math.random()*Math.PI*2});
+  }
+  // Collectible star
+  if(Math.random()<0.4){
+    const sy=ceilY()+30+Math.random()*(midH-60);
+    collectibles.push({x:x+60+Math.random()*80,y:sy,size:10,collected:false});
+  }
+}
+
+function flip(){
+  if(state===ST.MENU){state=ST.PLAY;init();return}
+  if(state===ST.OVER){state=ST.MENU;return}
+  gravFlipped=!gravFlipped;
+  player.vy=gravFlipped?-8:8;
+  // Flip particles
+  for(let i=0;i<6;i++){
+    particles.push({x:player.x,y:player.y,vx:(Math.random()-.5)*3,
+      vy:(gravFlipped?1:-1)*(2+Math.random()*3),
+      life:1,color:gravFlipped?'#58a6ff':'#00ff88',size:3+Math.random()*3});
+  }
+}
+
+canvas.addEventListener('click',flip);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();flip()},{passive:false});
+window.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'||e.code==='ArrowDown'){e.preventDefault();flip()}});
+
+function update(){
+  if(state!==ST.PLAY)return;
+  frameCount++;
+  if(frameCount%600===0)speed=Math.min(10,speed+0.3);
+  score++;
+
+  // Gravity
+  const grav=gravFlipped?-GRAVITY:GRAVITY;
+  player.vy+=grav;
+  player.vy=Math.max(-12,Math.min(12,player.vy));
+  player.y+=player.vy;
+
+  // Floor/ceiling collision
+  if(!gravFlipped&&player.y+player.h>=floorY()){player.y=floorY()-player.h;player.vy=0;player.onFloor=true}
+  else if(gravFlipped&&player.y<=ceilY()){player.y=ceilY();player.vy=0;player.onFloor=true}
+  else player.onFloor=false;
+
+  // Trail
+  trailPoints.unshift({x:player.x,y:player.y+player.h/2});
+  if(trailPoints.length>20)trailPoints.pop();
+
+  // Move obstacles
+  obstacles.forEach(o=>{
+    o.x-=speed;
+    if(o.type==='moving')o.y=o.baseY+Math.sin(frameCount*0.03+o.phase)*o.amp;
+  });
+  obstacles=obstacles.filter(o=>o.x+o.w>-50);
+
+  // Move collectibles
+  collectibles.forEach(c=>c.x-=speed);
+  collectibles=collectibles.filter(c=>c.x>-20);
+
+  // Spawn new obstacles
+  const rightmost=obstacles.length?Math.max(...obstacles.map(o=>o.x)):0;
+  if(rightmost<W+100)spawnObstacle(rightmost+180+Math.random()*120);
+
+  // Collision detection
+  const px=player.x,py=player.y,pw=player.w,ph=player.h;
+  for(const o of obstacles){
+    if(px+pw>o.x&&px<o.x+o.w&&py+ph>o.y&&py<o.y+o.h){
+      die();return;
+    }
+  }
+
+  // Collect stars
+  collectibles.forEach(c=>{
+    if(!c.collected){
+      const dx=(px+pw/2)-c.x,dy=(py+ph/2)-c.y;
+      if(Math.sqrt(dx*dx+dy*dy)<c.size+pw/2){
+        c.collected=true;starCount++;score+=100;
+        for(let i=0;i<8;i++)particles.push({x:c.x,y:c.y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:1,color:'#ffcc00',size:3+Math.random()*3});
+      }
+    }
+  });
+
+  // Particles
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.025});
+  particles=particles.filter(p=>p.life>0);
+  if(screenShake>0)screenShake-=0.5;
+}
+
+function die(){
+  state=ST.OVER;screenShake=8;
+  if(score>highScore){highScore=score;localStorage.setItem('gd_high',highScore.toString())}
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000);
+  for(let i=0;i<25;i++)particles.push({x:player.x+player.w/2,y:player.y+player.h/2,
+    vx:(Math.random()-.5)*8,vy:(Math.random()-.5)*8,life:1,
+    color:['#ff6b6b','#ffcc00','#fff'][Math.floor(Math.random()*3)],size:3+Math.random()*5});
+}
+
+function draw(){
+  ctx.save();
+  if(screenShake>0){ctx.translate((Math.random()-.5)*screenShake,(Math.random()-.5)*screenShake)}
+
+  // Background gradient
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,gravFlipped?'#0a1a2e':'#0a0a1a');
+  bg.addColorStop(1,gravFlipped?'#0a0a1a':'#0a1a2e');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // Background stars
+  if(!draw.bgStars){draw.bgStars=[];for(let i=0;i<50;i++)draw.bgStars.push({x:Math.random()*W,y:Math.random()*H,s:Math.random()*1.5})}
+  draw.bgStars.forEach(s=>{s.x-=speed*0.2;if(s.x<0)s.x=W;
+    ctx.fillStyle=`rgba(255,255,255,${.1+Math.sin(Date.now()*.001+s.x)*.08})`;ctx.fillRect(s.x,s.y,s.s,s.s)});
+
+  if(state===ST.MENU){
+    ctx.textAlign='center';
+    ctx.fillStyle='#00ff88';ctx.shadowColor='#00ff88';ctx.shadowBlur=25;
+    ctx.font='bold 48px system-ui';ctx.fillText('GRAVITY DASH',W/2,H/2-80);ctx.shadowBlur=0;
+    ctx.fillStyle='#58a6ff';ctx.font='18px system-ui';
+    ctx.fillText('Tap or press Space to flip gravity!',W/2,H/2-35);
+    ctx.fillText('Dodge obstacles, collect stars ⭐',W/2,H/2-10);
+    ctx.fillStyle='#ffcc00';ctx.font='bold 26px system-ui';
+    ctx.fillText('TAP TO START',W/2,H/2+35);
+    ctx.fillStyle='#8b949e';ctx.font='15px system-ui';
+    ctx.fillText(`High Score: ${highScore}`,W/2,H/2+75);
+    // Demo player
+    const dy=H/2+130+Math.sin(Date.now()*.003)*20;
+    ctx.fillStyle='#00ff88';ctx.shadowColor='#00ff88';ctx.shadowBlur=10;
+    ctx.fillRect(W/2-10,dy-10,20,20);ctx.shadowBlur=0;
+    // Arrow indicator
+    ctx.fillStyle='#58a6ff';ctx.font='24px system-ui';
+    ctx.fillText('↕',W/2+30,dy);
+    ctx.fillStyle='#484f58';ctx.font='13px system-ui';ctx.fillText('⚡ JellyBolt Games',W/2,H-25);
+    ctx.restore();return;
+  }
+
+  // Floor & ceiling
+  ctx.fillStyle='#1a2a1a';
+  ctx.fillRect(0,floorY(),W,FLOOR_H);
+  ctx.fillRect(0,0,W,CEIL_H);
+  // Grid lines on surfaces
+  ctx.strokeStyle='#00ff8822';ctx.lineWidth=1;
+  for(let x=(-frameCount*speed)%30;x<W;x+=30){
+    ctx.beginPath();ctx.moveTo(x,floorY());ctx.lineTo(x,H);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,ceilY());ctx.stroke();
+  }
+  ctx.strokeStyle='#00ff8844';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,floorY());ctx.lineTo(W,floorY());ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,ceilY());ctx.lineTo(W,ceilY());ctx.stroke();
+
+  // Obstacles
+  obstacles.forEach(o=>{
+    if(o.type==='spike'){
+      ctx.fillStyle='#ff6b6b';
+      ctx.beginPath();
+      if(o.onFloor){
+        ctx.moveTo(o.x,o.y+o.h);ctx.lineTo(o.x+o.w/2,o.y);ctx.lineTo(o.x+o.w,o.y+o.h);
+      }else{
+        ctx.moveTo(o.x,o.y);ctx.lineTo(o.x+o.w/2,o.y+o.h);ctx.lineTo(o.x+o.w,o.y);
+      }
+      ctx.closePath();ctx.fill();
+    }else if(o.type==='moving'){
+      ctx.fillStyle='#bc8cff';ctx.shadowColor='#bc8cff';ctx.shadowBlur=8;
+      ctx.fillRect(o.x,o.y,o.w,o.h);ctx.shadowBlur=0;
+    }else{
+      ctx.fillStyle='#ff6b6b88';ctx.fillRect(o.x,o.y,o.w,o.h);
+      ctx.strokeStyle='#ff6b6b';ctx.lineWidth=1;ctx.strokeRect(o.x,o.y,o.w,o.h);
+    }
+  });
+
+  // Collectibles
+  collectibles.forEach(c=>{
+    if(c.collected)return;
+    ctx.fillStyle='#ffcc00';ctx.shadowColor='#ffcc00';ctx.shadowBlur=10;
+    const pulse=1+Math.sin(Date.now()*.005)*0.15;
+    ctx.beginPath();
+    // Star shape
+    for(let i=0;i<10;i++){
+      const a=i*Math.PI/5-Math.PI/2;
+      const r=i%2===0?c.size*pulse:c.size*0.5*pulse;
+      i===0?ctx.moveTo(c.x+Math.cos(a)*r,c.y+Math.sin(a)*r):ctx.lineTo(c.x+Math.cos(a)*r,c.y+Math.sin(a)*r);
+    }
+    ctx.closePath();ctx.fill();ctx.shadowBlur=0;
+  });
+
+  // Trail
+  trailPoints.forEach((t,i)=>{
+    const alpha=(1-i/trailPoints.length)*0.3;
+    const size=player.w*(1-i/trailPoints.length*0.5);
+    ctx.fillStyle=gravFlipped?`rgba(88,166,255,${alpha})`:`rgba(0,255,136,${alpha})`;
+    ctx.fillRect(t.x+player.w/2-size/2,t.y-size/2,size,size);
+  });
+
+  // Player
+  if(state===ST.PLAY){
+    ctx.fillStyle=gravFlipped?'#58a6ff':'#00ff88';
+    ctx.shadowColor=gravFlipped?'#58a6ff':'#00ff88';ctx.shadowBlur=15;
+    ctx.fillRect(player.x,player.y,player.w,player.h);
+    ctx.shadowBlur=0;
+    // Eyes
+    ctx.fillStyle='#fff';
+    const eyeY=player.y+player.h*(gravFlipped?0.65:0.35);
+    ctx.fillRect(player.x+5,eyeY-2,4,4);
+    ctx.fillRect(player.x+12,eyeY-2,4,4);
+    // Gravity indicator
+    ctx.fillStyle='#ffffff55';ctx.font='12px system-ui';ctx.textAlign='center';
+    ctx.fillText(gravFlipped?'▲':'▼',player.x+player.w/2,player.y+(gravFlipped?-8:player.h+14));
+  }
+
+  // Particles
+  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;
+    ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size)});
+  ctx.globalAlpha=1;
+
+  // HUD
+  ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='bold 24px system-ui';
+  ctx.fillText(score,15,ceilY()+30);
+  ctx.fillStyle='#ffcc00';ctx.font='16px system-ui';
+  ctx.fillText(`⭐ ${starCount}`,15,ceilY()+52);
+  ctx.textAlign='right';ctx.fillStyle='#8b949e';ctx.font='14px system-ui';
+  ctx.fillText(`Best: ${highScore}`,W-15,ceilY()+30);
+
+  if(state===ST.OVER){
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';
+    ctx.fillStyle='#ff6b6b';ctx.font='bold 46px system-ui';ctx.fillText('CRASHED!',W/2,H/2-60);
+    ctx.fillStyle='#ffcc00';ctx.font='bold 30px system-ui';ctx.fillText(`Score: ${score}`,W/2,H/2-10);
+    ctx.fillStyle='#aaa';ctx.font='18px system-ui';ctx.fillText(`Stars collected: ${starCount} ⭐`,W/2,H/2+25);
+    if(score>=highScore&&score>0){ctx.fillStyle='#00ff88';ctx.font='bold 18px system-ui';ctx.fillText('🏆 NEW HIGH SCORE!',W/2,H/2+60)}
+    ctx.fillStyle='#8b949e';ctx.font='16px system-ui';ctx.fillText('Tap to continue',W/2,H/2+100);
+  }
+  ctx.restore();
+}
+
+function loop(){update();draw();requestAnimationFrame(loop)}
+loop();
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Gravity Dash',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Gravity%20Dash%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

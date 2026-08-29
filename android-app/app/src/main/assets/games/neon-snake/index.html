@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Neon Snake — JellyBolt Games</title>
+<!-- Google AdSense — uncomment and add your publisher ID when approved -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8350556723025693" crossorigin="anonymous"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a1a; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; touch-action: none; padding-bottom: 102px; }
+canvas { border: 2px solid #1a1a3a; border-radius: 8px; }
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<canvas id="c"></canvas>
+
+<!-- Google AdSense Banner Ad — paste your ad unit code below -->
+</div>
+
+<!-- Interstitial Ad — shown between rounds/deaths -->
+<script>
+// === JellyBolt Ad Management ===
+let _adInterstitialCount = 0;
+function showInterstitialAd() {
+  _adInterstitialCount++;
+  // Show interstitial ad every 2nd death/game-over
+  if (_adInterstitialCount % 2 === 0) {
+    document.getElementById('ad-interstitial').style.display = 'flex';
+    // When real AdSense is set up, uncomment:
+    // (adsbygoogle = window.adsbygoogle || []).push({});
+  }
+}
+function closeInterstitialAd() {
+  document.getElementById('ad-interstitial').style.display = 'none';
+}
+</script>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const CELL = 20;
+let COLS, ROWS;
+
+function sizeCanvas() {
+  const maxW = Math.min(window.innerWidth - 20, 600);
+  const maxH = Math.min(window.innerHeight - 20, 700);
+  COLS = Math.floor(maxW / CELL);
+  ROWS = Math.floor(maxH / CELL);
+  canvas.width = COLS * CELL;
+  canvas.height = ROWS * CELL;
+}
+sizeCanvas();
+
+const STATE = { MENU: 0, PLAYING: 1, DEAD: 2 };
+let state = STATE.MENU;
+let snake, dir, nextDir, food, specialFood, score, highScore, speed, growBy;
+let particles = [];
+let comboTimer = 0;
+
+highScore = parseInt(localStorage.getItem('ns_high') || '0');
+
+const NEON_COLORS = ['#00ff88', '#ff6b6b', '#58a6ff', '#ffcc00', '#bc8cff', '#f778ba', '#ff9f43'];
+
+function init() {
+  const cx = Math.floor(COLS / 2), cy = Math.floor(ROWS / 2);
+  snake = [{ x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy }];
+  dir = { x: 1, y: 0 };
+  nextDir = { x: 1, y: 0 };
+  score = 0;
+  speed = 120;
+  growBy = 0;
+  food = null;
+  specialFood = null;
+  spawnFood();
+}
+
+function spawnFood() {
+  let pos;
+  do {
+    pos = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+  } while (snake.some(s => s.x === pos.x && s.y === pos.y));
+  food = { ...pos, color: NEON_COLORS[Math.floor(Math.random() * NEON_COLORS.length)] };
+  // Chance for special food
+  if (Math.random() < 0.2 && !specialFood) {
+    let sp;
+    do {
+      sp = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+    } while (snake.some(s => s.x === sp.x && s.y === sp.y) || (sp.x === food.x && sp.y === food.y));
+    specialFood = { ...sp, color: '#ffcc00', timer: 80, points: 5 };
+  }
+}
+
+function gameStep() {
+  if (state !== STATE.PLAYING) return;
+
+  dir = { ...nextDir };
+  const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+  // Wall wrap
+  if (head.x < 0) head.x = COLS - 1;
+  if (head.x >= COLS) head.x = 0;
+  if (head.y < 0) head.y = ROWS - 1;
+  if (head.y >= ROWS) head.y = 0;
+
+  // Self collision
+  if (snake.some(s => s.x === head.x && s.y === head.y)) {
+    state = STATE.DEAD;
+    if(window.jbShowInterstitial)jbShowInterstitial();
+    setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000);
+    if (score > highScore) { highScore = score; localStorage.setItem('ns_high', highScore.toString()); }
+    for (let i = 0; i < 30; i++) {
+      particles.push({
+        x: head.x * CELL + CELL / 2, y: head.y * CELL + CELL / 2,
+        vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6,
+        life: 1, color: '#ff6b6b', size: 4 + Math.random() * 4
+      });
+    }
+    return;
+  }
+
+  snake.unshift(head);
+
+  // Eat food
+  if (food && head.x === food.x && head.y === food.y) {
+    score++;
+    growBy += 1;
+    for (let i = 0; i < 8; i++) {
+      particles.push({
+        x: food.x * CELL + CELL / 2, y: food.y * CELL + CELL / 2,
+        vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5,
+        life: 1, color: food.color, size: 3 + Math.random() * 3
+      });
+    }
+    spawnFood();
+    if (speed > 60) speed -= 2;
+  }
+
+  // Eat special food
+  if (specialFood && head.x === specialFood.x && head.y === specialFood.y) {
+    score += specialFood.points;
+    growBy += 2;
+    for (let i = 0; i < 15; i++) {
+      particles.push({
+        x: specialFood.x * CELL + CELL / 2, y: specialFood.y * CELL + CELL / 2,
+        vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7,
+        life: 1, color: '#ffcc00', size: 4 + Math.random() * 4
+      });
+    }
+    specialFood = null;
+  }
+
+  if (growBy > 0) growBy--;
+  else snake.pop();
+
+  // Special food timer
+  if (specialFood) {
+    specialFood.timer--;
+    if (specialFood.timer <= 0) specialFood = null;
+  }
+}
+
+function draw() {
+  // Background
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Grid lines
+  ctx.strokeStyle = '#111122';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= canvas.width; x += CELL) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+  for (let y = 0; y <= canvas.height; y += CELL) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+
+  if (state === STATE.MENU) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#00ff88';
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 20;
+    ctx.font = 'bold 42px system-ui';
+    ctx.fillText('NEON SNAKE', canvas.width / 2, canvas.height / 2 - 60);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#58a6ff';
+    ctx.font = '18px system-ui';
+    ctx.fillText('Arrow Keys / WASD / Swipe to move', canvas.width / 2, canvas.height / 2 - 15);
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = 'bold 24px system-ui';
+    ctx.fillText('PRESS ANY KEY OR TAP', canvas.width / 2, canvas.height / 2 + 25);
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '14px system-ui';
+    ctx.fillText(`High Score: ${highScore}`, canvas.width / 2, canvas.height / 2 + 60);
+    ctx.fillStyle = '#484f58';
+    ctx.fillText('⚡ JellyBolt Games', canvas.width / 2, canvas.height - 20);
+    drawParticles();
+    return;
+  }
+
+  // Food
+  if (food) {
+    ctx.fillStyle = food.color;
+    ctx.shadowColor = food.color;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(food.x * CELL + CELL / 2, food.y * CELL + CELL / 2, CELL * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // Special food (pulsing)
+  if (specialFood) {
+    const pulse = 0.3 + Math.sin(Date.now() * 0.01) * 0.15;
+    ctx.fillStyle = specialFood.color;
+    ctx.shadowColor = specialFood.color;
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(specialFood.x * CELL + CELL / 2, specialFood.y * CELL + CELL / 2, CELL * (0.4 + pulse * 0.15), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Timer indicator
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('⭐' + specialFood.points, specialFood.x * CELL + CELL / 2, specialFood.y * CELL - 2);
+  }
+
+  // Snake
+  snake.forEach((seg, i) => {
+    const t = i / snake.length;
+    const hue = (Date.now() * 0.1 + i * 15) % 360;
+    const color = i === 0 ? '#00ff88' : `hsl(${hue}, 100%, 60%)`;
+    ctx.fillStyle = color;
+    if (i === 0) { ctx.shadowColor = color; ctx.shadowBlur = 15; }
+    const pad = i === 0 ? 1 : 2;
+    ctx.fillRect(seg.x * CELL + pad, seg.y * CELL + pad, CELL - pad * 2, CELL - pad * 2);
+    if (i === 0) ctx.shadowBlur = 0;
+    // Eyes on head
+    if (i === 0) {
+      ctx.fillStyle = '#fff';
+      const ex = seg.x * CELL + CELL / 2 + dir.x * 4;
+      const ey = seg.y * CELL + CELL / 2 + dir.y * 4;
+      ctx.beginPath();
+      ctx.arc(ex - dir.y * 3, ey + dir.x * 3, 2.5, 0, Math.PI * 2);
+      ctx.arc(ex + dir.y * 3, ey - dir.x * 3, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  drawParticles();
+
+  // HUD
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 24px system-ui';
+  ctx.textAlign = 'left';
+  ctx.fillText(`Score: ${score}`, 10, 30);
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '14px system-ui';
+  ctx.fillText(`Best: ${highScore}`, 10, 50);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '12px system-ui';
+  ctx.fillText(`Length: ${snake.length}`, canvas.width - 10, 30);
+
+  if (state === STATE.DEAD) {
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff6b6b';
+    ctx.font = 'bold 42px system-ui';
+    ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = 'bold 28px system-ui';
+    ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 10);
+    if (score === highScore && score > 0) {
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 18px system-ui';
+      ctx.fillText('🏆 NEW HIGH SCORE!', canvas.width / 2, canvas.height / 2 + 45);
+    }
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '16px system-ui';
+    ctx.fillText('Tap or press any key to restart', canvas.width / 2, canvas.height / 2 + 85);
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.life -= 0.025;
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  });
+  ctx.globalAlpha = 1;
+  particles = particles.filter(p => p.life > 0);
+}
+
+// Input
+function setDir(x, y) {
+  if (state === STATE.MENU) { state = STATE.PLAYING; init(); return; }
+  if (state === STATE.DEAD) { state = STATE.MENU; return; }
+  if (x !== 0 && dir.x !== -x) nextDir = { x, y: 0 };
+  if (y !== 0 && dir.y !== -y) nextDir = { x: 0, y };
+}
+
+window.addEventListener('keydown', (e) => {
+  if (state === STATE.MENU || state === STATE.DEAD) {
+    if (state === STATE.DEAD) { state = STATE.MENU; return; }
+    state = STATE.PLAYING; init();
+  }
+  switch (e.key) {
+    case 'ArrowUp': case 'w': case 'W': setDir(0, -1); break;
+    case 'ArrowDown': case 's': case 'S': setDir(0, 1); break;
+    case 'ArrowLeft': case 'a': case 'A': setDir(-1, 0); break;
+    case 'ArrowRight': case 'd': case 'D': setDir(1, 0); break;
+  }
+  e.preventDefault();
+});
+
+// Touch/swipe
+let touchStart = null;
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  if (state === STATE.MENU) { state = STATE.PLAYING; init(); }
+  else if (state === STATE.DEAD) { state = STATE.MENU; }
+}, { passive: false });
+canvas.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+canvas.addEventListener('touchend', (e) => {
+  if (!touchStart) return;
+  const dx = e.changedTouches[0].clientX - touchStart.x;
+  const dy = e.changedTouches[0].clientY - touchStart.y;
+  if (Math.abs(dx) < 15 && Math.abs(dy) < 15) return;
+  if (Math.abs(dx) > Math.abs(dy)) setDir(dx > 0 ? 1 : -1, 0);
+  else setDir(0, dy > 0 ? 1 : -1);
+  touchStart = null;
+});
+
+// Game loop
+let lastStep = 0;
+function loop(ts) {
+  if (ts - lastStep > speed) { gameStep(); lastStep = ts; }
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Neon Snake',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Neon%20Snake%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

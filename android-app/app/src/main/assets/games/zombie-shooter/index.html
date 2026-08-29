@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Zombie Shooter — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:none;user-select:none}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="game-container"></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener" class="jb-btn-coffee">☕ Buy me a coffee</a>
+  <a href="https://jellybolt-games.github.io/jellybolt-games/" target="_blank" rel="noopener" class="jb-btn-games">🎮 More Games</a>
+  <a href="https://twitter.com/intent/tweet?text=Playing%20Zombie%20Shooter%20by%20JellyBolt%20Games!%20https://jellybolt-games.github.io/jellybolt-games/games/zombie-shooter/" target="_blank" rel="noopener" class="jb-btn-share">🐦 Share</a>
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https://jellybolt-games.github.io/jellybolt-games/games/zombie-shooter/" target="_blank" rel="noopener" class="jb-btn-share-fb">📘 Share</a>
+  <a href="https://wa.me/?text=Playing%20Zombie%20Shooter!%20https://jellybolt-games.github.io/jellybolt-games/games/zombie-shooter/" target="_blank" rel="noopener" class="jb-btn-share-wa">💬 Share</a>
+</div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial">
+  <div class="jb-interstitial-box">
+    <h2 style="color:#00ff88;margin-bottom:14px">Support JellyBolt Games!</h2>
+    <p style="color:#ddd;margin-bottom:14px">Enjoying the game? Consider supporting us!</p>
+    <a href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener" style="display:inline-block;padding:10px 22px;background:#ffdd00;color:#000;text-decoration:none;border-radius:8px;font-weight:700;margin-bottom:14px">☕ Buy me a coffee</a>
+    <button class="jb-interstitial-close" onclick="document.getElementById('jb-interstitial').style.display='none'">Continue Playing</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+// Game Configuration
+const config = {
+  type: Phaser.AUTO,
+  parent: 'game-container',
+  width: window.innerWidth,
+  height: window.innerHeight - 100,
+  backgroundColor: '#1a1a2e',
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 0 },
+      debug: false
+    }
+  },
+  scene: {
+    preload: preload,
+    create: create,
+    update: update
+  },
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  }
+};
+
+const game = new Phaser.Game(config);
+
+// Game Variables
+let player, cursors, pointer;
+let zombies, bullets, pickups, particles;
+let playerHealth = 100, maxHealth = 100;
+let wave = 1, maxWaves = 10;
+let zombiesKilled = 0, totalScore = 0;
+let gameState = 'menu'; // menu, playing, won, dead
+let highScores = [];
+
+// Weapons
+const WEAPONS = {
+  pistol: { name: 'Pistol', damage: 25, fireRate: 400, range: 300, ammo: Infinity, spread: 0.05, bullets: 1 },
+  shotgun: { name: 'Shotgun', damage: 15, fireRate: 800, range: 200, ammo: 24, spread: 0.3, bullets: 8 },
+  assault: { name: 'Assault Rifle', damage: 20, fireRate: 150, range: 350, ammo: 120, spread: 0.08, bullets: 1 },
+  sniper: { name: 'Sniper', damage: 100, fireRate: 1200, range: 600, ammo: 15, spread: 0, bullets: 1 }
+};
+
+let currentWeapon = 'pistol';
+let weaponAmmo = { shotgun: 24, assault: 120, sniper: 15 };
+let canFire = true, lastFired = 0;
+
+// UI Elements
+let healthBar, ammoText, waveText, scoreText, menuText, leaderboardText;
+
+// Mobile Controls
+let isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
+let joystick, fireButton;
+let joystickData = { x: 0, y: 0 };
+let isFiring = false;
+
+function preload() {
+  // No external assets needed - using shapes
+}
+
+function create() {
+  const scene = this;
+  
+  // Load high scores
+  loadHighScores();
+  
+  // Setup input
+  cursors = scene.input.keyboard.createCursorKeys();
+  scene.input.keyboard.addKey('W');
+  scene.input.keyboard.addKey('A');
+  scene.input.keyboard.addKey('S');
+  scene.input.keyboard.addKey('D');
+  pointer = scene.input.activePointer;
+  
+  // Weapon switching
+  scene.input.keyboard.on('keydown-ONE', () => switchWeapon('pistol'));
+  scene.input.keyboard.on('keydown-TWO', () => switchWeapon('shotgun'));
+  scene.input.keyboard.on('keydown-THREE', () => switchWeapon('assault'));
+  scene.input.keyboard.on('keydown-FOUR', () => switchWeapon('sniper'));
+  
+  // Create player
+  player = scene.add.circle(0, 0, 15, 0x00ff88);
+  scene.physics.add.existing(player);
+  player.body.setCollideWorldBounds(true);
+  player.body.setDamping(true);
+  player.body.setDrag(0.95);
+  
+  // Create groups
+  zombies = scene.physics.add.group();
+  bullets = scene.physics.add.group();
+  pickups = scene.physics.add.group();
+  particles = scene.add.group();
+  
+  // Collisions
+  scene.physics.add.overlap(bullets, zombies, hitZombie, null, scene);
+  scene.physics.add.overlap(player, zombies, hitPlayer, null, scene);
+  scene.physics.add.overlap(player, pickups, collectPickup, null, scene);
+  
+  // UI
+  createUI(scene);
+  
+  // Mobile controls
+  if (isMobile) {
+    createMobileControls(scene);
+  }
+  
+  showMenu(scene);
+}
+
+function createUI(scene) {
+  // Health bar
+  healthBar = scene.add.graphics();
+  
+  // Text
+  ammoText = scene.add.text(16, 60, '', { 
+    fontSize: '18px', 
+    fill: '#fff',
+    fontFamily: 'Arial',
+    stroke: '#000',
+    strokeThickness: 4
+  }).setDepth(100);
+  
+  waveText = scene.add.text(16, 90, '', { 
+    fontSize: '20px', 
+    fill: '#ffdd00',
+    fontFamily: 'Arial',
+    fontStyle: 'bold',
+    stroke: '#000',
+    strokeThickness: 4
+  }).setDepth(100);
+  
+  scoreText = scene.add.text(16, 120, '', { 
+    fontSize: '18px', 
+    fill: '#fff',
+    fontFamily: 'Arial',
+    stroke: '#000',
+    strokeThickness: 4
+  }).setDepth(100);
+  
+  menuText = scene.add.text(scene.cameras.main.width / 2, scene.cameras.main.height / 2, '', {
+    fontSize: '24px',
+    fill: '#fff',
+    fontFamily: 'Arial',
+    align: 'center',
+    stroke: '#000',
+    strokeThickness: 5
+  }).setOrigin(0.5).setDepth(1000);
+  
+  leaderboardText = scene.add.text(scene.cameras.main.width / 2, scene.cameras.main.height / 2 + 200, '', {
+    fontSize: '16px',
+    fill: '#00ff88',
+    fontFamily: 'Arial',
+    align: 'center',
+    stroke: '#000',
+    strokeThickness: 4
+  }).setOrigin(0.5).setDepth(1000);
+}
+
+function createMobileControls(scene) {
+  // Virtual joystick (left side)
+  const joystickBase = scene.add.circle(80, scene.cameras.main.height - 80, 50, 0x333333, 0.5).setDepth(200);
+  joystick = scene.add.circle(80, scene.cameras.main.height - 80, 30, 0x00ff88, 0.8).setDepth(201);
+  joystick.baseX = 80;
+  joystick.baseY = scene.cameras.main.height - 80;
+  
+  joystickBase.setInteractive();
+  joystick.setInteractive();
+  
+  scene.input.on('pointerdown', (pointer) => {
+    const distance = Phaser.Math.Distance.Between(pointer.x, pointer.y, joystick.baseX, joystick.baseY);
+    if (distance < 70) {
+      joystick.isDragging = true;
+    }
+  });
+  
+  scene.input.on('pointermove', (pointer) => {
+    if (joystick.isDragging) {
+      const angle = Phaser.Math.Angle.Between(joystick.baseX, joystick.baseY, pointer.x, pointer.y);
+      const distance = Math.min(Phaser.Math.Distance.Between(joystick.baseX, joystick.baseY, pointer.x, pointer.y), 40);
+      
+      joystick.x = joystick.baseX + Math.cos(angle) * distance;
+      joystick.y = joystick.baseY + Math.sin(angle) * distance;
+      
+      joystickData.x = (joystick.x - joystick.baseX) / 40;
+      joystickData.y = (joystick.y - joystick.baseY) / 40;
+    }
+  });
+  
+  scene.input.on('pointerup', () => {
+    if (joystick.isDragging) {
+      joystick.x = joystick.baseX;
+      joystick.y = joystick.baseY;
+      joystickData.x = 0;
+      joystickData.y = 0;
+      joystick.isDragging = false;
+    }
+  });
+  
+  // Fire button (right side)
+  fireButton = scene.add.circle(scene.cameras.main.width - 80, scene.cameras.main.height - 80, 50, 0xff0000, 0.6)
+    .setDepth(200)
+    .setInteractive();
+  
+  const fireText = scene.add.text(scene.cameras.main.width - 80, scene.cameras.main.height - 80, 'FIRE', {
+    fontSize: '16px',
+    fill: '#fff',
+    fontFamily: 'Arial',
+    fontStyle: 'bold'
+  }).setOrigin(0.5).setDepth(201);
+  
+  fireButton.on('pointerdown', () => {
+    isFiring = true;
+    fireButton.setFillStyle(0xff4444, 0.9);
+  });
+  
+  fireButton.on('pointerup', () => {
+    isFiring = false;
+    fireButton.setFillStyle(0xff0000, 0.6);
+  });
+  
+  fireButton.on('pointerout', () => {
+    isFiring = false;
+    fireButton.setFillStyle(0xff0000, 0.6);
+  });
+}
+
+function showMenu(scene) {
+  gameState = 'menu';
+  
+  let leaderboard = '';
+  if (highScores.length > 0) {
+    leaderboard = '\n\n🏆 TOP SCORES 🏆\n\n';
+    highScores.slice(0, 5).forEach((score, i) => {
+      leaderboard += `${i + 1}. ${score.toLocaleString()} points\n`;
+    });
+  }
+  
+  menuText.setText('ZOMBIE SHOOTER\n\n' + 
+    (isMobile ? 'TAP ANYWHERE TO START' : 'CLICK TO START') +
+    '\n\nControls:\n' +
+    (isMobile ? 'Joystick: Move\nFire Button: Shoot' : 
+    'WASD/Arrows: Move\nMouse: Aim & Shoot\n1-4: Switch Weapons') +
+    '\n\nSurvive 10 waves!\nCollect ammo & health packs');
+  
+  leaderboardText.setText(leaderboard);
+  
+  scene.input.once('pointerdown', () => {
+    menuText.setText('');
+    leaderboardText.setText('');
+    startGame(scene);
+  });
+}
+
+function startGame(scene) {
+  gameState = 'playing';
+  
+  // Reset game state
+  playerHealth = maxHealth;
+  wave = 1;
+  zombiesKilled = 0;
+  totalScore = 0;
+  currentWeapon = 'pistol';
+  weaponAmmo = { shotgun: 24, assault: 120, sniper: 15 };
+  
+  // Clear groups
+  zombies.clear(true, true);
+  bullets.clear(true, true);
+  pickups.clear(true, true);
+  particles.clear(true, true);
+  
+  // Position player
+  player.setPosition(scene.cameras.main.width / 2, scene.cameras.main.height / 2);
+  player.body.setVelocity(0, 0);
+  
+  // Start first wave
+  spawnWave(scene);
+}
+
+function spawnWave(scene) {
+  const zombieCount = 5 + wave * 3;
+  const zombieSpeed = 50 + wave * 10;
+  
+  for (let i = 0; i < zombieCount; i++) {
+    scene.time.delayedCall(i * 500, () => {
+      spawnZombie(scene, zombieSpeed);
+    });
+  }
+  
+  waveText.setText(`Wave ${wave}/${maxWaves}`);
+}
+
+function spawnZombie(scene, speed) {
+  const side = Phaser.Math.Between(0, 3);
+  let x, y;
+  
+  switch(side) {
+    case 0: x = Phaser.Math.Between(0, scene.cameras.main.width); y = -30; break;
+    case 1: x = scene.cameras.main.width + 30; y = Phaser.Math.Between(0, scene.cameras.main.height); break;
+    case 2: x = Phaser.Math.Between(0, scene.cameras.main.width); y = scene.cameras.main.height + 30; break;
+    case 3: x = -30; y = Phaser.Math.Between(0, scene.cameras.main.height); break;
+  }
+  
+  const zombie = scene.add.circle(x, y, 12, 0xff4444);
+  scene.physics.add.existing(zombie);
+  zombie.speed = speed;
+  zombie.health = 50 + wave * 10;
+  zombie.maxHealth = zombie.health;
+  zombies.add(zombie);
+}
+
+function switchWeapon(weapon) {
+  if (gameState !== 'playing') return;
+  
+  if (weapon === 'pistol' || (weaponAmmo[weapon] !== undefined && weaponAmmo[weapon] > 0)) {
+    currentWeapon = weapon;
+  }
+}
+
+function update(time) {
+  if (gameState !== 'playing') return;
+  
+  const scene = this;
+  
+  // Player movement
+  const speed = 200;
+  let moveX = 0, moveY = 0;
+  
+  if (isMobile) {
+    moveX = joystickData.x * speed;
+    moveY = joystickData.y * speed;
+  } else {
+    if (cursors.left.isDown || scene.input.keyboard.addKey('A').isDown) moveX = -speed;
+    if (cursors.right.isDown || scene.input.keyboard.addKey('D').isDown) moveX = speed;
+    if (cursors.up.isDown || scene.input.keyboard.addKey('W').isDown) moveY = -speed;
+    if (cursors.down.isDown || scene.input.keyboard.addKey('S').isDown) moveY = speed;
+  }
+  
+  player.body.setVelocity(moveX, moveY);
+  
+  // Player rotation (face mouse/fire button)
+  if (isMobile && isFiring) {
+    const angle = Phaser.Math.Angle.Between(player.x, player.y, fireButton.x, fireButton.y);
+    player.rotation = angle;
+  } else if (!isMobile) {
+    const angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.worldX, pointer.worldY);
+    player.rotation = angle;
+  }
+  
+  // Shooting
+  const weapon = WEAPONS[currentWeapon];
+  if ((pointer.isDown || isFiring) && canFire && time > lastFired + weapon.fireRate) {
+    if (currentWeapon === 'pistol' || weaponAmmo[currentWeapon] > 0) {
+      shoot(scene);
+      lastFired = time;
+      
+      if (currentWeapon !== 'pistol') {
+        weaponAmmo[currentWeapon]--;
+        if (weaponAmmo[currentWeapon] <= 0) {
+          currentWeapon = 'pistol';
+        }
+      }
+    }
+  }
+  
+  // Zombie movement and rotation
+  zombies.children.entries.forEach(zombie => {
+    const angle = Phaser.Math.Angle.Between(zombie.x, zombie.y, player.x, player.y);
+    zombie.body.setVelocity(Math.cos(angle) * zombie.speed, Math.sin(angle) * zombie.speed);
+    zombie.rotation = angle;
+  });
+  
+  // Bullet range check
+  bullets.children.entries.forEach(bullet => {
+    const distance = Phaser.Math.Distance.Between(bullet.startX, bullet.startY, bullet.x, bullet.y);
+    if (distance > bullet.range) {
+      bullet.destroy();
+    }
+  });
+  
+  // Update particles
+  particles.children.entries.forEach(p => {
+    p.alpha -= 0.02;
+    if (p.alpha <= 0) p.destroy();
+  });
+  
+  // Check wave completion
+  if (zombies.children.entries.length === 0 && gameState === 'playing') {
+    wave++;
+    if (wave > maxWaves) {
+      gameWon(scene);
+    } else {
+      scene.time.delayedCall(2000, () => {
+        spawnWave(scene);
+        // Spawn pickups
+        if (wave % 2 === 0) spawnPickup(scene, 'ammo');
+        if (wave % 3 === 0) spawnPickup(scene, 'health');
+      });
+    }
+  }
+  
+  // Update UI
+  updateUI(scene);
+}
+
+function shoot(scene) {
+  const weapon = WEAPONS[currentWeapon];
+  
+  for (let i = 0; i < weapon.bullets; i++) {
+    const bullet = scene.add.circle(player.x, player.y, 3, 0xffff00);
+    scene.physics.add.existing(bullet);
+    
+    const angle = player.rotation + (Math.random() - 0.5) * weapon.spread;
+    const velocity = 600;
+    
+    bullet.body.setVelocity(Math.cos(angle) * velocity, Math.sin(angle) * velocity);
+    bullet.damage = weapon.damage;
+    bullet.startX = player.x;
+    bullet.startY = player.y;
+    bullet.range = weapon.range;
+    
+    bullets.add(bullet);
+  }
+}
+
+function hitZombie(bullet, zombie) {
+  bullet.destroy();
+  zombie.health -= bullet.damage;
+  
+  // Blood particle
+  createParticles(this, zombie.x, zombie.y, 0xff0000, 5);
+  
+  if (zombie.health <= 0) {
+    zombiesKilled++;
+    totalScore += 100 + wave * 50;
+    createParticles(this, zombie.x, zombie.y, 0xff4444, 15);
+    zombie.destroy();
+    
+    // Random pickup drop
+    if (Math.random() < 0.15) {
+      spawnPickup(this, Math.random() < 0.6 ? 'ammo' : 'health', zombie.x, zombie.y);
+    }
+  }
+}
+
+function hitPlayer(player, zombie) {
+  if (zombie.lastHit && Date.now() - zombie.lastHit < 500) return;
+  
+  zombie.lastHit = Date.now();
+  playerHealth -= 10;
+  
+  createParticles(this, player.x, player.y, 0x00ff88, 8);
+  
+  if (playerHealth <= 0) {
+    gameOver(this);
+  }
+}
+
+function spawnPickup(scene, type, x, y) {
+  if (x === undefined) {
+    x = Phaser.Math.Between(50, scene.cameras.main.width - 50);
+    y = Phaser.Math.Between(50, scene.cameras.main.height - 50);
+  }
+  
+  const color = type === 'ammo' ? 0xffdd00 : 0x00ff88;
+  const pickup = scene.add.rectangle(x, y, 20, 20, color);
+  scene.physics.add.existing(pickup);
+  pickup.pickupType = type;
+  pickups.add(pickup);
+  
+  // Pulse animation
+  scene.tweens.add({
+    targets: pickup,
+    scale: 1.3,
+    duration: 500,
+    yoyo: true,
+    repeat: -1
+  });
+}
+
+function collectPickup(player, pickup) {
+  const type = pickup.pickupType;
+  
+  if (type === 'health') {
+    playerHealth = Math.min(maxHealth, playerHealth + 30);
+  } else if (type === 'ammo') {
+    const weapons = ['shotgun', 'assault', 'sniper'];
+    const weapon = weapons[Phaser.Math.Between(0, 2)];
+    const amounts = { shotgun: 8, assault: 30, sniper: 5 };
+    weaponAmmo[weapon] = Math.min(weaponAmmo[weapon] + amounts[weapon], amounts[weapon] * 5);
+  }
+  
+  pickup.destroy();
+  createParticles(this, pickup.x, pickup.y, pickup.fillColor, 10);
+}
+
+function createParticles(scene, x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    const p = scene.add.circle(x, y, Math.random() * 3 + 1, color);
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 100 + 50;
+    
+    scene.tweens.add({
+      targets: p,
+      x: x + Math.cos(angle) * speed,
+      y: y + Math.sin(angle) * speed,
+      duration: 300,
+      ease: 'Cubic.easeOut'
+    });
+    
+    particles.add(p);
+  }
+}
+
+function updateUI(scene) {
+  // Health bar
+  healthBar.clear();
+  healthBar.fillStyle(0x333333);
+  healthBar.fillRect(10, 10, 204, 24);
+  
+  const healthPercent = playerHealth / maxHealth;
+  const healthColor = healthPercent > 0.5 ? 0x00ff88 : (healthPercent > 0.25 ? 0xffdd00 : 0xff4444);
+  healthBar.fillStyle(healthColor);
+  healthBar.fillRect(12, 12, 200 * healthPercent, 20);
+  
+  healthBar.lineStyle(2, 0xffffff);
+  healthBar.strokeRect(10, 10, 204, 24);
+  
+  // Ammo
+  const weapon = WEAPONS[currentWeapon];
+  const ammo = currentWeapon === 'pistol' ? '∞' : weaponAmmo[currentWeapon];
+  ammoText.setText(`${weapon.name}: ${ammo}`);
+  
+  // Score
+  scoreText.setText(`Score: ${totalScore.toLocaleString()}\nKills: ${zombiesKilled}`);
+}
+
+function gameOver(scene) {
+  gameState = 'dead';
+  saveHighScore();
+  
+  menuText.setText(`GAME OVER\n\nWave: ${wave}/${maxWaves}\nScore: ${totalScore.toLocaleString()}\nKills: ${zombiesKilled}\n\n` +
+    (isMobile ? 'TAP TO RESTART' : 'CLICK TO RESTART'));
+  
+  showLeaderboard();
+  
+  // Show interstitial
+  setTimeout(() => {
+    document.getElementById('jb-interstitial').style.display = 'flex';
+  }, 1500);
+  
+  scene.input.once('pointerdown', () => {
+    menuText.setText('');
+    leaderboardText.setText('');
+    startGame(scene);
+  });
+}
+
+function gameWon(scene) {
+  gameState = 'won';
+  totalScore += 5000; // Victory bonus
+  saveHighScore();
+  
+  menuText.setText(`🎉 YOU WON! 🎉\n\nAll 10 waves survived!\nFinal Score: ${totalScore.toLocaleString()}\nKills: ${zombiesKilled}\n\n` +
+    (isMobile ? 'TAP TO PLAY AGAIN' : 'CLICK TO PLAY AGAIN'));
+  
+  showLeaderboard();
+  
+  // Show interstitial
+  setTimeout(() => {
+    document.getElementById('jb-interstitial').style.display = 'flex';
+  }, 1500);
+  
+  scene.input.once('pointerdown', () => {
+    menuText.setText('');
+    leaderboardText.setText('');
+    startGame(scene);
+  });
+}
+
+function showLeaderboard() {
+  let leaderboard = '\n🏆 TOP SCORES 🏆\n\n';
+  highScores.slice(0, 5).forEach((score, i) => {
+    leaderboard += `${i + 1}. ${score.toLocaleString()} points\n`;
+  });
+  leaderboardText.setText(leaderboard);
+}
+
+function saveHighScore() {
+  highScores.push(totalScore);
+  highScores.sort((a, b) => b - a);
+  highScores = highScores.slice(0, 10);
+  localStorage.setItem('zs_highscores', JSON.stringify(highScores));
+}
+
+function loadHighScores() {
+  const saved = localStorage.getItem('zs_highscores');
+  highScores = saved ? JSON.parse(saved) : [];
+}
+
+// Handle window resize
+window.addEventListener('resize', () => {
+  game.scale.resize(window.innerWidth, window.innerHeight - 100);
+});
+</script>
+
+</body>
+</html>

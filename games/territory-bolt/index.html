@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Territory Bolt ⚡ | JellyBolt Games</title>
+<meta name="description" content="Capture territory in this fast-paced Paper.io-style game. Claim land, dodge enemies, and dominate the map!">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0d1117;font-family:'Segoe UI',system-ui,sans-serif;color:#e6edf3;touch-action:none;user-select:none;-webkit-user-select:none}
+
+/* AD BANNER */
+.jb-ad-banner{text-align:center;padding:4px 0;min-height:50px}
+
+/* CANVAS WRAPPER */
+#game-wrap{position:relative;width:100%;height:100%}
+canvas{display:block;width:100%;height:100%}
+
+/* HUD */
+#hud{position:fixed;top:58px;left:0;width:100%;display:flex;justify-content:space-between;align-items:center;padding:6px 14px;pointer-events:none;z-index:50}
+.hud-item{background:rgba(13,17,23,.85);border:1px solid #1a2235;border-radius:10px;padding:5px 12px;font-size:.82rem;font-weight:600;letter-spacing:.3px}
+.hud-timer{color:#ffcc00}
+.hud-score{color:#00ff88}
+.hud-best{color:#a855f7}
+
+/* SCOREBOARD */
+#scoreboard{position:fixed;top:100px;right:10px;z-index:50;pointer-events:none}
+.sb-entry{display:flex;align-items:center;gap:6px;padding:3px 10px;margin-bottom:3px;background:rgba(13,17,23,.8);border-radius:6px;font-size:.72rem;font-weight:600}
+.sb-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sb-dead{opacity:.35;text-decoration:line-through}
+
+/* START SCREEN */
+#start-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(180deg,#0d0d24 0%,#0d1117 100%);z-index:200;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+#start-screen.hidden{display:none}
+.ss-title{font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,#00ff88,#00ccff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.ss-bolt{font-size:3rem;margin-bottom:10px}
+.ss-sub{color:#8b949e;font-size:.85rem;margin-bottom:24px;max-width:300px;line-height:1.5}
+.ss-play{padding:14px 44px;font-size:1.1rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;letter-spacing:.5px;transition:transform .15s}
+.ss-play:hover{transform:scale(1.06)}
+.ss-controls{color:#555;font-size:.7rem;margin-top:18px;line-height:1.6}
+
+/* GAME OVER OVERLAY */
+#game-over{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.82);z-index:300;justify-content:center;align-items:center}
+#game-over.active{display:flex}
+.go-panel{background:linear-gradient(180deg,#0f1520,#0d1117);border:1px solid #1a2235;border-radius:18px;padding:30px 36px;text-align:center;min-width:260px}
+.go-icon{font-size:3rem;margin-bottom:8px}
+.go-title{font-size:1.6rem;font-weight:800;color:#ff6b6b;margin-bottom:12px;letter-spacing:1px}
+.go-win .go-title{color:#00ff88}
+.go-score{font-size:1.1rem;color:#e6edf3;margin-bottom:6px}
+.go-best{font-size:.85rem;color:#a855f7;margin-bottom:18px}
+.go-btn{display:block;width:100%;padding:12px;font-size:1rem;font-weight:700;border:none;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;margin-bottom:8px;transition:transform .15s}
+.go-btn:hover{transform:scale(1.04)}
+.go-share{display:block;width:100%;padding:10px;font-size:.85rem;font-weight:600;border:none;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff;transition:transform .15s}
+.go-share:hover{transform:scale(1.04)}
+
+/* WIN SCREEN */
+#win-screen{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.82);z-index:300;justify-content:center;align-items:center}
+#win-screen.active{display:flex}
+
+/* INTERSTITIAL */
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:9999;justify-content:center;align-items:center}
+#jb-interstitial.active{display:flex}
+.jb-interstitial-box{background:#0f1520;border:1px solid #1a2235;border-radius:16px;padding:24px;text-align:center}
+.jb-interstitial-close{margin-top:14px;padding:10px 28px;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:.95rem}
+
+/* MONETIZATION BAR */
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:8px;padding:7px 10px;background:rgba(8,12,20,.96);border-top:1px solid #1a2235;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:.8rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.06)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+</style>
+</head>
+<body>
+
+<!-- AD TOP -->
+<div class="jb-ad-banner" id="ad-top">
+  <ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="TERRITORY_BOLT_TOP" style="display:inline-block;width:320px;height:50px"></ins>
+</div>
+
+<!-- GAME CANVAS -->
+<div id="game-wrap">
+  <canvas id="gc"></canvas>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-item hud-timer" id="hud-timer">⏱ 60s</div>
+  <div class="hud-item hud-score" id="hud-score">⚡ 0%</div>
+  <div class="hud-item hud-best" id="hud-best">🏆 0%</div>
+</div>
+
+<!-- SCOREBOARD -->
+<div id="scoreboard"></div>
+
+<!-- START SCREEN -->
+<div id="start-screen">
+  <div class="ss-bolt">⚡</div>
+  <div class="ss-title">Territory Bolt</div>
+  <div class="ss-sub">Draw lines to claim territory. Return to your land to capture the area. Don't let enemies cross your trail!</div>
+  <button class="ss-play" id="start-btn">▶ PLAY</button>
+  <div class="ss-controls">Arrow Keys / WASD / Swipe to move</div>
+</div>
+
+<!-- GAME OVER -->
+<div id="game-over">
+  <div class="go-panel" id="go-panel">
+    <div class="go-icon" id="go-icon">💥</div>
+    <div class="go-title" id="go-title">GAME OVER</div>
+    <div class="go-score" id="go-score">Territory: 0%</div>
+    <div class="go-best" id="go-best">Best: 0%</div>
+    <button class="go-btn" id="go-play-btn">▶ Play Again</button>
+    <button class="go-share" id="go-share-btn">📤 Share Score</button>
+  </div>
+</div>
+
+<!-- INTERSTITIAL -->
+<div id="jb-interstitial">
+  <div class="jb-interstitial-box">
+    <div style="color:#888;font-size:.75rem;letter-spacing:1px;margin-bottom:12px">ADVERTISEMENT</div>
+    <ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-8350556723025693" data-ad-slot="TERRITORY_BOLT_INTER"></ins>
+    <div style="color:#555;font-size:.8rem;margin-top:10px" id="jb-inter-timer"></div>
+    <button class="jb-interstitial-close" id="jb-inter-close" style="opacity:0;pointer-events:none">Continue Playing ▶</button>
+  </div>
+</div>
+
+<!-- MONETIZATION BAR -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener noreferrer">☕ Support</a>
+  <a class="jb-btn-games" href="../../index.html">🎮 More Games</a>
+  <a class="jb-btn-share" id="jb-bar-share" href="#">📤 Share</a>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ── CONSTANTS ── */
+var COLS=100,ROWS=100;
+var CELL_EMPTY=0,CELL_P=1,CELL_B1=2,CELL_B2=3,CELL_B3=4,CELL_B4=5;
+var TRAIL_P=11,TRAIL_B1=12,TRAIL_B2=13,TRAIL_B3=14,TRAIL_B4=15;
+var ROUND_TIME=60;
+var WIN_PCT=50;
+var TOTAL=COLS*ROWS;
+
+var COLORS={};
+COLORS[CELL_P]='#00ff88';
+COLORS[CELL_B1]='#ff6b6b';
+COLORS[CELL_B2]='#58a6ff';
+COLORS[CELL_B3]='#a855f7';
+COLORS[CELL_B4]='#ffcc00';
+COLORS[TRAIL_P]='#00cc6a';
+COLORS[TRAIL_B1]='#cc5555';
+COLORS[TRAIL_B2]='#4488cc';
+COLORS[TRAIL_B3]='#8844cc';
+COLORS[TRAIL_B4]='#ccaa00';
+
+var OWNER_FOR_TRAIL={};
+OWNER_FOR_TRAIL[TRAIL_P]=CELL_P;
+OWNER_FOR_TRAIL[TRAIL_B1]=CELL_B1;
+OWNER_FOR_TRAIL[TRAIL_B2]=CELL_B2;
+OWNER_FOR_TRAIL[TRAIL_B3]=CELL_B3;
+OWNER_FOR_TRAIL[TRAIL_B4]=CELL_B4;
+
+var TRAIL_FOR_OWNER={};
+TRAIL_FOR_OWNER[CELL_P]=TRAIL_P;
+TRAIL_FOR_OWNER[CELL_B1]=TRAIL_B1;
+TRAIL_FOR_OWNER[CELL_B2]=TRAIL_B2;
+TRAIL_FOR_OWNER[CELL_B3]=TRAIL_B3;
+TRAIL_FOR_OWNER[CELL_B4]=TRAIL_B4;
+
+var DIR_NONE=0,DIR_UP=1,DIR_DOWN=2,DIR_LEFT=3,DIR_RIGHT=4;
+var DX=[0,0,0,-1,1];
+var DY=[0,-1,1,0,0];
+var OPPOSITE=[0,2,1,4,3];
+
+/* ── ELEMENTS ── */
+var canvas=document.getElementById('gc');
+var ctx=canvas.getContext('2d');
+var hudTimer=document.getElementById('hud-timer');
+var hudScore=document.getElementById('hud-score');
+var hudBest=document.getElementById('hud-best');
+var scoreboard=document.getElementById('scoreboard');
+var startScreen=document.getElementById('start-screen');
+var startBtn=document.getElementById('start-btn');
+var goOverlay=document.getElementById('game-over');
+var goPanel=document.getElementById('go-panel');
+var goIcon=document.getElementById('go-icon');
+var goTitle=document.getElementById('go-title');
+var goScoreEl=document.getElementById('go-score');
+var goBestEl=document.getElementById('go-best');
+var goPlayBtn=document.getElementById('go-play-btn');
+var goShareBtn=document.getElementById('go-share-btn');
+var interstitial=document.getElementById('jb-interstitial');
+var interTimer=document.getElementById('jb-inter-timer');
+var interClose=document.getElementById('jb-inter-close');
+var barShare=document.getElementById('jb-bar-share');
+
+/* ── STATE ── */
+var grid=new Uint8Array(COLS*ROWS);
+var running=false;
+var timer=ROUND_TIME;
+var timerAccum=0;
+var lastTime=0;
+var tickAccum=0;
+var TICK_RATE=1000/12; // 12 ticks per second
+var bestScore=parseInt(localStorage.getItem('tb_best'))||0;
+var gamesPlayed=0;
+var playerScore=0;
+var gameEnded=false;
+
+/* ── ENTITIES ── */
+var player,bots;
+
+function Entity(id,x,y,cellType,trailType,name,behavior){
+  this.id=id;this.x=x;this.y=y;
+  this.cellType=cellType;this.trailType=trailType;
+  this.name=name;this.behavior=behavior;
+  this.dir=DIR_NONE;this.nextDir=DIR_NONE;
+  this.trail=[];this.alive=true;
+  this.aiTimer=0;this.aiTarget=null;
+  this.aiRunLen=0;this.aiMaxRun=0;
+  this.aiReturning=false;
+}
+
+function gIdx(x,y){return y*COLS+x;}
+function inBounds(x,y){return x>=0&&x<COLS&&y>=0&&y<ROWS;}
+
+function countCells(ct){
+  var c=0;
+  for(var i=0;i<TOTAL;i++) if(grid[i]===ct) c++;
+  return c;
+}
+
+function pct(ct){return Math.round(countCells(ct)/TOTAL*100);}
+
+/* ── SPAWN TERRITORY ── */
+function spawnTerritory(cx,cy,cellType,size){
+  var half=Math.floor(size/2);
+  for(var dy=-half;dy<=half;dy++){
+    for(var dx=-half;dx<=half;dx++){
+      var nx=cx+dx,ny=cy+dy;
+      if(inBounds(nx,ny)) grid[gIdx(nx,ny)]=cellType;
+    }
+  }
+}
+
+/* ── FLOOD FILL CLAIM ── */
+function claimTerritory(entity){
+  if(entity.trail.length===0) return;
+  var ct=entity.cellType;
+  var tt=entity.trailType;
+
+  // Convert trail to owned
+  for(var i=0;i<entity.trail.length;i++){
+    var t=entity.trail[i];
+    grid[gIdx(t.x,t.y)]=ct;
+  }
+
+  // Flood fill from edges to find exterior cells
+  // Anything NOT reached by exterior flood = enclosed
+  var visited=new Uint8Array(TOTAL);
+
+  // Mark owned cells and trail cells as barriers
+  // We want to find cells reachable from boundary that aren't ours
+  var queue=[];
+
+  // Seed from all boundary cells that aren't ours
+  for(var x=0;x<COLS;x++){
+    if(grid[gIdx(x,0)]!==ct){var idx=gIdx(x,0);if(!visited[idx]){visited[idx]=1;queue.push(x,0);}}
+    if(grid[gIdx(x,ROWS-1)]!==ct){var idx2=gIdx(x,ROWS-1);if(!visited[idx2]){visited[idx2]=1;queue.push(x,ROWS-1);}}
+  }
+  for(var y=1;y<ROWS-1;y++){
+    if(grid[gIdx(0,y)]!==ct){var idx3=gIdx(0,y);if(!visited[idx3]){visited[idx3]=1;queue.push(0,y);}}
+    if(grid[gIdx(COLS-1,y)]!==ct){var idx4=gIdx(COLS-1,y);if(!visited[idx4]){visited[idx4]=1;queue.push(COLS-1,y);}}
+  }
+
+  // BFS
+  var qi=0;
+  while(qi<queue.length){
+    var qx=queue[qi++],qy=queue[qi++];
+    for(var d=1;d<=4;d++){
+      var nx=qx+DX[d],ny=qy+DY[d];
+      if(!inBounds(nx,ny)) continue;
+      var ni=gIdx(nx,ny);
+      if(visited[ni]) continue;
+      if(grid[ni]===ct) continue; // barrier = our territory
+      visited[ni]=1;
+      queue.push(nx,ny);
+    }
+  }
+
+  // All cells NOT visited AND NOT already owned by us AND not owned by another entity trail = claim
+  for(var i=0;i<TOTAL;i++){
+    if(!visited[i]&&grid[i]!==ct){
+      // Only claim empty cells or cells belonging to others (not trails of living entities)
+      var c=grid[i];
+      if(c===CELL_EMPTY||c===CELL_P||c===CELL_B1||c===CELL_B2||c===CELL_B3||c===CELL_B4){
+        grid[i]=ct;
+      }
+    }
+  }
+
+  entity.trail=[];
+}
+
+/* ── KILL ENTITY ── */
+function killEntity(ent){
+  if(!ent.alive) return;
+  ent.alive=false;
+  ent.dir=DIR_NONE;
+  // Remove trail
+  for(var i=0;i<ent.trail.length;i++){
+    var t=ent.trail[i];
+    if(inBounds(t.x,t.y)) grid[gIdx(t.x,t.y)]=CELL_EMPTY;
+  }
+  ent.trail=[];
+  // Remove territory
+  for(var i=0;i<TOTAL;i++){
+    if(grid[i]===ent.cellType) grid[i]=CELL_EMPTY;
+  }
+}
+
+/* ── MOVE ENTITY ── */
+function moveEntity(ent){
+  if(!ent.alive||ent.dir===DIR_NONE) return;
+
+  var nx=ent.x+DX[ent.dir];
+  var ny=ent.y+DY[ent.dir];
+
+  // Wall: wrap or bounce
+  if(!inBounds(nx,ny)){
+    ent.dir=DIR_NONE;
+    return;
+  }
+
+  var ni=gIdx(nx,ny);
+  var destCell=grid[ni];
+
+  // Self trail collision = death
+  if(destCell===ent.trailType){
+    killEntity(ent);
+    return;
+  }
+
+  // Check if stepping on another entity's trail = kill that entity
+  if(destCell>=TRAIL_P&&destCell<=TRAIL_B4&&destCell!==ent.trailType){
+    var trailOwnerType=OWNER_FOR_TRAIL[destCell];
+    // Find the entity that owns this trail
+    var victim=findEntityByCell(trailOwnerType);
+    if(victim&&victim.alive){
+      killEntity(victim);
+    }
+  }
+
+  var wasOnOwn=(grid[gIdx(ent.x,ent.y)]===ent.cellType);
+  var nowOnOwn=(destCell===ent.cellType);
+
+  // If was outside and returning to own territory: claim
+  if(ent.trail.length>0&&nowOnOwn){
+    ent.x=nx;ent.y=ny;
+    claimTerritory(ent);
+    return;
+  }
+
+  // If moving outside own territory, lay trail
+  if(!nowOnOwn){
+    // Only lay trail if current cell is owned or we are already trailing
+    if(wasOnOwn||ent.trail.length>0){
+      if(ent.trail.length===0&&wasOnOwn){
+        // Don't mark current owned cell as trail
+      }
+      ent.x=nx;ent.y=ny;
+      // Check again if this cell is another entity's trail
+      if(grid[ni]>=TRAIL_P&&grid[ni]<=TRAIL_B4&&grid[ni]!==ent.trailType){
+        // Already handled above
+      }
+      ent.trail.push({x:nx,y:ny});
+      grid[ni]=ent.trailType;
+      return;
+    }
+  }
+
+  ent.x=nx;ent.y=ny;
+}
+
+function findEntityByCell(ct){
+  if(ct===CELL_P) return player;
+  for(var i=0;i<bots.length;i++){
+    if(bots[i].cellType===ct) return bots[i];
+  }
+  return null;
+}
+
+/* ── AI LOGIC ── */
+function aiTick(bot){
+  if(!bot.alive) return;
+
+  var onOwn=grid[gIdx(bot.x,bot.y)]===bot.cellType;
+
+  if(bot.behavior==='aggressive') aiAggressive(bot,onOwn);
+  else if(bot.behavior==='cautious') aiCautious(bot,onOwn);
+  else if(bot.behavior==='random') aiRandom(bot,onOwn);
+  else aiPatroller(bot,onOwn);
+}
+
+function aiAggressive(bot,onOwn){
+  // Aggressive: long runs, targets player territory
+  if(onOwn&&bot.trail.length===0){
+    bot.aiRunLen=0;
+    bot.aiMaxRun=12+Math.floor(Math.random()*16);
+    bot.aiReturning=false;
+    // Pick a direction toward center or player
+    var tgt=player.alive?{x:player.x,y:player.y}:{x:50,y:50};
+    bot.dir=dirToward(bot.x,bot.y,tgt.x,tgt.y);
+    if(bot.dir===DIR_NONE) bot.dir=randomDir();
+  } else if(!onOwn&&bot.trail.length>0){
+    bot.aiRunLen++;
+    if(bot.aiRunLen>=bot.aiMaxRun||bot.aiReturning){
+      bot.aiReturning=true;
+      var home=findNearestOwned(bot);
+      if(home) bot.dir=dirToward(bot.x,bot.y,home.x,home.y);
+      else bot.dir=randomDir();
+    } else {
+      if(Math.random()<0.2) aiAvoidWalls(bot);
+      if(Math.random()<0.15){
+        var dirs=validDirs(bot);
+        if(dirs.length>0) bot.dir=dirs[Math.floor(Math.random()*dirs.length)];
+      }
+    }
+  } else {
+    if(bot.dir===DIR_NONE) bot.dir=randomDir();
+  }
+  aiAvoidSelfTrail(bot);
+  aiAvoidWalls(bot);
+}
+
+function aiCautious(bot,onOwn){
+  // Cautious: short runs, returns quickly
+  if(onOwn&&bot.trail.length===0){
+    bot.aiRunLen=0;
+    bot.aiMaxRun=4+Math.floor(Math.random()*6);
+    bot.aiReturning=false;
+    bot.dir=randomDir();
+  } else if(!onOwn&&bot.trail.length>0){
+    bot.aiRunLen++;
+    if(bot.aiRunLen>=bot.aiMaxRun||bot.aiReturning){
+      bot.aiReturning=true;
+      var home=findNearestOwned(bot);
+      if(home) bot.dir=dirToward(bot.x,bot.y,home.x,home.y);
+      else bot.dir=randomDir();
+    } else {
+      // Make rectangular shapes
+      if(bot.aiRunLen===Math.floor(bot.aiMaxRun/2)){
+        bot.dir=turnRight(bot.dir);
+      }
+      if(Math.random()<0.05) aiAvoidWalls(bot);
+    }
+  } else {
+    if(bot.dir===DIR_NONE) bot.dir=randomDir();
+  }
+  aiAvoidSelfTrail(bot);
+  aiAvoidWalls(bot);
+}
+
+function aiRandom(bot,onOwn){
+  // Random: unpredictable, medium runs
+  if(onOwn&&bot.trail.length===0){
+    bot.aiRunLen=0;
+    bot.aiMaxRun=6+Math.floor(Math.random()*12);
+    bot.aiReturning=false;
+    bot.dir=randomDir();
+  } else if(!onOwn&&bot.trail.length>0){
+    bot.aiRunLen++;
+    if(bot.aiRunLen>=bot.aiMaxRun){
+      bot.aiReturning=true;
+      var home=findNearestOwned(bot);
+      if(home) bot.dir=dirToward(bot.x,bot.y,home.x,home.y);
+      else bot.dir=randomDir();
+    } else {
+      if(Math.random()<0.3){
+        var dirs=validDirs(bot);
+        if(dirs.length>0) bot.dir=dirs[Math.floor(Math.random()*dirs.length)];
+      }
+    }
+  } else {
+    if(bot.dir===DIR_NONE) bot.dir=randomDir();
+  }
+  aiAvoidSelfTrail(bot);
+  aiAvoidWalls(bot);
+}
+
+function aiPatroller(bot,onOwn){
+  // Patrols edges of own territory
+  if(onOwn&&bot.trail.length===0){
+    bot.aiRunLen=0;
+    bot.aiMaxRun=8+Math.floor(Math.random()*8);
+    bot.aiReturning=false;
+    // Move along edge
+    var edgeDir=findEdgeDir(bot);
+    bot.dir=edgeDir||randomDir();
+  } else if(!onOwn&&bot.trail.length>0){
+    bot.aiRunLen++;
+    if(bot.aiRunLen>=bot.aiMaxRun){
+      bot.aiReturning=true;
+      var home=findNearestOwned(bot);
+      if(home) bot.dir=dirToward(bot.x,bot.y,home.x,home.y);
+      else bot.dir=randomDir();
+    } else {
+      if(bot.aiRunLen===Math.floor(bot.aiMaxRun*0.3)||bot.aiRunLen===Math.floor(bot.aiMaxRun*0.6)){
+        bot.dir=turnRight(bot.dir);
+      }
+    }
+  } else {
+    if(bot.dir===DIR_NONE) bot.dir=randomDir();
+  }
+  aiAvoidSelfTrail(bot);
+  aiAvoidWalls(bot);
+}
+
+function findEdgeDir(bot){
+  // Find a direction along the boundary of own territory
+  for(var d=1;d<=4;d++){
+    var nx=bot.x+DX[d],ny=bot.y+DY[d];
+    if(inBounds(nx,ny)&&grid[gIdx(nx,ny)]!==bot.cellType) return d;
+  }
+  return 0;
+}
+
+function randomDir(){return 1+Math.floor(Math.random()*4);}
+
+function turnRight(d){
+  if(d===DIR_UP) return DIR_RIGHT;
+  if(d===DIR_RIGHT) return DIR_DOWN;
+  if(d===DIR_DOWN) return DIR_LEFT;
+  return DIR_UP;
+}
+
+function dirToward(fx,fy,tx,ty){
+  var dx=tx-fx,dy=ty-fy;
+  if(Math.abs(dx)>Math.abs(dy)){
+    return dx>0?DIR_RIGHT:DIR_LEFT;
+  } else if(dy!==0){
+    return dy>0?DIR_DOWN:DIR_UP;
+  }
+  return randomDir();
+}
+
+function validDirs(ent){
+  var dirs=[];
+  for(var d=1;d<=4;d++){
+    if(d===OPPOSITE[ent.dir]&&ent.trail.length>0) continue;
+    var nx=ent.x+DX[d],ny=ent.y+DY[d];
+    if(inBounds(nx,ny)){
+      var c=grid[gIdx(nx,ny)];
+      if(c!==ent.trailType) dirs.push(d);
+    }
+  }
+  return dirs;
+}
+
+function findNearestOwned(ent){
+  var best=null,bestDist=Infinity;
+  // Sample points rather than scanning everything
+  for(var i=0;i<500;i++){
+    var rx=Math.floor(Math.random()*COLS);
+    var ry=Math.floor(Math.random()*ROWS);
+    if(grid[gIdx(rx,ry)]===ent.cellType){
+      var dist=Math.abs(rx-ent.x)+Math.abs(ry-ent.y);
+      if(dist<bestDist){bestDist=dist;best={x:rx,y:ry};}
+    }
+  }
+  // Also check immediate area
+  for(var r=1;r<=15;r++){
+    for(var dx=-r;dx<=r;dx++){
+      for(var dy=-r;dy<=r;dy++){
+        if(Math.abs(dx)+Math.abs(dy)!==r) continue;
+        var nx=ent.x+dx,ny=ent.y+dy;
+        if(inBounds(nx,ny)&&grid[gIdx(nx,ny)]===ent.cellType){
+          var dist2=Math.abs(dx)+Math.abs(dy);
+          if(dist2<bestDist){bestDist=dist2;best={x:nx,y:ny};}
+        }
+      }
+    }
+    if(best&&bestDist<=r) break;
+  }
+  return best;
+}
+
+function aiAvoidSelfTrail(bot){
+  var nx=bot.x+DX[bot.dir],ny=bot.y+DY[bot.dir];
+  if(!inBounds(nx,ny)||grid[gIdx(nx,ny)]===bot.trailType){
+    var dirs=validDirs(bot);
+    if(dirs.length>0) bot.dir=dirs[Math.floor(Math.random()*dirs.length)];
+    else bot.dir=randomDir();
+  }
+}
+
+function aiAvoidWalls(bot){
+  var nx=bot.x+DX[bot.dir],ny=bot.y+DY[bot.dir];
+  if(!inBounds(nx,ny)){
+    var dirs=validDirs(bot);
+    if(dirs.length>0) bot.dir=dirs[Math.floor(Math.random()*dirs.length)];
+    else bot.dir=OPPOSITE[bot.dir];
+  }
+}
+
+/* ── COLLISION CHECKS ── */
+function checkCollisions(){
+  var entities=[player].concat(bots);
+  for(var i=0;i<entities.length;i++){
+    var a=entities[i];
+    if(!a.alive) continue;
+    for(var j=0;j<entities.length;j++){
+      if(i===j) continue;
+      var b=entities[j];
+      if(!b.alive) continue;
+      // If a is on b's trail, kill b
+      if(a.x===b.x&&a.y===b.y){
+        // Head-on collision: both outside territory die
+        if(a.trail.length>0&&b.trail.length>0){
+          killEntity(a);killEntity(b);
+        }
+      }
+    }
+  }
+}
+
+/* ── INIT GAME ── */
+function initGame(){
+  grid.fill(CELL_EMPTY);
+  gameEnded=false;
+  timer=ROUND_TIME;
+  timerAccum=0;
+  tickAccum=0;
+
+  // Player at bottom-center
+  player=new Entity(0,50,80,CELL_P,TRAIL_P,'You','player');
+  spawnTerritory(50,80,CELL_P,5);
+
+  // Bots
+  bots=[
+    new Entity(1,20,20,CELL_B1,TRAIL_B1,'Blaze','aggressive'),
+    new Entity(2,80,20,CELL_B2,TRAIL_B2,'Frost','cautious'),
+    new Entity(3,20,60,CELL_B3,TRAIL_B3,'Phantom','random'),
+    new Entity(4,80,60,CELL_B4,TRAIL_B4,'Spark','patroller')
+  ];
+
+  spawnTerritory(20,20,CELL_B1,5);
+  spawnTerritory(80,20,CELL_B2,5);
+  spawnTerritory(20,60,CELL_B3,5);
+  spawnTerritory(80,60,CELL_B4,5);
+
+  hudBest.textContent='🏆 '+bestScore+'%';
+  running=true;
+  lastTime=performance.now();
+}
+
+/* ── GAME TICK ── */
+function gameTick(){
+  if(!running||gameEnded) return;
+
+  // Apply queued direction for player
+  if(player.alive){
+    if(player.nextDir!==DIR_NONE){
+      // Don't allow reversing into own trail
+      if(player.trail.length>0&&player.nextDir===OPPOSITE[player.dir]){
+        // Ignore reverse
+      } else {
+        player.dir=player.nextDir;
+      }
+    }
+  }
+
+  // AI
+  for(var i=0;i<bots.length;i++) aiTick(bots[i]);
+
+  // Move all
+  moveEntity(player);
+  for(var i=0;i<bots.length;i++) moveEntity(bots[i]);
+
+  // Collisions
+  checkCollisions();
+
+  // Update score
+  playerScore=pct(CELL_P);
+
+  // Win check
+  if(playerScore>=WIN_PCT){
+    endGame(true);
+    return;
+  }
+
+  // Player dead check
+  if(!player.alive){
+    endGame(false);
+    return;
+  }
+}
+
+/* ── TIMER ── */
+function updateTimer(dt){
+  if(!running||gameEnded) return;
+  timerAccum+=dt;
+  if(timerAccum>=1000){
+    timerAccum-=1000;
+    timer--;
+    if(timer<=0){
+      timer=0;
+      // Time up: player survives = win
+      endGame(true);
+    }
+  }
+}
+
+/* ── END GAME ── */
+function endGame(won){
+  if(gameEnded) return;
+  gameEnded=true;
+  running=false;
+
+  var finalScore=pct(CELL_P);
+  if(finalScore>bestScore){
+    bestScore=finalScore;
+    localStorage.setItem('tb_best',bestScore);
+  }
+
+  gamesPlayed++;
+
+  // Show interstitial every 2 games
+  if(gamesPlayed%2===0){
+    showInterstitial(function(){showGameOver(won,finalScore);});
+  } else {
+    showGameOver(won,finalScore);
+  }
+}
+
+function showGameOver(won,score){
+  goPanel.className=won?'go-panel go-win':'go-panel';
+  goIcon.textContent=won?'🏆':'💥';
+  goTitle.textContent=won?'VICTORY!':'GAME OVER';
+  goScoreEl.textContent='Territory: '+score+'%';
+  goBestEl.textContent='Best: '+bestScore+'%';
+  goOverlay.classList.add('active');
+}
+
+/* ── INTERSTITIAL ── */
+function showInterstitial(cb){
+  interstitial.classList.add('active');
+  interClose.style.opacity='0';
+  interClose.style.pointerEvents='none';
+  var sec=5;
+  interTimer.textContent='Continue in '+sec+'s...';
+  var iv=setInterval(function(){
+    sec--;
+    if(sec<=0){
+      clearInterval(iv);
+      interTimer.textContent='';
+      interClose.style.opacity='1';
+      interClose.style.pointerEvents='auto';
+    } else {
+      interTimer.textContent='Continue in '+sec+'s...';
+    }
+  },1000);
+  interClose.onclick=function(){
+    interstitial.classList.remove('active');
+    clearInterval(iv);
+    if(cb) cb();
+  };
+}
+
+/* ── SHARE ── */
+function shareScore(){
+  var territory=pct(CELL_P);
+  var text='⚡ Territory Bolt | Captured: '+territory+'% | Can you beat me?\nhttps://jellybolt-games.github.io/jellybolt-games/games/territory-bolt/';
+  if(navigator.share){navigator.share({title:'Territory Bolt',text:text}).catch(function(){});}
+  else{navigator.clipboard.writeText(text).then(function(){alert('Score copied!');}).catch(function(){});}
+}
+
+/* ── RENDER ── */
+function render(){
+  var cw=canvas.width,ch=canvas.height;
+  var cellW=cw/COLS,cellH=ch/ROWS;
+
+  // Background gradient
+  var grad=ctx.createLinearGradient(0,0,0,ch);
+  grad.addColorStop(0,'#0d0d24');
+  grad.addColorStop(1,'#0d1117');
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,cw,ch);
+
+  // Grid lines
+  ctx.strokeStyle='#1a1a3a';
+  ctx.lineWidth=0.5;
+  for(var x=0;x<=COLS;x++){
+    ctx.beginPath();ctx.moveTo(x*cellW,0);ctx.lineTo(x*cellW,ch);ctx.stroke();
+  }
+  for(var y=0;y<=ROWS;y++){
+    ctx.beginPath();ctx.moveTo(0,y*cellH);ctx.lineTo(cw,y*cellH);ctx.stroke();
+  }
+
+  // Draw cells (batch by color)
+  var buckets={};
+  for(var i=0;i<TOTAL;i++){
+    var v=grid[i];
+    if(v===CELL_EMPTY) continue;
+    if(!buckets[v]) buckets[v]=[];
+    buckets[v].push(i);
+  }
+  for(var v in buckets){
+    var color=COLORS[v];
+    if(!color) continue;
+    ctx.fillStyle=color;
+    // Trail cells are slightly transparent
+    if(parseInt(v)>=TRAIL_P){
+      ctx.globalAlpha=0.55;
+    } else {
+      ctx.globalAlpha=0.35;
+    }
+    var cells=buckets[v];
+    for(var j=0;j<cells.length;j++){
+      var idx=cells[j];
+      var cx=idx%COLS,cy=Math.floor(idx/COLS);
+      ctx.fillRect(cx*cellW,cy*cellH,cellW+0.5,cellH+0.5);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // Draw entities (player + bots)
+  var entities=[player].concat(bots);
+  for(var i=0;i<entities.length;i++){
+    var e=entities[i];
+    if(!e.alive) continue;
+    var ex=e.x*cellW+cellW/2;
+    var ey=e.y*cellH+cellH/2;
+    var r=Math.max(cellW,cellH)*0.7;
+
+    // Glow
+    ctx.shadowColor=COLORS[e.cellType];
+    ctx.shadowBlur=r*2;
+    ctx.fillStyle=COLORS[e.cellType];
+    ctx.beginPath();
+    ctx.arc(ex,ey,r,0,Math.PI*2);
+    ctx.fill();
+
+    // Inner bright dot
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#fff';
+    ctx.beginPath();
+    ctx.arc(ex,ey,r*0.4,0,Math.PI*2);
+    ctx.fill();
+  }
+  ctx.shadowBlur=0;
+
+  // HUD updates
+  hudTimer.textContent='⏱ '+timer+'s';
+  if(timer<=10) hudTimer.style.color='#ff4444';
+  else hudTimer.style.color='#ffcc00';
+  hudScore.textContent='⚡ '+playerScore+'%';
+
+  // Scoreboard
+  updateScoreboard(entities);
+}
+
+function updateScoreboard(entities){
+  var html='';
+  var scores=[];
+  for(var i=0;i<entities.length;i++){
+    var e=entities[i];
+    scores.push({name:e.name,pct:pct(e.cellType),color:COLORS[e.cellType],alive:e.alive});
+  }
+  scores.sort(function(a,b){return b.pct-a.pct;});
+  for(var i=0;i<scores.length;i++){
+    var s=scores[i];
+    var cls=s.alive?'sb-entry':'sb-entry sb-dead';
+    html+='<div class="'+cls+'"><span class="sb-dot" style="background:'+s.color+'"></span>'+s.name+' '+s.pct+'%</div>';
+  }
+  scoreboard.innerHTML=html;
+}
+
+/* ── RESIZE ── */
+function resizeCanvas(){
+  var wrap=document.getElementById('game-wrap');
+  canvas.width=wrap.clientWidth;
+  canvas.height=wrap.clientHeight;
+}
+
+/* ── INPUT ── */
+var inputDir=DIR_NONE;
+
+document.addEventListener('keydown',function(e){
+  switch(e.key){
+    case'ArrowUp':case'w':case'W':inputDir=DIR_UP;e.preventDefault();break;
+    case'ArrowDown':case's':case'S':inputDir=DIR_DOWN;e.preventDefault();break;
+    case'ArrowLeft':case'a':case'A':inputDir=DIR_LEFT;e.preventDefault();break;
+    case'ArrowRight':case'd':case'D':inputDir=DIR_RIGHT;e.preventDefault();break;
+  }
+  if(player) player.nextDir=inputDir;
+});
+
+// Touch
+var touchStartX=0,touchStartY=0;
+document.addEventListener('touchstart',function(e){
+  var t=e.touches[0];
+  touchStartX=t.clientX;touchStartY=t.clientY;
+},{passive:true});
+document.addEventListener('touchmove',function(e){
+  e.preventDefault();
+},{passive:false});
+document.addEventListener('touchend',function(e){
+  var t=e.changedTouches[0];
+  var dx=t.clientX-touchStartX;
+  var dy=t.clientY-touchStartY;
+  if(Math.abs(dx)<10&&Math.abs(dy)<10) return;
+  if(Math.abs(dx)>Math.abs(dy)){
+    inputDir=dx>0?DIR_RIGHT:DIR_LEFT;
+  } else {
+    inputDir=dy>0?DIR_DOWN:DIR_UP;
+  }
+  if(player) player.nextDir=inputDir;
+},{passive:true});
+
+/* ── GAME LOOP ── */
+function loop(ts){
+  requestAnimationFrame(loop);
+  if(!running) return;
+
+  var dt=ts-lastTime;
+  lastTime=ts;
+  if(dt>200) dt=200; // cap
+
+  updateTimer(dt);
+
+  tickAccum+=dt;
+  while(tickAccum>=TICK_RATE){
+    tickAccum-=TICK_RATE;
+    gameTick();
+  }
+
+  render();
+}
+
+/* ── BOOT ── */
+resizeCanvas();
+window.addEventListener('resize',resizeCanvas);
+
+startBtn.addEventListener('click',function(){
+  startScreen.classList.add('hidden');
+  initGame();
+  requestAnimationFrame(loop);
+});
+
+goPlayBtn.addEventListener('click',function(){
+  goOverlay.classList.remove('active');
+  initGame();
+  lastTime=performance.now();
+});
+
+goShareBtn.addEventListener('click',shareScore);
+barShare.addEventListener('click',function(e){e.preventDefault();shareScore();});
+
+// Render static bg on start
+render();
+
+})();
+</script>
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+</body>
+</html>

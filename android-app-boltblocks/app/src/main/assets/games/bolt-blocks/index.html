@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Bolt Blocks — JellyBolt Games</title>
+<meta name="description" content="Block puzzle game — drag and drop shapes to fill rows and columns. Free to play in your browser!">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8350556723025693" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  width:100%;height:100%;
+  background:#0d1117;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;
+  overflow:hidden;
+  touch-action:none;
+  font-family:'Segoe UI',system-ui,sans-serif;
+  user-select:none;-webkit-user-select:none;
+  color:#e8e8f0;
+}
+#game-wrap{
+  position:relative;
+  width:100%;height:100%;
+  display:flex;flex-direction:column;
+  align-items:center;
+  background:linear-gradient(180deg,#050510 0%,#0d0d24 100%);
+  overflow:hidden;
+}
+.hud{
+  display:flex;justify-content:space-between;align-items:center;
+  width:100%;max-width:420px;
+  padding:10px 16px 4px;
+  font-size:.85rem;
+}
+.hud-title{font-weight:900;font-size:1.1rem;background:linear-gradient(135deg,#00ff88,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hud-score,.hud-best{font-weight:700;color:#ffcc00}
+.hud-best{color:#8888aa;font-size:.75rem}
+#board-area{
+  position:relative;
+  flex:1;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  width:100%;
+  padding-bottom:100px;
+}
+canvas{
+  border-radius:8px;
+  touch-action:none;
+}
+#piece-tray{
+  position:absolute;bottom:48px;left:0;width:100%;
+  display:flex;justify-content:center;gap:12px;
+  padding:8px 0;
+  pointer-events:none;
+}
+.tray-slot{
+  pointer-events:auto;
+  cursor:grab;
+  touch-action:none;
+}
+
+/* Ad Banner */
+.jb-ad-banner{text-align:center;padding:4px 0;min-height:50px}
+.jb-ad-banner ins{max-width:100%}
+
+/* Monetization Bar */
+.jb-monetization-bar{
+  position:fixed;bottom:0;left:0;width:100%;
+  display:flex;justify-content:center;align-items:center;gap:8px;
+  padding:7px 10px;
+  background:rgba(8,12,20,.96);
+  border-top:1px solid #1a2235;
+  z-index:9998;flex-wrap:wrap;
+}
+.jb-monetization-bar a{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:6px 12px;border-radius:8px;
+  font-size:.8rem;font-weight:600;
+  text-decoration:none;transition:transform .15s;
+}
+.jb-monetization-bar a:hover{transform:scale(1.06)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+
+/* Interstitial */
+#jb-interstitial{
+  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.88);z-index:9999;
+  justify-content:center;align-items:center;
+}
+#jb-interstitial.active{display:flex}
+.jb-interstitial-box{background:#0f1520;border:1px solid #1a2235;border-radius:16px;padding:24px;text-align:center}
+.jb-interstitial-close{margin-top:14px;padding:10px 28px;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:.95rem}
+
+/* Game Over */
+#game-over{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:100;pointer-events:none;opacity:0;
+  transition:opacity .35s ease;
+}
+#game-over.visible{background:rgba(0,0,0,0.82);opacity:1;pointer-events:auto}
+.go-panel{
+  background:#0f1520;border:2px solid #ff6b6b;border-radius:18px;
+  padding:28px 36px;text-align:center;min-width:230px;
+  box-shadow:0 0 40px rgba(255,107,107,0.25);
+}
+.go-icon{font-size:3rem;margin-bottom:8px}
+.go-title{font-size:1.6rem;font-weight:900;color:#ff6b6b;margin-bottom:6px}
+.go-score{font-size:1.2rem;color:#ffcc00;font-weight:700;margin-bottom:4px}
+.go-best{font-size:.9rem;color:#8888aa;margin-bottom:16px}
+.go-btn{
+  display:block;width:100%;padding:13px 0;
+  background:linear-gradient(135deg,#00d4ff,#a855f7);
+  color:#000;font-weight:900;font-size:1.1em;
+  border:none;border-radius:10px;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;margin-bottom:8px;
+}
+.go-btn:hover{transform:scale(1.05);box-shadow:0 4px 20px rgba(0,212,255,0.35)}
+.go-share{
+  display:block;width:100%;padding:10px 0;
+  background:transparent;border:1px solid #1da1f2;color:#1da1f2;
+  font-weight:600;font-size:.9em;border-radius:10px;cursor:pointer;
+}
+</style>
+</head>
+<body>
+<div id="game-wrap">
+  <!-- Top Ad -->
+  <div class="jb-ad-banner" id="ad-top">
+    <ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693"
+         data-ad-slot="BOLT_BLOCKS_TOP" style="display:inline-block;width:320px;height:50px"></ins>
+  </div>
+
+  <div class="hud">
+    <div class="hud-title">⚡ Bolt Blocks</div>
+    <div><span class="hud-score" id="hud-score">0</span> <span class="hud-best" id="hud-best">Best: 0</span></div>
+  </div>
+
+  <div id="board-area">
+    <canvas id="canvas"></canvas>
+    <div id="piece-tray"></div>
+  </div>
+
+  <!-- Game Over Overlay -->
+  <div id="game-over">
+    <div class="go-panel">
+      <div class="go-icon">💥</div>
+      <div class="go-title">GAME OVER</div>
+      <div class="go-score" id="go-score">Score: 0</div>
+      <div class="go-best" id="go-best">Best: 0</div>
+      <button class="go-btn" id="go-play-btn">▶ Play Again</button>
+      <button class="go-share" id="go-share-btn">📤 Share Score</button>
+    </div>
+  </div>
+</div>
+
+<!-- Interstitial Ad -->
+<div id="jb-interstitial">
+  <div class="jb-interstitial-box">
+    <div style="color:#888;font-size:.75rem;letter-spacing:1px;margin-bottom:12px">ADVERTISEMENT</div>
+    <ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px"
+         data-ad-client="ca-pub-8350556723025693" data-ad-slot="BOLT_BLOCKS_INTER"></ins>
+    <div style="color:#555;font-size:.8rem;margin-top:10px" id="jb-inter-timer"></div>
+    <button class="jb-interstitial-close" id="jb-inter-close"
+            style="opacity:0;pointer-events:none">Continue Playing ▶</button>
+  </div>
+</div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames"
+     target="_blank" rel="noopener noreferrer">☕ Support</a>
+  <a class="jb-btn-games" href="../../index.html">🎮 More Games</a>
+  <a class="jb-btn-share" id="jb-bar-share" href="#">📤 Share</a>
+</div>
+
+<script>
+'use strict';
+(function(){
+
+/* ===== CONSTANTS ===== */
+const COLS=10,ROWS=10;
+const COLORS=['#00ff88','#58a6ff','#a855f7','#ff6b6b','#ffcc00','#ff8800','#00ccff'];
+const BG='#0d0d24',GRID_LINE='#1a1a3a',EMPTY='#111128';
+
+/* ===== SHAPES ===== */
+const SHAPE_DEFS=[
+  // Single
+  [[1]],
+  // 2-cell
+  [[1,1]],[[1],[1]],
+  // 3-cell L
+  [[1,0],[1,1]],[[0,1],[1,1]],[[1,1],[1,0]],[[1,1],[0,1]],
+  // 3-line
+  [[1,1,1]],[[1],[1],[1]],
+  // T
+  [[1,1,1],[0,1,0]],[[0,1],[1,1],[0,1]],[[0,1,0],[1,1,1]],[[1,0],[1,1],[1,0]],
+  // 4-line
+  [[1,1,1,1]],[[1],[1],[1],[1]],
+  // 2x2
+  [[1,1],[1,1]],
+  // S/Z
+  [[0,1,1],[1,1,0]],[[1,1,0],[0,1,1]],[[1,0],[1,1],[0,1]],[[0,1],[1,1],[1,0]],
+  // L-shapes (big)
+  [[1,0],[1,0],[1,1]],[[1,1],[1,0],[1,0]],[[0,1],[0,1],[1,1]],[[1,1],[0,1],[0,1]],
+  // 3x3 L
+  [[1,0,0],[1,0,0],[1,1,1]],[[1,1,1],[0,0,1],[0,0,1]],
+  // 5-line
+  [[1,1,1,1,1]],[[1],[1],[1],[1],[1]],
+  // 3x3 block
+  [[1,1,1],[1,1,1],[1,1,1]],
+];
+
+/* ===== STATE ===== */
+let grid=[], score=0, best=parseInt(localStorage.getItem('bb_best'))||0;
+let pieces=[], dragging=null, dragOffX=0, dragOffY=0;
+let cellSize, boardX, boardY, canvasW, canvasH;
+let combo=0;
+
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+
+/* ===== SIZING ===== */
+function resize(){
+  const maxW=Math.min(window.innerWidth,420);
+  const topH=90; // hud + ad
+  const botH=100; // tray + bar
+  const avail=Math.min(window.innerHeight-topH-botH, maxW);
+  cellSize=Math.floor(avail/COLS);
+  canvasW=cellSize*COLS;
+  canvasH=cellSize*ROWS;
+  canvas.width=canvasW;
+  canvas.height=canvasH;
+  canvas.style.width=canvasW+'px';
+  canvas.style.height=canvasH+'px';
+  boardX=0; boardY=0;
+  renderTray();
+  draw();
+}
+
+/* ===== INIT ===== */
+function initGrid(){
+  grid=[];
+  for(let r=0;r<ROWS;r++){
+    grid[r]=[];
+    for(let c=0;c<COLS;c++) grid[r][c]=0;
+  }
+}
+
+function randomShape(){
+  const def=SHAPE_DEFS[Math.floor(Math.random()*SHAPE_DEFS.length)];
+  const color=COLORS[Math.floor(Math.random()*COLORS.length)];
+  return {shape:def,color:color};
+}
+
+function spawnPieces(){
+  pieces=[randomShape(),randomShape(),randomShape()];
+  combo=0;
+  renderTray();
+}
+
+function newGame(){
+  initGrid();
+  score=0;
+  updateHUD();
+  spawnPieces();
+  document.getElementById('game-over').classList.remove('visible');
+  draw();
+}
+
+/* ===== DRAWING ===== */
+function draw(){
+  ctx.fillStyle=BG;
+  ctx.fillRect(0,0,canvasW,canvasH);
+
+  // Grid
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const x=c*cellSize, y=r*cellSize;
+      if(grid[r][c]){
+        ctx.fillStyle=grid[r][c];
+        ctx.fillRect(x+1,y+1,cellSize-2,cellSize-2);
+        ctx.fillStyle='rgba(255,255,255,0.12)';
+        ctx.fillRect(x+1,y+1,cellSize-2,3);
+      } else {
+        ctx.fillStyle=EMPTY;
+        ctx.fillRect(x+1,y+1,cellSize-2,cellSize-2);
+      }
+    }
+  }
+
+  // Grid lines
+  ctx.strokeStyle=GRID_LINE;
+  ctx.lineWidth=0.5;
+  for(let i=0;i<=COLS;i++){
+    ctx.beginPath();ctx.moveTo(i*cellSize,0);ctx.lineTo(i*cellSize,canvasH);ctx.stroke();
+  }
+  for(let i=0;i<=ROWS;i++){
+    ctx.beginPath();ctx.moveTo(0,i*cellSize);ctx.lineTo(canvasW,i*cellSize);ctx.stroke();
+  }
+
+  // Ghost preview
+  if(dragging){
+    const gc=Math.round((dragging.cx-boardRect().left)/cellSize);
+    const gr=Math.round((dragging.cy-boardRect().top)/cellSize);
+    const s=dragging.piece.shape;
+    const canPlace=canPlaceAt(s,gr,gc);
+    for(let r=0;r<s.length;r++){
+      for(let c=0;c<s[r].length;c++){
+        if(!s[r][c]) continue;
+        const px=(gc+c)*cellSize, py=(gr+r)*cellSize;
+        if(gr+r>=0&&gr+r<ROWS&&gc+c>=0&&gc+c<COLS){
+          ctx.fillStyle=canPlace?'rgba(0,255,136,0.25)':'rgba(255,107,107,0.2)';
+          ctx.fillRect(px+1,py+1,cellSize-2,cellSize-2);
+        }
+      }
+    }
+  }
+}
+
+function boardRect(){
+  const r=canvas.getBoundingClientRect();
+  return {left:r.left,top:r.top,right:r.right,bottom:r.bottom};
+}
+
+/* ===== TRAY RENDERING ===== */
+function renderTray(){
+  const tray=document.getElementById('piece-tray');
+  tray.innerHTML='';
+  const previewSize=Math.max(16,Math.floor(cellSize*0.55));
+  pieces.forEach((p,idx)=>{
+    if(!p) return;
+    const s=p.shape;
+    const w=s[0].length*previewSize, h=s.length*previewSize;
+    const c=document.createElement('canvas');
+    c.width=w;c.height=h;
+    c.className='tray-slot';
+    c.dataset.idx=idx;
+    const cx=c.getContext('2d');
+    for(let r=0;r<s.length;r++){
+      for(let col=0;col<s[r].length;col++){
+        if(!s[r][col]) continue;
+        cx.fillStyle=p.color;
+        cx.fillRect(col*previewSize+1,r*previewSize+1,previewSize-2,previewSize-2);
+        cx.fillStyle='rgba(255,255,255,0.15)';
+        cx.fillRect(col*previewSize+1,r*previewSize+1,previewSize-2,3);
+      }
+    }
+    tray.appendChild(c);
+  });
+}
+
+/* ===== PLACEMENT LOGIC ===== */
+function canPlaceAt(shape,row,col){
+  for(let r=0;r<shape.length;r++){
+    for(let c=0;c<shape[r].length;c++){
+      if(!shape[r][c]) continue;
+      const nr=row+r, nc=col+c;
+      if(nr<0||nr>=ROWS||nc<0||nc>=COLS) return false;
+      if(grid[nr][nc]) return false;
+    }
+  }
+  return true;
+}
+
+function placeShape(piece,row,col){
+  const s=piece.shape;
+  for(let r=0;r<s.length;r++){
+    for(let c=0;c<s[r].length;c++){
+      if(!s[r][c]) continue;
+      grid[row+r][col+c]=piece.color;
+    }
+  }
+  // Count cells placed
+  let placed=0;
+  for(let r=0;r<s.length;r++) for(let c=0;c<s[r].length;c++) if(s[r][c]) placed++;
+  score+=placed;
+}
+
+function clearLines(){
+  let cleared=0;
+  // Find full rows
+  let fullRows=[];
+  for(let r=0;r<ROWS;r++){
+    let full=true;
+    for(let c=0;c<COLS;c++) if(!grid[r][c]){full=false;break;}
+    if(full) fullRows.push(r);
+  }
+  // Find full cols
+  let fullCols=[];
+  for(let c=0;c<COLS;c++){
+    let full=true;
+    for(let r=0;r<ROWS;r++) if(!grid[r][c]){full=false;break;}
+    if(full) fullCols.push(c);
+  }
+  // Clear
+  fullRows.forEach(r=>{for(let c=0;c<COLS;c++) grid[r][c]=0;});
+  fullCols.forEach(c=>{for(let r=0;r<ROWS;r++) grid[r][c]=0;});
+  cleared=fullRows.length+fullCols.length;
+  if(cleared>0){
+    combo++;
+    // Scoring: base 10 per line, multiplied by combo and multi-clear
+    const lineScore=cleared*10;
+    const multiBonus=cleared>1?(cleared*cleared*5):0;
+    const comboBonus=combo>1?(combo*15):0;
+    score+=lineScore+multiBonus+comboBonus;
+  } else {
+    combo=0;
+  }
+  return cleared;
+}
+
+function canAnyPieceFit(){
+  for(let p of pieces){
+    if(!p) continue;
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        if(canPlaceAt(p.shape,r,c)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function piecesEmpty(){
+  return pieces.every(p=>!p);
+}
+
+/* ===== HUD ===== */
+function updateHUD(){
+  document.getElementById('hud-score').textContent=score;
+  document.getElementById('hud-best').textContent='Best: '+best;
+}
+
+function gameOver(){
+  if(score>best){best=score;localStorage.setItem('bb_best',best);}
+  updateHUD();
+  document.getElementById('go-score').textContent='Score: '+score;
+  document.getElementById('go-best').textContent='Best: '+best;
+  document.getElementById('game-over').classList.add('visible');
+  if(typeof jbShowInterstitial==='function') jbShowInterstitial();
+}
+
+/* ===== INPUT HANDLING ===== */
+function getPointer(e){
+  if(e.touches) return {x:e.touches[0].clientX,y:e.touches[0].clientY};
+  return {x:e.clientX,y:e.clientY};
+}
+
+function startDrag(e){
+  e.preventDefault();
+  const pt=getPointer(e);
+  const traySlots=document.querySelectorAll('.tray-slot');
+  for(let slot of traySlots){
+    const r=slot.getBoundingClientRect();
+    if(pt.x>=r.left&&pt.x<=r.right&&pt.y>=r.top&&pt.y<=r.bottom){
+      const idx=parseInt(slot.dataset.idx);
+      if(!pieces[idx]) return;
+      dragging={piece:pieces[idx],idx:idx,cx:pt.x,cy:pt.y-cellSize*1.5};
+      slot.style.opacity='0.3';
+      draw();
+      return;
+    }
+  }
+}
+
+function moveDrag(e){
+  if(!dragging) return;
+  e.preventDefault();
+  const pt=getPointer(e);
+  dragging.cx=pt.x;
+  dragging.cy=pt.y-cellSize*1.5;
+  draw();
+}
+
+function endDrag(e){
+  if(!dragging) return;
+  e.preventDefault();
+  const br=boardRect();
+  const gc=Math.round((dragging.cx-br.left)/cellSize);
+  const gr=Math.round((dragging.cy-br.top)/cellSize);
+
+  if(canPlaceAt(dragging.piece.shape,gr,gc)){
+    placeShape(dragging.piece,gr,gc);
+    pieces[dragging.idx]=null;
+    clearLines();
+    updateHUD();
+
+    if(piecesEmpty()) spawnPieces();
+    if(!canAnyPieceFit()) gameOver();
+  }
+
+  dragging=null;
+  renderTray();
+  draw();
+}
+
+/* ===== EVENT LISTENERS ===== */
+document.addEventListener('mousedown',startDrag);
+document.addEventListener('mousemove',moveDrag);
+document.addEventListener('mouseup',endDrag);
+document.addEventListener('touchstart',startDrag,{passive:false});
+document.addEventListener('touchmove',moveDrag,{passive:false});
+document.addEventListener('touchend',endDrag,{passive:false});
+
+document.getElementById('go-play-btn').addEventListener('click',newGame);
+document.getElementById('go-share-btn').addEventListener('click',()=>{
+  if(typeof jbShareScore==='function') jbShareScore(score);
+});
+
+window.addEventListener('resize',resize);
+
+/* ===== START ===== */
+resize();
+newGame();
+
+})();
+</script>
+<script src="../shared/monetization.js"></script>
+</body>
+</html>

@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Merge Master — JellyBolt Games</title>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8350556723025693" crossorigin="anonymous"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0d0d1a;--surface:#12122a;--border:#1e1e3a;--accent:#00ff88;--accent2:#58a6ff;--text:#e0e0ff;--muted:#666688;--gap:7px;--radius:12px}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg)}
+body{color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;touch-action:none;user-select:none;-webkit-user-select:none}
+.screen{display:none;width:100%;max-width:480px;min-height:100dvh;flex-direction:column;align-items:center}
+.screen.active{display:flex}
+#jb-topbar{width:100%;max-width:480px;background:#08081a;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:6px 14px;font-size:.78em;font-weight:700;position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:200;height:38px}
+.jb-brand{color:var(--accent);letter-spacing:.5px}
+#hud-score-top{color:var(--text)}
+#hud-coins-top{color:#ffd700}
+/* MENU */
+#screen-menu{justify-content:flex-start;align-items:center;padding:56px 20px 20px;gap:10px;overflow-y:auto}
+.mm-title{font-size:2.6em;font-weight:900;background:linear-gradient(135deg,#ffd700,#ff6b35,#ff0080,#9f7aea);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;line-height:1.1;margin-bottom:2px}
+.mm-subtitle{color:var(--muted);font-size:.82em;text-align:center;margin-bottom:6px}
+.menu-stats{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.stat-badge{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 14px;text-align:center;min-width:88px}
+.stat-badge .val{font-size:1.2em;font-weight:900;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.stat-badge .lbl{font-size:.68em;color:var(--muted);margin-top:1px}
+.btn{padding:12px 28px;font-size:1em;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:transform .12s,box-shadow .12s;width:100%;max-width:280px}
+.btn:hover{transform:translateY(-2px)}.btn:active{transform:translateY(0)}
+.btn-primary{background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;box-shadow:0 4px 20px rgba(0,255,136,.25)}
+.btn-secondary{background:linear-gradient(135deg,#58a6ff,#3b82f6);color:#fff;box-shadow:0 4px 16px rgba(88,166,255,.2)}
+.btn-daily{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;box-shadow:0 4px 18px rgba(255,215,0,.25)}
+.btn-sm{padding:8px 20px;font-size:.88em;max-width:220px}
+.daily-badge{background:linear-gradient(135deg,rgba(255,215,0,.1),rgba(255,140,0,.1));border:1px solid rgba(255,215,0,.3);border-radius:8px;padding:7px 14px;font-size:.8em;color:#ffd700;text-align:center;max-width:280px}
+.tier-preview{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;width:100%;max-width:330px}
+.tier-thumb{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.2em;border:1px solid rgba(255,255,255,.08)}
+.tier-thumb-lbl{font-size:.42em;color:rgba(255,255,255,.65);margin-top:1px}
+.menu-hint{color:var(--muted);font-size:.75em;text-align:center;max-width:270px;line-height:1.5}
+.credit{color:#333355;font-size:.72em;text-align:center;margin-top:4px}
+/* GAME */
+#screen-game{padding-top:38px;justify-content:flex-start;position:relative}
+#game-hud{width:100%;max-width:480px;background:rgba(8,8,26,.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:7px 10px;position:fixed;top:38px;left:50%;transform:translateX(-50%);z-index:190;height:50px}
+.hud-item{display:flex;flex-direction:column;align-items:center}
+.hud-val{font-size:1.05em;font-weight:900;color:var(--accent);line-height:1.1}
+.hud-lbl{font-size:.6em;color:var(--muted)}
+.hud-coins-val{color:#ffd700!important}
+.hud-sep{width:1px;height:26px;background:var(--border)}
+#extra-timer-bar{display:none;width:100%;max-width:480px;height:3px;position:fixed;top:88px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.08);z-index:189}
+#extra-timer-fill{height:100%;width:100%;background:linear-gradient(90deg,#ffd700,#ff8c00);transition:width 1s linear}
+#grid-wrap{width:100%;max-width:480px;padding:10px 12px;margin-top:88px;margin-bottom:62px;display:flex;align-items:center;justify-content:center;flex:1}
+#game-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap);width:100%;max-width:400px;transition:grid-template-columns .35s ease}
+#game-grid.extra-space{grid-template-columns:repeat(6,1fr)}
+/* CELLS */
+.cell{aspect-ratio:1;border-radius:var(--radius);border:2px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:default;position:relative;overflow:hidden;transition:transform .1s,border-color .12s,box-shadow .12s;-webkit-tap-highlight-color:transparent}
+.cell.has-item{cursor:grab}
+.cell.drag-over{border-color:rgba(0,255,136,.85)!important;box-shadow:0 0 0 2px rgba(0,255,136,.35),inset 0 0 18px rgba(0,255,136,.12)!important;transform:scale(.95)}
+.cell.drag-source{opacity:.35;transform:scale(.9)}
+.cell.remove-target:hover{border-color:rgba(255,68,68,.9)!important;box-shadow:0 0 0 2px rgba(255,68,68,.4)!important;cursor:pointer}
+.cell.extra-col{border-color:rgba(255,215,0,.25);background:rgba(255,215,0,.03)}
+.cell.extra-col.has-item{box-shadow:0 0 10px rgba(255,215,0,.15)}
+.cell-emoji{font-size:clamp(20px,7vw,34px);line-height:1;pointer-events:none}
+.cell-label{font-size:clamp(6px,2.2vw,10px);font-weight:700;margin-top:2px;color:rgba(255,255,255,.78);letter-spacing:.4px;pointer-events:none}
+.cell-tier{position:absolute;top:2px;right:4px;font-size:clamp(6px,1.8vw,9px);font-weight:900;color:rgba(255,255,255,.45);pointer-events:none}
+/* ANIMATIONS */
+@keyframes mergeAnim{0%{transform:scale(1);filter:brightness(1)}25%{transform:scale(.75);filter:brightness(3.5)}60%{transform:scale(1.3);filter:brightness(1.6)}80%{transform:scale(.93);filter:brightness(1)}100%{transform:scale(1);filter:brightness(1)}}
+@keyframes spawnAnim{0%{transform:scale(0);opacity:0}65%{transform:scale(1.18);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes chainAnim{0%{transform:scale(1);filter:brightness(1) hue-rotate(0deg)}20%{transform:scale(.8);filter:brightness(5) hue-rotate(60deg)}50%{transform:scale(1.35);filter:brightness(2.5) hue-rotate(180deg)}80%{transform:scale(.95);filter:brightness(1.3) hue-rotate(300deg)}100%{transform:scale(1);filter:brightness(1) hue-rotate(360deg)}}
+@keyframes vanishAnim{0%{transform:scale(1);opacity:1}100%{transform:scale(0);opacity:0}}
+@keyframes shakeAnim{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+@keyframes rainbowPulse{0%{filter:hue-rotate(0deg) brightness(1.6)}50%{filter:hue-rotate(180deg) brightness(2.2)}100%{filter:hue-rotate(360deg) brightness(1.6)}}
+.cell.anim-merge{animation:mergeAnim .4s ease-out}
+.cell.anim-spawn{animation:spawnAnim .3s cubic-bezier(.175,.885,.32,1.275)}
+.cell.anim-chain{animation:chainAnim .55s ease-out}
+.cell.anim-vanish{animation:vanishAnim .25s ease-in forwards}
+.cell.anim-rainbow{animation:rainbowPulse .9s ease-in-out}
+/* DRAG GHOST */
+#drag-ghost{position:fixed;pointer-events:none;z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;width:62px;height:62px;border-radius:12px;transform:translate(-50%,-50%) scale(1.15);box-shadow:0 8px 28px rgba(0,0,0,.6)}
+#drag-ghost.active{display:flex}
+/* BOTTOM BAR */
+#bottom-bar{width:100%;max-width:480px;background:rgba(8,8,26,.97);border-top:1px solid var(--border);display:flex;align-items:stretch;justify-content:space-around;padding:5px 8px 8px;position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:190;height:62px;gap:6px}
+.pu-btn{flex:1;padding:5px 4px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.7em;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:all .13s}
+.pu-btn:hover:not(:disabled){border-color:var(--accent);background:rgba(0,255,136,.07);transform:translateY(-2px)}
+.pu-btn:disabled{opacity:.38;cursor:not-allowed;transform:none}
+.pu-btn.active-mode{border-color:#ff6b6b;background:rgba(255,107,107,.14)}
+.pu-icon{font-size:1.35em;line-height:1}
+.pu-cost{color:#ffd700;font-size:.82em}
+.pu-btn-quit{border-color:rgba(255,100,100,.25)}
+.pu-btn-quit:hover:not(:disabled){border-color:rgba(255,100,100,.7);background:rgba(255,100,100,.08)}
+/* SHOP OVERLAY */
+#shop-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:500;align-items:flex-end;justify-content:center}
+#shop-overlay.active{display:flex}
+.shop-panel{width:100%;max-width:480px;background:#13132e;border:1px solid var(--border);border-radius:22px 22px 0 0;padding:18px 18px 24px}
+.shop-title{font-size:1.25em;font-weight:900;color:var(--accent)}
+.shop-coins{color:#ffd700;font-size:.85em;margin:4px 0 14px}
+.shop-items{display:flex;flex-direction:column;gap:9px}
+.shop-item{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:11px 12px;cursor:pointer;transition:all .13s}
+.shop-item:hover:not(.si-disabled){border-color:var(--accent);background:rgba(0,255,136,.06)}
+.shop-item.si-disabled{opacity:.38;cursor:not-allowed}
+.si-icon{font-size:2em;line-height:1}
+.si-info{flex:1}
+.si-name{font-weight:700;font-size:.9em}
+.si-desc{color:var(--muted);font-size:.75em;margin-top:2px}
+.si-cost{font-size:1em;font-weight:900;color:#ffd700;white-space:nowrap}
+/* GAME OVER */
+#screen-gameover{justify-content:center;align-items:center;padding:60px 20px 30px;gap:10px;overflow-y:auto}
+.go-icon{font-size:4em}
+.go-title{font-size:1.9em;font-weight:900;text-align:center}
+.go-subtitle{color:var(--muted);font-size:.85em;text-align:center}
+.go-stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:320px}
+.go-stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px;text-align:center}
+.go-stat .val{font-size:1.35em;font-weight:900;color:var(--accent)}
+.go-stat .lbl{font-size:.68em;color:var(--muted)}
+.go-stat.full-row{grid-column:span 2}
+.go-best{background:linear-gradient(135deg,rgba(255,215,0,.08),rgba(255,140,0,.08));border-color:rgba(255,215,0,.3)!important}
+.go-best .val{color:#ffd700!important}
+/* TOASTS */
+#toast-container{position:fixed;top:96px;left:50%;transform:translateX(-50%);z-index:8000;display:flex;flex-direction:column;gap:5px;pointer-events:none;width:100%;max-width:380px;padding:0 14px}
+.toast{background:rgba(14,14,34,.96);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:.82em;font-weight:600;text-align:center;animation:toastIn .25s ease-out,toastOut .3s ease-in var(--dur,1.7s) forwards}
+@keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0}}
+.toast.good{border-color:rgba(0,255,136,.4);color:var(--accent)}
+.toast.bad{border-color:rgba(255,107,107,.4);color:#ff6b6b}
+.toast.info{border-color:rgba(88,166,255,.4);color:var(--accent2)}
+.toast.gold{border-color:rgba(255,215,0,.4);color:#ffd700}
+/* MONO BAR */
+.jb-monetization-bar{position:fixed;bottom:62px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;justify-content:center;align-items:center;gap:6px;padding:5px 10px;background:rgba(6,6,20,.98);border-top:1px solid #16163a;z-index:185;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:3px;padding:5px 10px;border-radius:6px;font-size:.72rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-ad-interstitial{z-index:10000!important}
+@media(max-width:360px){:root{--gap:5px;--radius:9px}.mm-title{font-size:2.2em}}
+@media(max-height:640px){#grid-wrap{padding:6px 10px}.tier-preview{display:none}}
+</style>
+<style>.jb-ad-banner{text-align:center;margin:4px auto;overflow:hidden;max-height:100px}#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}</style></head>
+<body>
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+<div id="jb-topbar">
+  <span class="jb-brand">&#9889; JellyBolt</span>
+  <span id="hud-score-top"></span>
+  <span id="hud-coins-top"></span>
+</div>
+<div id="extra-timer-bar"><div id="extra-timer-fill"></div></div>
+<div id="toast-container"></div>
+<div id="drag-ghost"></div>
+
+<!-- MENU -->
+<div id="screen-menu" class="screen active">
+  <div class="mm-title">&#127942; Merge Master</div>
+  <div class="mm-subtitle">Merge items &middot; Climb tiers &middot; Master the grid</div>
+  <div class="menu-stats">
+    <div class="stat-badge"><div class="val" id="menu-highscore">&mdash;</div><div class="lbl">Best Score</div></div>
+    <div class="stat-badge"><div class="val" id="menu-best-tier">&mdash;</div><div class="lbl">Best Tier</div></div>
+    <div class="stat-badge"><div class="val" id="menu-daily-best">&mdash;</div><div class="lbl">Daily Best</div></div>
+  </div>
+  <button class="btn btn-primary" onclick="startGame(false)">&#9654; Play</button>
+  <button class="btn btn-daily"   onclick="startGame(true)">&#128197; Daily Challenge</button>
+  <div class="daily-badge" id="daily-info">&#128197; Daily Challenge &mdash; same board for everyone today!</div>
+  <div class="tier-preview" id="tier-preview"></div>
+  <div class="menu-hint">Drag a matching item onto another of the same type to merge them.<br>Reach Tier 12 &#127942; to become Merge Master!</div>
+  <div class="credit">&#9889; JellyBolt Games</div>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen">
+  <div id="game-hud">
+    <div class="hud-item"><div class="hud-val" id="hud-score">0</div><div class="hud-lbl">Score</div></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><div class="hud-val" id="hud-merges">0</div><div class="hud-lbl">Merges</div></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><div class="hud-val" id="hud-max-tier">&#9889;1</div><div class="hud-lbl">Best Tier</div></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><div class="hud-val hud-coins-val" id="hud-coins">&#129689; 0</div><div class="hud-lbl">Coins</div></div>
+  </div>
+  <div id="grid-wrap"><div id="game-grid"></div></div>
+  <div id="bottom-bar">
+    <button class="pu-btn" id="btn-remove" onclick="activateRemove()">
+      <span class="pu-icon">&#128465;</span><span>Remove</span><span class="pu-cost">50 &#129689;</span>
+    </button>
+    <button class="pu-btn" id="btn-shuffle" onclick="doShuffle()">
+      <span class="pu-icon">&#128256;</span><span>Shuffle</span><span class="pu-cost">100 &#129689;</span>
+    </button>
+    <button class="pu-btn" id="btn-extraspace" onclick="doExtraSpace()">
+      <span class="pu-icon">&#10133;</span><span>Space</span><span class="pu-cost" id="pu-extra-label">75 &#129689;</span>
+    </button>
+    <button class="pu-btn pu-btn-quit" onclick="confirmQuit()">
+      <span class="pu-icon">&#128682;</span><span>Quit</span>
+    </button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="screen-gameover" class="screen">
+  <div class="go-icon"  id="go-icon">&#128565;</div>
+  <div class="go-title" id="go-title">BOARD FULL!</div>
+  <div class="go-subtitle" id="go-subtitle">No more merges possible</div>
+  <div class="go-stats">
+    <div class="go-stat"><div class="val" id="go-score">0</div><div class="lbl">Final Score</div></div>
+    <div class="go-stat"><div class="val" id="go-merges">0</div><div class="lbl">Merges Done</div></div>
+    <div class="go-stat"><div class="val" id="go-tier">&#9889;1</div><div class="lbl">Best Tier</div></div>
+    <div class="go-stat"><div class="val" id="go-coins">0</div><div class="lbl">Coins Earned</div></div>
+    <div class="go-stat full-row go-best"><div class="val" id="go-highscore">0</div><div class="lbl">&#127942; All-Time High Score</div></div>
+  </div>
+  <div id="go-daily-result" class="daily-badge" style="display:none;"></div>
+  <button class="btn btn-primary"   onclick="startGame(false)">&#9654; Play Again</button>
+  <button class="btn btn-daily"     id="go-daily-btn" style="display:none;" onclick="startGame(true)">&#128197; Retry Daily</button>
+  <button class="btn btn-secondary btn-sm" onclick="showScreen('menu')">&#127968; Menu</button>
+  <button class="btn btn-sm" style="background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff;max-width:180px;" onclick="shareScore()">&#128038; Share Score</button>
+</div>
+
+<!-- SHOP OVERLAY -->
+<div id="shop-overlay">
+  <div class="shop-panel">
+    <div class="shop-title">&#128722; Power-up Shop</div>
+    <div class="shop-coins" id="shop-coins-display">&#129689; 0 coins</div>
+    <div class="shop-items" id="shop-items"></div>
+    <button class="btn btn-secondary btn-sm" style="margin-top:14px;width:100%;" onclick="closeShop()">&#10005; Close</button>
+  </div>
+</div>
+
+<!-- MONO BAR -->
+<div class="jb-monetization-bar" id="jb-monbar" style="display:none;">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support</a>
+  <a class="jb-btn-games"  href="../../index.html">&#127918; More Games</a>
+  <a class="jb-btn-share"  href="#" onclick="shareScore();return false;">&#128038; Share</a>
+</div>
+
+<script>
+'use strict';
+
+// ── CONSTANTS ──────────────────────────────────────────────────
+
+const TIERS = [
+  null,
+  {emoji:'⚡',label:'Spark',   bg:'linear-gradient(135deg,#555,#888)',                              glow:'#aaa'},
+  {emoji:'🔥',label:'Flame',   bg:'linear-gradient(135deg,#bf360c,#e65100)',                        glow:'#ff7043'},
+  {emoji:'💧',label:'Drop',    bg:'linear-gradient(135deg,#0d47a1,#1565c0)',                        glow:'#42a5f5'},
+  {emoji:'🌿',label:'Leaf',    bg:'linear-gradient(135deg,#1b5e20,#388e3c)',                        glow:'#66bb6a'},
+  {emoji:'💎',label:'Gem',     bg:'linear-gradient(135deg,#006064,#0097a7)',                        glow:'#26c6da'},
+  {emoji:'⭐',label:'Star',    bg:'linear-gradient(135deg,#e65100,#ffa000)',                        glow:'#ffd54f'},
+  {emoji:'🌙',label:'Moon',    bg:'linear-gradient(135deg,#1a237e,#3949ab)',                        glow:'#7986cb'},
+  {emoji:'☀️',label:'Sun',     bg:'linear-gradient(135deg,#bf6900,#f9a825)',                        glow:'#ffe082'},
+  {emoji:'🌊',label:'Wave',    bg:'linear-gradient(135deg,#004d40,#00796b)',                        glow:'#4db6ac'},
+  {emoji:'🌋',label:'Volcano', bg:'linear-gradient(135deg,#b71c1c,#d32f2f)',                        glow:'#ef5350'},
+  {emoji:'��',label:'Cosmos',  bg:'linear-gradient(135deg,#4a148c,#7b1fa2)',                        glow:'#ce93d8'},
+  {emoji:'🏆',label:'Master',  bg:'linear-gradient(135deg,#ff6b35,#ffd700,#a8ff78,#78d3ff,#9f7aea)',glow:'#ffd700'},
+];
+
+const POWERUPS=[
+  {id:'remove',     icon:'🗑️',name:'Remove',      desc:'Delete one item from the board.',   cost:50},
+  {id:'shuffle',    icon:'🔀',name:'Shuffle',     desc:'Randomly rearrange all items.',     cost:100},
+  {id:'extraspace', icon:'➕',name:'Extra Space', desc:'Adds a 6th column for 30 seconds.', cost:75},
+];
+
+const COLS_NORMAL=5, COLS_EXTRA=6, ROWS=5, EXTRA_DUR=30;
+const LS_HS='mm_highscore', LS_BT='mm_best_tier', LS_DAILY='mm_daily';
+
+// ── SEEDED RNG ─────────────────────────────────────────────────
+
+function mulberry32(seed){
+  return function(){
+    seed|=0; seed=(seed+0x6D2B79F5)|0;
+    let t=Math.imul(seed^(seed>>>15),1|seed);
+    t=(t+Math.imul(t^(t>>>7),61|t))^t;
+    return((t^(t>>>14))>>>0)/4294967296;
+  };
+}
+
+function getDailySeed(){
+  const d=new Date();
+  return (d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate())|0;
+}
+
+function getDailyDateStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// ── GAME STATE ─────────────────────────────────────────────────
+
+let grid=[],coins=0,coinsTotal=0,mergeCount=0,maxTierReached=1,gameOverCount=0;
+let extraSpaceActive=false,extraSpaceSecondsLeft=0,extraSpaceIntervalId=null;
+let powerupMode=null,isDailyChallenge=false;
+let rng=Math.random.bind(Math);
+
+let drag={active:false,fromIdx:-1,currentTarget:-1,moved:false,startX:0,startY:0};
+
+// ── SCREEN MANAGEMENT ──────────────────────────────────────────
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  const mb=document.getElementById('jb-monbar');
+  mb.style.display=(id==='menu'||id==='gameover')?'flex':'none';
+  if(id==='menu') refreshMenuUI();
+}
+
+// ── MENU ───────────────────────────────────────────────────────
+
+function refreshMenuUI(){
+  const hs=parseInt(localStorage.getItem(LS_HS)||'0');
+  const bt=parseInt(localStorage.getItem(LS_BT)||'0');
+  const today=getDailyDateStr();
+  const daily=JSON.parse(localStorage.getItem(LS_DAILY)||'{}');
+  document.getElementById('menu-highscore').textContent=hs||'—';
+  document.getElementById('menu-best-tier').textContent=bt?TIERS[bt].emoji+' '+TIERS[bt].label:'—';
+  document.getElementById('menu-daily-best').textContent=daily[today]?String(daily[today]):'—';
+  const info=document.getElementById('daily-info');
+  info.textContent=daily[today]
+    ?'📅 Today\'s best: '+daily[today]+' — beat it!'
+    :'📅 Daily Challenge — same board for everyone today!';
+  buildTierPreview();
+}
+
+function buildTierPreview(){
+  const c=document.getElementById('tier-preview');
+  c.innerHTML='';
+  for(let t=1;t<=12;t++){
+    const tier=TIERS[t];
+    const div=document.createElement('div');
+    div.className='tier-thumb';
+    div.style.background=tier.bg;
+    div.style.boxShadow='0 0 8px '+tier.glow+'44';
+    div.innerHTML='<span>'+tier.emoji+'</span><span class="tier-thumb-lbl">'+tier.label+'</span>';
+    c.appendChild(div);
+  }
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+
+function startGame(daily){
+  isDailyChallenge=daily;
+  rng=daily?mulberry32(getDailySeed()):Math.random.bind(Math);
+  grid=new Array(ROWS*COLS_NORMAL).fill(null);
+  coins=0; coinsTotal=0; mergeCount=0; maxTierReached=1;
+  powerupMode=null;
+  if(extraSpaceActive) deactivateExtraSpace(true);
+  buildGridDOM();
+  const initCount=daily?5:3;
+  for(let i=0;i<initCount;i++) spawnItem(true);
+  renderGrid(); updateHUD(); refreshPUBar();
+  showScreen('game');
+  if(daily) showToast('📅 Daily Challenge! Same board for everyone today.','info',2800);
+}
+
+// ── GRID DOM ───────────────────────────────────────────────────
+
+function buildGridDOM(){
+  const g=document.getElementById('game-grid');
+  g.innerHTML='';
+  g.style.gridTemplateColumns='repeat('+COLS_NORMAL+',1fr)';
+  g.classList.remove('extra-space');
+  for(let i=0;i<ROWS*COLS_NORMAL;i++) g.appendChild(makeCellEl(i,false));
+  attachGridEvents(g);
+}
+
+function rebuildGridDOM(){
+  const g=document.getElementById('game-grid');
+  const cols=getCols();
+  g.innerHTML='';
+  g.style.gridTemplateColumns='repeat('+cols+',1fr)';
+  g.classList.toggle('extra-space',extraSpaceActive);
+  for(let i=0;i<grid.length;i++) g.appendChild(makeCellEl(i,extraSpaceActive&&i%cols===cols-1));
+  attachGridEvents(g);
+}
+
+function makeCellEl(idx,isExtra){
+  const el=document.createElement('div');
+  el.className='cell'+(isExtra?' extra-col':'');
+  el.dataset.idx=idx;
+  return el;
+}
+
+// ── GRID HELPERS ───────────────────────────────────────────────
+
+function getCols(){return extraSpaceActive?COLS_EXTRA:COLS_NORMAL;}
+
+function getNeighbors(idx){
+  const cols=getCols(),size=grid.length;
+  const row=Math.floor(idx/cols),col=idx%cols,out=[];
+  if(row>0&&idx-cols>=0)          out.push(idx-cols);
+  if(row<ROWS-1&&idx+cols<size)   out.push(idx+cols);
+  if(col>0)                       out.push(idx-1);
+  if(col<cols-1&&idx+1<size)      out.push(idx+1);
+  return out;
+}
+
+function getEmptyCells(){
+  return grid.reduce((a,c,i)=>{if(c===null)a.push(i);return a;},[]);
+}
+
+// ── SPAWN ──────────────────────────────────────────────────────
+
+function spawnItem(silent){
+  const empty=getEmptyCells();
+  if(empty.length===0) return false;
+  const idx=empty[Math.floor(rng()*empty.length)];
+  grid[idx]={tier:rng()<0.72?1:2};
+  if(!silent) animateCell(idx,'spawn');
+  return idx;
+}
+
+// ── MERGE ──────────────────────────────────────────────────────
+
+function tryMerge(fromIdx,toIdx){
+  if(fromIdx===toIdx||fromIdx<0||toIdx<0) return false;
+  const from=grid[fromIdx],to=grid[toIdx];
+  if(!from||!to) return false;
+  if(from.tier!==to.tier){shakeCells([fromIdx,toIdx]);return false;}
+  if(from.tier>=12){showToast('🏆 Already at max tier!','info');return false;}
+  const newTier=from.tier+1;
+  const earned=from.tier*10;
+  grid[fromIdx]=null;
+  grid[toIdx]={tier:newTier};
+  coins+=earned; coinsTotal+=earned; mergeCount++;
+  if(newTier>maxTierReached){
+    maxTierReached=newTier;
+    showToast(TIERS[newTier].emoji+' New tier: '+TIERS[newTier].label+'!','good',1800);
+    if(newTier===12){
+      animateCell(toIdx,'rainbow');
+      showToast('🏆 YOU REACHED MASTER TIER!','gold',3500);
+    }
+  }
+  animateCell(toIdx,'merge');
+  renderGrid(); updateHUD(); saveHighScore();
+  if(earned>=60) showToast('+'+earned+' 🪙','gold',900);
+  checkChain(toIdx,function(){
+    const spawned=spawnItem(false);
+    if(spawned!==false) requestAnimationFrame(function(){renderCell(spawned);});
+    renderGrid(); updateHUD(); refreshPUBar();
+    setTimeout(checkGameOver,250);
+  });
+  return true;
+}
+
+// ── CHAIN MERGE ────────────────────────────────────────────────
+
+function checkChain(idx,callback){
+  if(!grid[idx]||grid[idx].tier>=12){if(callback)callback();return;}
+  const tier=grid[idx].tier;
+  const visited=new Set([idx]);
+  const queue=[idx];
+  while(queue.length>0){
+    const cur=queue.shift();
+    getNeighbors(cur).forEach(function(n){
+      if(!visited.has(n)&&grid[n]&&grid[n].tier===tier){visited.add(n);queue.push(n);}
+    });
+  }
+  if(visited.size<3){if(callback)callback();return;}
+  const group=[...visited];
+  const bonusCoins=tier*10*(group.length-1);
+  const newTier=Math.min(12,tier+1);
+  group.forEach(function(i){if(i!==idx) animateCell(i,'vanish');});
+  setTimeout(function(){
+    group.forEach(function(i){if(i!==idx) grid[i]=null;});
+    grid[idx]={tier:newTier};
+    animateCell(idx,'chain');
+    coins+=bonusCoins; coinsTotal+=bonusCoins; mergeCount++;
+    if(newTier>maxTierReached) maxTierReached=newTier;
+    showToast('⛓️ Chain ×'+group.length+'! +'+bonusCoins+' 🪙','gold',1600);
+    renderGrid(); updateHUD(); saveHighScore();
+    setTimeout(function(){checkChain(idx,callback);},350);
+  },270);
+}
+
+// ── GAME OVER ──────────────────────────────────────────────────
+
+function checkGameOver(){
+  if(getEmptyCells().length>0) return;
+  for(let i=0;i<grid.length;i++){
+    if(!grid[i]) continue;
+    for(const n of getNeighbors(i)){
+      if(grid[n]&&grid[n].tier===grid[i].tier&&grid[i].tier<12) return;
+    }
+  }
+  triggerGameOver();
+}
+
+function triggerGameOver(){
+  gameOverCount++;
+  const finalScore=computeScore();
+  saveHighScore();
+  if(isDailyChallenge){
+    const today=getDailyDateStr();
+    const daily=JSON.parse(localStorage.getItem(LS_DAILY)||'{}');
+    if(!daily[today]||finalScore>daily[today]) daily[today]=finalScore;
+    localStorage.setItem(LS_DAILY,JSON.stringify(daily));
+  }
+  if(gameOverCount%3===0&&window.jbShowInterstitial) setTimeout(jbShowInterstitial,400);
+  const hs=parseInt(localStorage.getItem(LS_HS)||'0');
+  document.getElementById('go-score').textContent=finalScore;
+  document.getElementById('go-merges').textContent=mergeCount;
+  document.getElementById('go-tier').textContent=TIERS[maxTierReached].emoji+' '+TIERS[maxTierReached].label;
+  document.getElementById('go-coins').textContent=coinsTotal;
+  document.getElementById('go-highscore').textContent=hs;
+  const isNew=finalScore>=hs;
+  document.getElementById('go-icon').textContent=isNew?'🏆':'😵';
+  document.getElementById('go-title').textContent=(isNew&&hs>0)?'🎉 NEW HIGH SCORE!':'BOARD FULL!';
+  const goDaily=document.getElementById('go-daily-result');
+  const goDailyBtn=document.getElementById('go-daily-btn');
+  if(isDailyChallenge){
+    const daily=JSON.parse(localStorage.getItem(LS_DAILY)||'{}');
+    const today=getDailyDateStr();
+    goDaily.textContent='📅 Daily Score: '+finalScore+' — Best Today: '+(daily[today]||finalScore);
+    goDaily.style.display='block'; goDailyBtn.style.display='block';
+  } else {
+    goDaily.style.display='none'; goDailyBtn.style.display='none';
+  }
+  if(window.jbShareScore) setTimeout(function(){jbShareScore(finalScore);},1800);
+  showScreen('gameover');
+}
+
+function computeScore(){return maxTierReached*100+mergeCount*10;}
+
+// ── HIGH SCORE ─────────────────────────────────────────────────
+
+function saveHighScore(){
+  const s=computeScore();
+  if(s>parseInt(localStorage.getItem(LS_HS)||'0')) localStorage.setItem(LS_HS,s);
+  if(maxTierReached>parseInt(localStorage.getItem(LS_BT)||'0')) localStorage.setItem(LS_BT,maxTierReached);
+}
+
+// ── POWER-UPS ──────────────────────────────────────────────────
+
+function activateRemove(){
+  if(powerupMode==='remove'){
+    powerupMode=null; renderGrid(); refreshPUBar();
+    showToast('Remove cancelled','info'); return;
+  }
+  if(coins<50){showToast('Need 50 🪙 to Remove!','bad');return;}
+  powerupMode='remove'; renderGrid(); refreshPUBar();
+  showToast('🗑️ Tap any item to remove it','info',2200);
+}
+
+function handleRemoveClick(idx){
+  if(!grid[idx]){showToast('Cell is empty!','bad');return;}
+  coins-=50;
+  animateCell(idx,'vanish');
+  setTimeout(function(){grid[idx]=null;renderCell(idx);renderGrid();},270);
+  powerupMode=null; updateHUD(); refreshPUBar();
+  showToast('Item removed!','good');
+}
+
+function doShuffle(){
+  if(coins<100){showToast('Need 100 🪙 to Shuffle!','bad');return;}
+  coins-=100;
+  const items=grid.filter(function(c){return c!==null;});
+  for(let i=items.length-1;i>0;i--){
+    const j=Math.floor(rng()*(i+1));
+    const tmp=items[i];items[i]=items[j];items[j]=tmp;
+  }
+  let ii=0;
+  for(let i=0;i<grid.length;i++) grid[i]=ii<items.length?items[ii++]:null;
+  updateHUD(); refreshPUBar(); renderGrid();
+  showToast('🔀 Board shuffled!','good');
+}
+
+function doExtraSpace(){
+  if(extraSpaceActive){showToast('Extra Space already active!','info');return;}
+  if(coins<75){showToast('Need 75 🪙 for Extra Space!','bad');return;}
+  coins-=75; activateExtraSpace(); updateHUD(); refreshPUBar();
+}
+
+function activateExtraSpace(){
+  extraSpaceActive=true;
+  // Insert null at end of each row, from last row to first (prevents index shifting)
+  for(let row=ROWS-1;row>=0;row--) grid.splice((row+1)*COLS_NORMAL,0,null);
+  rebuildGridDOM(); renderGrid();
+  extraSpaceSecondsLeft=EXTRA_DUR;
+  const bar=document.getElementById('extra-timer-bar');
+  const fill=document.getElementById('extra-timer-fill');
+  bar.style.display='block'; fill.style.width='100%';
+  fill.style.background='linear-gradient(90deg,#ffd700,#ff8c00)';
+  extraSpaceIntervalId=setInterval(function(){
+    extraSpaceSecondsLeft--;
+    const pct=(extraSpaceSecondsLeft/EXTRA_DUR)*100;
+    fill.style.width=Math.max(0,pct)+'%';
+    if(extraSpaceSecondsLeft<=5){
+      fill.style.background='linear-gradient(90deg,#ff4444,#ff0000)';
+      if(extraSpaceSecondsLeft===5) showToast('⏰ Extra Space expiring in 5s!','bad');
+    }
+    document.getElementById('pu-extra-label').textContent=extraSpaceSecondsLeft+'s left';
+    if(extraSpaceSecondsLeft<=0) deactivateExtraSpace(false);
+  },1000);
+  showToast('➕ 6th column added for 30 seconds!','good',2200);
+}
+
+function deactivateExtraSpace(silent){
+  if(!extraSpaceActive) return;
+  clearInterval(extraSpaceIntervalId); extraSpaceIntervalId=null; extraSpaceActive=false;
+  document.getElementById('extra-timer-bar').style.display='none';
+  document.getElementById('pu-extra-label').textContent='75 🪙';
+  // Remove 6th-column cells (col idx cols-1) from end to start
+  for(let row=ROWS-1;row>=0;row--) grid.splice(row*COLS_EXTRA+(COLS_EXTRA-1),1);
+  rebuildGridDOM(); renderGrid(); refreshPUBar();
+  if(!silent){showToast('⌛ Extra Space expired!','bad');setTimeout(checkGameOver,200);}
+}
+
+// ── RENDERING ──────────────────────────────────────────────────
+
+function renderGrid(){
+  const cells=document.querySelectorAll('#game-grid .cell');
+  cells.forEach(function(el,i){if(i<grid.length) renderCellEl(el,i);});
+}
+
+function renderCell(idx){
+  const cells=document.querySelectorAll('#game-grid .cell');
+  if(cells[idx]) renderCellEl(cells[idx],idx);
+}
+
+const ANIM_CLS=['anim-merge','anim-spawn','anim-chain','anim-vanish','anim-rainbow'];
+
+function renderCellEl(el,idx){
+  const item=grid[idx];
+  const isExtra=el.classList.contains('extra-col');
+  const anims=ANIM_CLS.filter(function(c){return el.classList.contains(c);});
+  el.className='cell'+(isExtra?' extra-col':'');
+  anims.forEach(function(c){el.classList.add(c);});
+  el.dataset.idx=idx;
+  if(item){
+    const tier=TIERS[item.tier];
+    el.classList.add('has-item');
+    if(powerupMode==='remove') el.classList.add('remove-target');
+    el.style.background=tier.bg;
+    el.style.boxShadow='0 2px 14px '+tier.glow+'55,inset 0 1px 0 rgba(255,255,255,.1)';
+    el.style.borderColor=tier.glow+'66';
+    el.innerHTML='<span class="cell-emoji">'+tier.emoji+'</span>'
+      +'<span class="cell-label">'+tier.label+'</span>'
+      +'<span class="cell-tier">'+item.tier+'</span>';
+  } else {
+    el.style.background=''; el.style.boxShadow=''; el.style.borderColor=''; el.innerHTML='';
+  }
+}
+
+function updateHUD(){
+  const score=computeScore();
+  const tier=TIERS[maxTierReached]||TIERS[1];
+  document.getElementById('hud-score').textContent=score;
+  document.getElementById('hud-merges').textContent=mergeCount;
+  document.getElementById('hud-max-tier').textContent=tier.emoji+maxTierReached;
+  document.getElementById('hud-coins').textContent='🪙 '+coins;
+  document.getElementById('hud-score-top').textContent='Score: '+score;
+  document.getElementById('hud-coins-top').textContent='🪙 '+coins;
+}
+
+function refreshPUBar(){
+  const r=document.getElementById('btn-remove');
+  const s=document.getElementById('btn-shuffle');
+  const e=document.getElementById('btn-extraspace');
+  r.disabled=coins<50&&powerupMode!=='remove';
+  s.disabled=coins<100;
+  e.disabled=extraSpaceActive||coins<75;
+  r.classList.toggle('active-mode',powerupMode==='remove');
+}
+
+function renderShop(){
+  document.getElementById('shop-coins-display').textContent='🪙 '+coins+' coins';
+  const c=document.getElementById('shop-items');
+  c.innerHTML='';
+  POWERUPS.forEach(function(pu){
+    const active=pu.id==='extraspace'&&extraSpaceActive;
+    const disabled=coins<pu.cost||active;
+    const el=document.createElement('div');
+    el.className='shop-item'+(disabled?' si-disabled':'');
+    el.innerHTML='<span class="si-icon">'+pu.icon+'</span>'
+      +'<div class="si-info"><div class="si-name">'+pu.name+'</div>'
+      +'<div class="si-desc">'+pu.desc+(active?' (Active!)':'')+'</div></div>'
+      +'<span class="si-cost">'+pu.cost+' 🪙</span>';
+    if(!disabled) el.addEventListener('click',function(){
+      closeShop();
+      if(pu.id==='remove')     activateRemove();
+      if(pu.id==='shuffle')    doShuffle();
+      if(pu.id==='extraspace') doExtraSpace();
+    });
+    c.appendChild(el);
+  });
+}
+
+// ── ANIMATIONS ─────────────────────────────────────────────────
+
+const ANIM_MAP={merge:'anim-merge',spawn:'anim-spawn',chain:'anim-chain',vanish:'anim-vanish',rainbow:'anim-rainbow'};
+
+function animateCell(idx,type){
+  const cells=document.querySelectorAll('#game-grid .cell');
+  const el=cells[idx];
+  if(!el) return;
+  const cls=ANIM_MAP[type];
+  if(!cls) return;
+  el.classList.remove(...Object.values(ANIM_MAP));
+  void el.offsetWidth;
+  el.classList.add(cls);
+  el.addEventListener('animationend',function(){el.classList.remove(cls);},{once:true});
+}
+
+function shakeCells(indices){
+  const cells=document.querySelectorAll('#game-grid .cell');
+  indices.forEach(function(idx){
+    const el=cells[idx];
+    if(!el) return;
+    el.style.animation='none'; void el.offsetWidth;
+    el.style.animation='shakeAnim .32s ease-in-out';
+    setTimeout(function(){el.style.animation='';},380);
+  });
+}
+
+// ── DRAG & DROP — Pointer Events ───────────────────────────────
+
+function attachGridEvents(gridEl){
+  gridEl.addEventListener('pointerdown',  onPD, {passive:false});
+  gridEl.addEventListener('pointermove',  onPM, {passive:false});
+  gridEl.addEventListener('pointerup',    onPU, {passive:false});
+  gridEl.addEventListener('pointercancel',onPC, {passive:false});
+}
+
+function cellFromPoint(x,y){
+  const cells=document.querySelectorAll('#game-grid .cell');
+  for(let i=0;i<cells.length;i++){
+    const r=cells[i].getBoundingClientRect();
+    if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom) return i;
+  }
+  return -1;
+}
+
+function onPD(e){
+  e.preventDefault();
+  if(drag.active) return;
+  const target=e.target.closest('.cell');
+  if(!target) return;
+  const idx=parseInt(target.dataset.idx);
+  if(isNaN(idx)) return;
+  if(powerupMode==='remove'){if(grid[idx])handleRemoveClick(idx);return;}
+  if(!grid[idx]) return;
+  drag.active=true; drag.fromIdx=idx; drag.currentTarget=-1;
+  drag.moved=false; drag.startX=e.clientX; drag.startY=e.clientY;
+  try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}
+  const tier=TIERS[grid[idx].tier];
+  const ghost=document.getElementById('drag-ghost');
+  ghost.style.background=tier.bg;
+  ghost.style.boxShadow='0 6px 24px '+tier.glow+'88';
+  ghost.innerHTML='<span class="cell-emoji">'+tier.emoji+'</span><span class="cell-label">'+tier.label+'</span>';
+  posGhost(e.clientX,e.clientY);
+  ghost.classList.add('active');
+  const cells=document.querySelectorAll('#game-grid .cell');
+  if(cells[idx]) cells[idx].classList.add('drag-source');
+}
+
+function onPM(e){
+  if(!drag.active) return;
+  e.preventDefault();
+  if(Math.abs(e.clientX-drag.startX)>4||Math.abs(e.clientY-drag.startY)>4) drag.moved=true;
+  posGhost(e.clientX,e.clientY);
+  const ti=cellFromPoint(e.clientX,e.clientY);
+  if(ti===drag.currentTarget) return;
+  clearDragOver(drag.currentTarget);
+  drag.currentTarget=ti;
+  if(ti>=0&&ti!==drag.fromIdx&&grid[ti]&&drag.fromIdx>=0&&grid[drag.fromIdx]&&grid[ti].tier===grid[drag.fromIdx].tier){
+    const cells=document.querySelectorAll('#game-grid .cell');
+    if(cells[ti]) cells[ti].classList.add('drag-over');
+  }
+}
+
+function onPU(e){if(!drag.active) return;e.preventDefault();endDrag(e.clientX,e.clientY);}
+function onPC(){if(drag.active) cancelDrag();}
+
+function posGhost(x,y){
+  const g=document.getElementById('drag-ghost');
+  g.style.left=x+'px'; g.style.top=y+'px';
+}
+
+function endDrag(x,y){
+  document.getElementById('drag-ghost').classList.remove('active');
+  const cells=document.querySelectorAll('#game-grid .cell');
+  if(drag.fromIdx>=0&&cells[drag.fromIdx]) cells[drag.fromIdx].classList.remove('drag-source');
+  clearDragOver(drag.currentTarget);
+  if(drag.moved){
+    const ti=cellFromPoint(x,y);
+    if(ti>=0&&ti!==drag.fromIdx) tryMerge(drag.fromIdx,ti);
+  }
+  resetDrag();
+}
+
+function cancelDrag(){
+  document.getElementById('drag-ghost').classList.remove('active');
+  const cells=document.querySelectorAll('#game-grid .cell');
+  if(drag.fromIdx>=0&&cells[drag.fromIdx]) cells[drag.fromIdx].classList.remove('drag-source');
+  clearDragOver(drag.currentTarget);
+  resetDrag();
+}
+
+function clearDragOver(idx){
+  if(idx<0) return;
+  const cells=document.querySelectorAll('#game-grid .cell');
+  if(cells[idx]) cells[idx].classList.remove('drag-over');
+}
+
+function resetDrag(){drag.active=false;drag.fromIdx=-1;drag.currentTarget=-1;drag.moved=false;}
+
+// ── TOASTS ─────────────────────────────────────────────────────
+
+function showToast(msg,type,durMs){
+  const dur=durMs||2000;
+  const c=document.getElementById('toast-container');
+  const el=document.createElement('div');
+  el.className='toast '+(type||'info');
+  el.style.setProperty('--dur',(dur/1000-0.3)+'s');
+  el.textContent=msg;
+  c.appendChild(el);
+  setTimeout(function(){el.remove();},dur);
+}
+
+// ── SHOP ───────────────────────────────────────────────────────
+
+function openShop(){renderShop();document.getElementById('shop-overlay').classList.add('active');}
+function closeShop(){document.getElementById('shop-overlay').classList.remove('active');}
+
+document.getElementById('shop-overlay').addEventListener('click',function(e){
+  if(e.target===this) closeShop();
+});
+
+// ── MISC ───────────────────────────────────────────────────────
+
+function confirmQuit(){
+  if(!confirm('Quit and return to menu?')) return;
+  if(extraSpaceActive) deactivateExtraSpace(true);
+  resetDrag();
+  document.getElementById('drag-ghost').classList.remove('active');
+  showScreen('menu');
+}
+
+function shareScore(){
+  const score=computeScore();
+  if(window.jbShareScore){jbShareScore(score);return;}
+  const text=encodeURIComponent('I scored '+score+' in Merge Master 🏆 by @JellyBoltGames! Play at: '+window.location.href);
+  window.open('https://x.com/intent/tweet?text='+text,'_blank','noopener');
+}
+
+// ── BOOT ───────────────────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded',function(){
+  refreshMenuUI();
+  showScreen('menu');
+});
+</script>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="5123448325" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+</body>
+</html>

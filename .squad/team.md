@@ -114,9 +114,9 @@ Build free, fun, fair mobile games for kids & teens. Ship fast, monetize ethical
 
 | Game | Repo | Lead Dev |
 |------|------|----------|
-| BrainRot Quiz Battle | `tamirdresher/brainrot-quiz-battle` | Sonic + Link |
-| Bounce Blitz | `tamirdresher/bounce-blitz` | Sonic |
-| Idle Critter Farm | `tamirdresher/idle-critter-farm` | Sonic + Link |
+| BrainRot Quiz Battle | `tdsquadai/brainrot-quiz-battle` | Sonic + Link |
+| Bounce Blitz | `tdsquadai/bounce-blitz` | Sonic |
+| Idle Critter Farm | `tdsquadai/idle-critter-farm` | Sonic + Link |
 
 ---
 

@@ -1,0 +1,233 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - generic:
+      - img
+      - progressbar
+      - generic: Loading Google Play Console
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e6]:
+        - button "Show navigation sidebar" [ref=e7] [cursor=pointer]:
+          - img [ref=e10]: menu
+        - generic [ref=e44]:
+          - button "Unread notifications Open notification center" [ref=e49]:
+            - img [ref=e53]: notifications_unread
+            - generic [ref=e55]: Unread notifications
+          - button "JellyBolt Games Collection" [ref=e63] [cursor=pointer]:
+            - img [ref=e69]
+    - generic [ref=e15]:
+      - button "Switch developer accounts JellyBolt Game tdsquadai@gmail.com" [ref=e19] [cursor=pointer]:
+        - img "Switch developer accounts" [ref=e20]
+        - generic [ref=e21]:
+          - generic [ref=e22]: JellyBolt Game
+          - generic [ref=e23]: tdsquadai@gmail.com
+      - navigation [ref=e72]:
+        - link "All apps" [ref=e73] [cursor=pointer]:
+          - /url: /console/u/0/developers/9213992152789777496/app-list
+          - img [ref=e75]: keyboard_backspace
+          - generic [ref=e76]: All apps
+        - list [ref=e77]:
+          - listitem "Dashboard" [ref=e80]:
+            - button "Dashboard" [ref=e81] [cursor=pointer]:
+              - img [ref=e84]: dashboard
+              - generic [ref=e85]: Dashboard
+          - listitem "Statistics" [ref=e88]:
+            - button "Statistics" [ref=e89] [cursor=pointer]:
+              - img [ref=e92]: bar_chart
+              - generic [ref=e93]: Statistics
+          - listitem "Publishing overview" [ref=e96]:
+            - button "Publishing overview" [ref=e97] [cursor=pointer]:
+              - img [ref=e100]: overview
+              - generic [ref=e101]: Publishing overview
+          - listitem "Test and release" [ref=e104]:
+            - button "Test and release" [ref=e105] [cursor=pointer]:
+              - img [ref=e108]: rocket_launch
+              - generic [ref=e109]: Test and release
+          - listitem "Monitor and improve" [ref=e112]:
+            - button "Monitor and improve" [ref=e113] [cursor=pointer]:
+              - img [ref=e116]: vital_signs
+              - generic [ref=e117]: Monitor and improve
+          - listitem "Grow users" [ref=e120]:
+            - button "Grow users" [ref=e121] [cursor=pointer]:
+              - img [ref=e124]: finance_mode
+              - generic [ref=e125]: Grow users
+          - listitem "Monetize with Play" [ref=e128]:
+            - button "Monetize with Play" [ref=e129] [cursor=pointer]:
+              - img [ref=e132]: sell
+              - generic [ref=e133]: Monetize with Play
+    - generic [ref=e25]:
+      - generic [ref=e137]:
+        - generic [ref=e144]:
+          - heading "Publishing overview" [level=1] [ref=e150]
+          - generic [ref=e155]: See an overview of the changes made to your app, and control when changes are sent for review or published.
+        - generic [ref=e163]:
+          - generic [ref=e164]:
+            - heading "Managed publishing" [level=2] [ref=e169]
+            - button "Turn on managed publishing" [ref=e173]:
+              - generic [ref=e176]: Turn on managed publishing
+          - generic [ref=e178]:
+            - generic [ref=e179]:
+              - img [ref=e182]: sync_disabled
+              - generic [ref=e183]: Managed publishing off
+            - paragraph [ref=e184]: When you send your changes to Google for review, they'll be published automatically as soon as they're approved
+        - generic [ref=e190]:
+          - generic [ref=e194]:
+            - generic [ref=e195]:
+              - heading "Changes not yet sent for review" [level=2] [ref=e199]
+              - button "Tooltip for \"Changes not yet sent for review\"" [ref=e202] [cursor=pointer]:
+                - img [ref=e203]: help
+            - generic [ref=e205]:
+              - button "Send app for review" [disabled] [ref=e209]:
+                - generic [ref=e212]: Send app for review
+              - 'button "Hide content: Changes not yet sent for review" [ref=e213] [cursor=pointer]':
+                - img [ref=e216]: expand_less
+          - generic [ref=e217]:
+            - generic [ref=e223]:
+              - generic [ref=e224]:
+                - img [ref=e227]: lock
+                - generic [ref=e228]: To send changes for review, complete the required steps in the app dashboard
+              - link "Go to dashboard" [ref=e232] [cursor=pointer]:
+                - /url: /console/u/0/developers/9213992152789777496/app/4975197531897745068/app-dashboard
+                - generic [ref=e235]: Go to dashboard
+            - grid "Changes" [ref=e244]:
+              - row "Item changed Description" [ref=e245]:
+                - columnheader "Item changed" [ref=e246]
+                - columnheader "Description" [ref=e247]
+                - cell [ref=e248]
+              - row "Closed testing - Alpha button" [ref=e249]:
+                - img [ref=e252]: slow_motion_video
+                - gridcell "Closed testing - Alpha" [ref=e253]
+                - button "button" [disabled] [ref=e256]:
+                  - generic "button" [ref=e257]: Save for later
+              - 'row "Testers Set testers to be managed by email lists: JellyBolt Beta Testers" [ref=e259]':
+                - gridcell "Testers" [ref=e260]:
+                  - generic [ref=e264]: Testers
+                - 'gridcell "Set testers to be managed by email lists: JellyBolt Beta Testers" [ref=e265]':
+                  - generic [ref=e269]: "Set testers to be managed by email lists: JellyBolt Beta Testers"
+                - gridcell [ref=e270]:
+                  - listbox "More actions" [ref=e273]:
+                    - button "More actions" [ref=e276] [cursor=pointer]:
+                      - img [ref=e279]: more_vert
+              - row "Store listings button" [ref=e280]:
+                - img [ref=e283]: play_prism
+                - gridcell "Store listings" [ref=e284]
+                - button "button" [disabled] [ref=e287]:
+                  - generic "button" [ref=e288]: Save for later
+              - row "English (United States) – en-US Default store listing Add language. Provided app name (JellyBolt Games Collection), and all other required information." [ref=e290]:
+                - gridcell "English (United States) – en-US Default store listing" [ref=e291]:
+                  - generic [ref=e293]:
+                    - generic [ref=e295]: English (United States) – en-US
+                    - generic [ref=e296]: Default store listing
+                - gridcell "Add language. Provided app name (JellyBolt Games Collection), and all other required information." [ref=e297]:
+                  - generic [ref=e301]: Add language. Provided app name (JellyBolt Games Collection), and all other required information.
+                - gridcell [ref=e302]:
+                  - listbox "More actions" [ref=e305]:
+                    - button "More actions" [ref=e308] [cursor=pointer]:
+                      - img [ref=e311]: more_vert
+              - row "App content" [ref=e312]:
+                - img [ref=e315]: android_security_privacy_safe
+                - gridcell "App content" [ref=e316]
+              - row "Content Rating Submit new questionnaire" [ref=e317]:
+                - gridcell "Content Rating" [ref=e318]:
+                  - generic [ref=e322]: Content Rating
+                - gridcell "Submit new questionnaire" [ref=e323]:
+                  - generic [ref=e327]: Submit new questionnaire
+                - gridcell [ref=e328]:
+                  - listbox "More actions" [ref=e331]:
+                    - button "More actions" [ref=e334] [cursor=pointer]:
+                      - img [ref=e337]: more_vert
+              - row "Target audience and content Update Target audience and content information. Target age is 13 and older." [ref=e338]:
+                - gridcell "Target audience and content" [ref=e339]:
+                  - generic [ref=e343]: Target audience and content
+                - gridcell "Update Target audience and content information. Target age is 13 and older." [ref=e344]:
+                  - generic [ref=e348]: Update Target audience and content information. Target age is 13 and older.
+                - gridcell [ref=e349]:
+                  - listbox "More actions" [ref=e352]:
+                    - button "More actions" [ref=e355] [cursor=pointer]:
+                      - img [ref=e358]: more_vert
+              - row "Privacy policy Set Privacy policy URL to https://jellybolt-games.github.io/jellybolt-games/store-listings/privacy-policy.html" [ref=e359]:
+                - gridcell "Privacy policy" [ref=e360]:
+                  - generic [ref=e364]: Privacy policy
+                - gridcell "Set Privacy policy URL to https://jellybolt-games.github.io/jellybolt-games/store-listings/privacy-policy.html" [ref=e365]:
+                  - generic [ref=e369]: Set Privacy policy URL to https://jellybolt-games.github.io/jellybolt-games/store-listings/privacy-policy.html
+                - gridcell [ref=e370]:
+                  - listbox "More actions" [ref=e373]:
+                    - button "More actions" [ref=e376] [cursor=pointer]:
+                      - img [ref=e379]: more_vert
+              - row "Ads declaration Update ads declaration" [ref=e380]:
+                - gridcell "Ads declaration" [ref=e381]:
+                  - generic [ref=e385]: Ads declaration
+                - gridcell "Update ads declaration" [ref=e386]:
+                  - generic [ref=e390]: Update ads declaration
+                - gridcell [ref=e391]:
+                  - listbox "More actions" [ref=e394]:
+                    - button "More actions" [ref=e397] [cursor=pointer]:
+                      - img [ref=e400]: more_vert
+              - row "Data safety Complete Data safety questionnaire" [ref=e401]:
+                - gridcell "Data safety" [ref=e402]:
+                  - generic [ref=e406]: Data safety
+                - gridcell "Complete Data safety questionnaire" [ref=e407]:
+                  - generic [ref=e411]: Complete Data safety questionnaire
+                - gridcell [ref=e412]:
+                  - listbox "More actions" [ref=e415]:
+                    - button "More actions" [ref=e418] [cursor=pointer]:
+                      - img [ref=e421]: more_vert
+              - row "Advanced settings" [ref=e422]:
+                - img [ref=e425]: settings
+                - gridcell "Advanced settings" [ref=e426]
+              - row "Form factors Form factor Google Play Games on PC set to opted-in in Advanced settings" [ref=e427]:
+                - gridcell "Form factors" [ref=e428]:
+                  - generic [ref=e432]: Form factors
+                - gridcell "Form factor Google Play Games on PC set to opted-in in Advanced settings" [ref=e433]:
+                  - generic [ref=e437]: Form factor Google Play Games on PC set to opted-in in Advanced settings
+                - gridcell [ref=e438]:
+                  - listbox "More actions" [ref=e441]:
+                    - button "More actions" [ref=e444] [cursor=pointer]:
+                      - img [ref=e447]: more_vert
+              - row "Store settings" [ref=e448]:
+                - img [ref=e451]: play_prism
+                - gridcell "Store settings" [ref=e452]
+              - row "App category Select app category (Casual game)" [ref=e453]:
+                - gridcell "App category" [ref=e454]:
+                  - generic [ref=e458]: App category
+                - gridcell "Select app category (Casual game)" [ref=e459]:
+                  - generic [ref=e463]: Select app category (Casual game)
+                - gridcell [ref=e464]:
+                  - listbox "More actions" [ref=e467]:
+                    - button "More actions" [ref=e470] [cursor=pointer]:
+                      - img [ref=e473]: more_vert
+            - heading "What you've told us" [level=3] [ref=e485]
+            - generic [ref=e487]:
+              - text: "Items listed here aren't published, but we'll take them into account when reviewing your app:"
+              - list [ref=e488]:
+                - listitem [ref=e489]:
+                  - link "App content" [ref=e490] [cursor=pointer]
+                  - text: ": Update App access instructions (All functionality available without special access)"
+                - listitem [ref=e491]:
+                  - link "App content" [ref=e492] [cursor=pointer]
+                  - text: ": 'Advertising ID' declaration updated"
+                - listitem [ref=e493]:
+                  - link "App content" [ref=e494] [cursor=pointer]
+                  - text: ": 'Government apps' declaration updated"
+                - listitem [ref=e495]:
+                  - link "App content" [ref=e496] [cursor=pointer]
+                  - text: ": 'Financial features' declaration updated"
+                - listitem [ref=e497]:
+                  - link "App content" [ref=e498] [cursor=pointer]
+                  - text: ": 'Health' declaration updated"
+      - generic [ref=e33]:
+        - generic [ref=e499]:
+          - link "Product updates" [ref=e500] [cursor=pointer]:
+            - /url: https://play.google.com/console/about/whats-new/
+          - link "Status dashboard" [ref=e501] [cursor=pointer]:
+            - /url: https://status.play.google.com/
+          - link "Help" [ref=e502] [cursor=pointer]:
+            - /url: /console/u/0/developers/9213992152789777496/help-and-support?app=4975197531897745068
+        - generic [ref=e503]:
+          - generic [ref=e504]: © 2026 Google
+          - link "Privacy" [ref=e505] [cursor=pointer]:
+            - /url: https://www.google.com/policies/privacy/
+          - link "Developer Distribution Agreement" [ref=e506] [cursor=pointer]:
+            - /url: https://play.google.com/about/developer-distribution-agreement.html
+          - link "Terms of Service" [ref=e507] [cursor=pointer]:
+            - /url: https://play.google.com/about/console/terms-of-service/

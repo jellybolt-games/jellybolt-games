@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Neon Dash | JellyBolt Games</title>
+<meta name="description" content="Neon Dash — an endless runner with neon style. Dodge obstacles, collect coins, grab power-ups!">
+<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0d0d24;font-family:'Segoe UI',system-ui,sans-serif;color:#e0e0e0;touch-action:none;user-select:none;-webkit-user-select:none}
+#game-wrapper{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center}
+#game-container{flex:1;width:100%;position:relative;overflow:hidden}
+
+/* HUD */
+#hud{position:absolute;top:58px;left:0;width:100%;display:flex;justify-content:space-between;align-items:flex-start;padding:8px 14px;z-index:50;pointer-events:none}
+.hud-left,.hud-right{display:flex;flex-direction:column;gap:4px}
+.hud-right{align-items:flex-end}
+.hud-val{font-size:.95rem;font-weight:700;text-shadow:0 0 10px rgba(0,255,136,.5)}
+.hud-label{font-size:.6rem;color:#6e7681;text-transform:uppercase;letter-spacing:1px}
+#hud-powerup{position:absolute;top:58px;left:50%;transform:translateX(-50%);display:none;padding:4px 14px;border-radius:20px;font-size:.75rem;font-weight:700;z-index:51;animation:powerPulse 1s infinite}
+@keyframes powerPulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Start screen */
+#start-screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:linear-gradient(180deg,#0d0d24 0%,#0d1117 100%)}
+.start-logo{font-size:2.4rem;font-weight:900;background:linear-gradient(135deg,#00ff88,#58a6ff,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;text-align:center}
+.start-sub{color:#6e7681;font-size:.85rem;margin-bottom:30px}
+.start-btn{padding:16px 48px;background:linear-gradient(135deg,#00ff88,#00ccff);color:#000;font-weight:900;font-size:1.15rem;border:none;border-radius:12px;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 0 30px rgba(0,255,136,.3)}
+.start-btn:hover{transform:scale(1.06);box-shadow:0 0 40px rgba(0,255,136,.5)}
+.start-controls{margin-top:24px;color:#6e7681;font-size:.72rem;text-align:center;line-height:1.7}
+.start-best{margin-top:14px;color:#ffcc00;font-size:.85rem;font-weight:600}
+
+/* Game Over */
+#game-over{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;pointer-events:none;opacity:0;transition:opacity .35s ease}
+#game-over.visible{background:rgba(0,0,0,0.82);opacity:1;pointer-events:auto}
+.go-panel{background:#0f1520;border:2px solid #ff6b6b;border-radius:18px;padding:28px 36px;text-align:center;min-width:230px;box-shadow:0 0 40px rgba(255,107,107,0.25)}
+.go-icon{font-size:2.4rem;margin-bottom:4px}
+.go-title{font-size:1.6rem;font-weight:900;color:#ff6b6b;margin-bottom:6px}
+.go-score,.go-best,.go-dist{font-size:.95rem;margin:3px 0;color:#ccc}
+.go-best{color:#ffcc00}
+.go-btn{display:block;width:100%;padding:13px 0;background:linear-gradient(135deg,#00d4ff,#a855f7);color:#000;font-weight:900;font-size:1.1em;border:none;border-radius:10px;cursor:pointer;transition:transform .15s,box-shadow .15s;margin-top:14px;margin-bottom:8px}
+.go-btn:hover{transform:scale(1.04);box-shadow:0 0 20px rgba(0,212,255,.4)}
+.go-share{display:block;width:100%;padding:10px 0;background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff;font-weight:700;font-size:.9em;border:none;border-radius:10px;cursor:pointer}
+
+/* Interstitial */
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:9999;justify-content:center;align-items:center}
+#jb-interstitial.active{display:flex}
+.jb-interstitial-box{background:#0f1520;border:1px solid #1a2235;border-radius:16px;padding:24px;text-align:center}
+.jb-interstitial-close{margin-top:14px;padding:10px 28px;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:.95rem}
+
+/* Monetization bar */
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:8px;padding:7px 10px;background:rgba(8,12,20,.96);border-top:1px solid #1a2235;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:.8rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.06)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+
+/* Ad banner */
+.jb-ad-banner{text-align:center;padding:4px 0;min-height:50px}
+</style>
+</head>
+<body>
+<!-- Top Ad -->
+<div class="jb-ad-banner" id="ad-top">
+  <ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="NEON_DASH_TOP" style="display:inline-block;width:320px;height:50px"></ins>
+</div>
+
+<div id="game-wrapper">
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-left">
+      <div class="hud-val" id="hud-score">0</div>
+      <div class="hud-label">Score</div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-val" id="hud-dist">0m</div>
+      <div class="hud-label">Distance</div>
+      <div class="hud-val" id="hud-coins" style="color:#ffcc00;margin-top:4px">🪙 0</div>
+    </div>
+  </div>
+  <div id="hud-powerup"></div>
+
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <div class="start-logo">⚡ NEON DASH</div>
+    <div class="start-sub">Endless Runner</div>
+    <button class="start-btn" id="start-btn">▶ TAP TO PLAY</button>
+    <div class="start-controls">
+      ← → or A/D : Switch lanes<br>
+      ↑ or W : Jump &nbsp;|&nbsp; ↓ or S : Slide<br>
+      Swipe on mobile
+    </div>
+    <div class="start-best" id="start-best"></div>
+  </div>
+
+  <!-- Game container for Phaser -->
+  <div id="game-container"></div>
+
+  <!-- Game Over -->
+  <div id="game-over">
+    <div class="go-panel">
+      <div class="go-icon">💥</div>
+      <div class="go-title">GAME OVER</div>
+      <div class="go-score" id="go-score">Score: 0</div>
+      <div class="go-best" id="go-best">Best: 0</div>
+      <div class="go-dist" id="go-dist">Distance: 0m</div>
+      <button class="go-btn" id="go-play-btn">▶ Play Again</button>
+      <button class="go-share" id="go-share-btn">📤 Share Score</button>
+    </div>
+  </div>
+</div>
+
+<!-- Interstitial Ad -->
+<div id="jb-interstitial">
+  <div class="jb-interstitial-box">
+    <div style="color:#888;font-size:.75rem;letter-spacing:1px;margin-bottom:12px">ADVERTISEMENT</div>
+    <ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-8350556723025693" data-ad-slot="NEON_DASH_INTER"></ins>
+    <div style="color:#555;font-size:.8rem;margin-top:10px" id="jb-inter-timer"></div>
+    <button class="jb-interstitial-close" id="jb-inter-close" style="opacity:0;pointer-events:none">Continue Playing ▶</button>
+  </div>
+</div>
+
+<!-- Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener noreferrer">☕ Support</a>
+  <a class="jb-btn-games" href="../../index.html">🎮 More Games</a>
+  <a class="jb-btn-share" id="jb-bar-share" href="#">📤 Share</a>
+</div>
+
+<script>
+// ─── Globals ──────────────────────────────────────────
+let score = 0, coins = 0, distance = 0, bestScore = 0, gameRuns = 0;
+const LS_KEY = 'neondash_best';
+bestScore = parseInt(localStorage.getItem(LS_KEY)) || 0;
+
+// ─── DOM refs ─────────────────────────────────────────
+const $startScreen = document.getElementById('start-screen');
+const $startBest = document.getElementById('start-best');
+const $startBtn = document.getElementById('start-btn');
+const $hudScore = document.getElementById('hud-score');
+const $hudDist = document.getElementById('hud-dist');
+const $hudCoins = document.getElementById('hud-coins');
+const $hudPowerup = document.getElementById('hud-powerup');
+const $gameOver = document.getElementById('game-over');
+const $goScore = document.getElementById('go-score');
+const $goBest = document.getElementById('go-best');
+const $goDist = document.getElementById('go-dist');
+const $goPlayBtn = document.getElementById('go-play-btn');
+const $goShareBtn = document.getElementById('go-share-btn');
+const $interstitial = document.getElementById('jb-interstitial');
+const $interClose = document.getElementById('jb-inter-close');
+const $interTimer = document.getElementById('jb-inter-timer');
+const $barShare = document.getElementById('jb-bar-share');
+
+if (bestScore > 0) $startBest.textContent = '🏆 Best: ' + bestScore;
+
+// ─── Share ────────────────────────────────────────────
+function shareScore() {
+  const text = '⚡ Neon Dash | Score: ' + score + ' | Distance: ' + distance + 'm | Can you beat me?\nhttps://jellybolt-games.github.io/jellybolt-games/games/neon-dash/';
+  if (navigator.share) { navigator.share({ title: 'Neon Dash', text: text }); }
+  else { navigator.clipboard.writeText(text).then(() => {}); }
+}
+$goShareBtn.onclick = shareScore;
+$barShare.onclick = function(e) { e.preventDefault(); shareScore(); };
+
+// ─── Interstitial ─────────────────────────────────────
+function showInterstitial(cb) {
+  if (gameRuns < 2) { cb(); return; } // skip first run
+  $interstitial.classList.add('active');
+  $interClose.style.opacity = '0';
+  $interClose.style.pointerEvents = 'none';
+  let t = 3;
+  $interTimer.textContent = 'Continue in ' + t + 's...';
+  const iv = setInterval(() => {
+    t--;
+    if (t > 0) { $interTimer.textContent = 'Continue in ' + t + 's...'; }
+    else {
+      clearInterval(iv);
+      $interTimer.textContent = '';
+      $interClose.style.opacity = '1';
+      $interClose.style.pointerEvents = 'auto';
+    }
+  }, 1000);
+  $interClose.onclick = function() {
+    $interstitial.classList.remove('active');
+    cb();
+  };
+}
+
+// ─── Phaser Config ────────────────────────────────────
+const GAME_W = 480, GAME_H = 720;
+
+const config = {
+  type: Phaser.AUTO,
+  parent: 'game-container',
+  width: GAME_W,
+  height: GAME_H,
+  backgroundColor: '#0d0d24',
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  physics: {
+    default: 'arcade',
+    arcade: { gravity: { y: 1800 }, debug: false }
+  },
+  scene: { preload: preload, create: create, update: update }
+};
+
+let game;
+
+// ─── Game State ───────────────────────────────────────
+const LANE_W = 100;
+const LANES = [-LANE_W, 0, LANE_W]; // offsets from center
+const CENTER_X = GAME_W / 2;
+const GROUND_Y = 580;
+const PLAYER_SIZE = 30;
+
+let player, playerLane = 1, targetX;
+let cursors, keyW, keyA, keyS, keyD;
+let gameSpeed = 4, speedTimer = 0;
+let isJumping = false, isSliding = false, slideTimer = 0;
+let isAlive = false, isPaused = true;
+let hasShield = false, hasMagnet = false, scoreMultiplier = 1;
+let shieldTimer = 0, magnetTimer = 0, multiplierTimer = 0;
+let spawnTimer = 0, coinSpawnTimer = 0, powerSpawnTimer = 0;
+let obstacles, coinGroup, powerupGroup;
+let roadLines, roadDots;
+let distRaw = 0;
+let scene;
+
+// Swipe
+let swipeStartX = 0, swipeStartY = 0, swiping = false;
+const SWIPE_THRESH = 30;
+
+// ─── Graphics helpers ─────────────────────────────────
+function hexColor(hex) {
+  return parseInt(hex.replace('#', ''), 16);
+}
+
+// ─── Phaser Scene ─────────────────────────────────────
+function preload() { /* No assets — all procedural */ }
+
+function create() {
+  scene = this;
+
+  // ─ Road background (3D perspective illusion) ─
+  const gfx = this.add.graphics();
+  // Dark road
+  gfx.fillStyle(0x0a0e18, 1);
+  gfx.fillRect(CENTER_X - 180, 0, 360, GAME_H);
+
+  // Lane dividers (dashed)
+  roadLines = this.add.group();
+  for (let l = 0; l < 2; l++) {
+    const x = CENTER_X + LANES[l] + LANE_W / 2 + LANE_W / 2;
+    for (let y = -40; y < GAME_H + 40; y += 60) {
+      const line = this.add.rectangle(x, y, 2, 30, 0x1a2540);
+      roadLines.add(line);
+    }
+  }
+
+  // Side glow
+  const leftGlow = this.add.rectangle(CENTER_X - 170, GAME_H / 2, 4, GAME_H, 0x00ff88, 0.15);
+  const rightGlow = this.add.rectangle(CENTER_X + 170, GAME_H / 2, 4, GAME_H, 0x00ff88, 0.15);
+
+  // Ground line
+  this.add.rectangle(CENTER_X, GROUND_Y + PLAYER_SIZE / 2 + 2, 360, 2, 0x00ff88, 0.3);
+
+  // Road dots (moving particles for speed feel)
+  roadDots = this.add.group();
+  for (let i = 0; i < 12; i++) {
+    const dx = Phaser.Math.Between(CENTER_X - 160, CENTER_X + 160);
+    const dy = Phaser.Math.Between(0, GAME_H);
+    const dot = this.add.circle(dx, dy, 1.5, 0x1a3050, 0.5);
+    roadDots.add(dot);
+  }
+
+  // ─ Player ─
+  player = this.add.container(CENTER_X + LANES[playerLane], GROUND_Y);
+  // Body
+  const body = this.add.rectangle(0, 0, PLAYER_SIZE, PLAYER_SIZE, 0x00ff88);
+  body.setStrokeStyle(2, 0x00ff88);
+  // Head
+  const head = this.add.circle(0, -PLAYER_SIZE / 2 - 8, 8, 0x58a6ff);
+  // Eye visor
+  const visor = this.add.rectangle(0, -PLAYER_SIZE / 2 - 10, 12, 3, 0xa855f7);
+  // Legs (two small rects)
+  const legL = this.add.rectangle(-7, PLAYER_SIZE / 2 + 4, 6, 10, 0x00ff88);
+  const legR = this.add.rectangle(7, PLAYER_SIZE / 2 + 4, 6, 10, 0x00ff88);
+
+  player.add([body, head, visor, legL, legR]);
+  player.setSize(PLAYER_SIZE, PLAYER_SIZE + 20);
+  this.physics.world.enable(player);
+  player.body.setCollideWorldBounds(false);
+  player.body.setSize(PLAYER_SIZE - 4, PLAYER_SIZE + 16);
+  player.body.setOffset(-(PLAYER_SIZE - 4) / 2, -(PLAYER_SIZE + 16) / 2);
+  player.setDepth(10);
+
+  targetX = player.x;
+
+  // ─ Groups ─
+  obstacles = this.physics.add.group();
+  coinGroup = this.physics.add.group();
+  powerupGroup = this.physics.add.group();
+
+  // ─ Physics overlaps ─
+  this.physics.add.overlap(player, coinGroup, collectCoin, null, this);
+  this.physics.add.overlap(player, powerupGroup, collectPowerup, null, this);
+  this.physics.add.overlap(player, obstacles, hitObstacle, null, this);
+
+  // ─ Input ─
+  cursors = this.input.keyboard.createCursorKeys();
+  keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+  keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+  keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+  keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+
+  // Swipe / touch
+  this.input.on('pointerdown', (ptr) => {
+    swipeStartX = ptr.x;
+    swipeStartY = ptr.y;
+    swiping = true;
+  });
+  this.input.on('pointerup', (ptr) => {
+    if (!swiping || !isAlive) return;
+    swiping = false;
+    const dx = ptr.x - swipeStartX;
+    const dy = ptr.y - swipeStartY;
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    if (ax < SWIPE_THRESH && ay < SWIPE_THRESH) return;
+    if (ax > ay) {
+      if (dx > 0) moveRight(); else moveLeft();
+    } else {
+      if (dy < 0) doJump(); else doSlide();
+    }
+  });
+
+  // Shield visual (circle around player)
+  player.shieldGfx = this.add.circle(0, 0, 30, 0x58a6ff, 0.15);
+  player.shieldGfx.setStrokeStyle(2, 0x58a6ff);
+  player.shieldGfx.setVisible(false);
+  player.shieldGfx.setDepth(11);
+}
+
+function update(time, delta) {
+  // Scroll road dots regardless
+  roadDots.getChildren().forEach(d => {
+    d.y += gameSpeed * 1.5;
+    if (d.y > GAME_H + 10) {
+      d.y = -10;
+      d.x = Phaser.Math.Between(CENTER_X - 160, CENTER_X + 160);
+    }
+  });
+
+  // Scroll lane lines
+  roadLines.getChildren().forEach(l => {
+    l.y += gameSpeed * 1.2;
+    if (l.y > GAME_H + 40) l.y -= GAME_H + 80;
+  });
+
+  if (!isAlive || isPaused) return;
+
+  const dt = delta / 1000;
+
+  // ─ Keyboard ─
+  if (Phaser.Input.Keyboard.JustDown(cursors.left) || Phaser.Input.Keyboard.JustDown(keyA)) moveLeft();
+  if (Phaser.Input.Keyboard.JustDown(cursors.right) || Phaser.Input.Keyboard.JustDown(keyD)) moveRight();
+  if (Phaser.Input.Keyboard.JustDown(cursors.up) || Phaser.Input.Keyboard.JustDown(keyW)) doJump();
+  if (Phaser.Input.Keyboard.JustDown(cursors.down) || Phaser.Input.Keyboard.JustDown(keyS)) doSlide();
+
+  // ─ Smooth lane movement ─
+  targetX = CENTER_X + LANES[playerLane];
+  player.x += (targetX - player.x) * 0.2;
+
+  // ─ Ground check ─
+  if (player.y >= GROUND_Y && player.body.velocity.y >= 0) {
+    player.y = GROUND_Y;
+    player.body.setVelocityY(0);
+    player.body.setAllowGravity(false);
+    isJumping = false;
+  }
+
+  // ─ Slide ─
+  if (isSliding) {
+    slideTimer -= dt;
+    player.setScale(1, 0.5);
+    player.body.setSize(PLAYER_SIZE - 4, (PLAYER_SIZE + 16) * 0.5);
+    if (slideTimer <= 0) {
+      isSliding = false;
+      player.setScale(1, 1);
+      player.body.setSize(PLAYER_SIZE - 4, PLAYER_SIZE + 16);
+    }
+  }
+
+  // ─ Speed increase ─
+  speedTimer += dt;
+  if (speedTimer > 5) {
+    speedTimer = 0;
+    gameSpeed = Math.min(gameSpeed + 0.25, 16);
+  }
+
+  // ─ Score & distance ─
+  distRaw += gameSpeed * dt * 10;
+  distance = Math.floor(distRaw);
+  const baseScore = Math.floor(distRaw * 0.5);
+  score = baseScore + coins * 10;
+  $hudScore.textContent = score * scoreMultiplier;
+  $hudDist.textContent = distance + 'm';
+
+  // ─ Spawn obstacles ─
+  spawnTimer += dt;
+  const spawnRate = Math.max(0.6, 1.8 - gameSpeed * 0.06);
+  if (spawnTimer > spawnRate) {
+    spawnTimer = 0;
+    spawnObstacle();
+  }
+
+  // ─ Spawn coins ─
+  coinSpawnTimer += dt;
+  if (coinSpawnTimer > 0.45) {
+    coinSpawnTimer = 0;
+    if (Math.random() < 0.5) spawnCoin();
+  }
+
+  // ─ Spawn powerups ─
+  powerSpawnTimer += dt;
+  if (powerSpawnTimer > 6) {
+    powerSpawnTimer = 0;
+    if (Math.random() < 0.35) spawnPowerup();
+  }
+
+  // ─ Move obstacles ─
+  obstacles.getChildren().forEach(o => {
+    o.y += gameSpeed * 1.8;
+    if (o.y > GAME_H + 60) o.destroy();
+  });
+
+  // ─ Move coins ─
+  coinGroup.getChildren().forEach(c => {
+    c.y += gameSpeed * 1.8;
+    // Magnet pull
+    if (hasMagnet) {
+      const dx = player.x - c.x;
+      const dy = player.y - c.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 180) {
+        c.x += dx * 0.12;
+        c.y += dy * 0.12;
+      }
+    }
+    if (c.y > GAME_H + 40) c.destroy();
+    // Rotate
+    if (c.getData && c.getData('gfx')) {
+      c.angle += 3;
+    }
+  });
+
+  // ─ Move powerups ─
+  powerupGroup.getChildren().forEach(p => {
+    p.y += gameSpeed * 1.8;
+    if (p.y > GAME_H + 40) p.destroy();
+    p.angle += 2;
+  });
+
+  // ─ Power-up timers ─
+  if (hasShield) {
+    shieldTimer -= dt;
+    player.shieldGfx.setPosition(player.x, player.y);
+    player.shieldGfx.setVisible(true);
+    if (shieldTimer <= 0) { hasShield = false; player.shieldGfx.setVisible(false); }
+  }
+  if (hasMagnet) {
+    magnetTimer -= dt;
+    if (magnetTimer <= 0) { hasMagnet = false; updatePowerupHUD(); }
+  }
+  if (scoreMultiplier > 1) {
+    multiplierTimer -= dt;
+    if (multiplierTimer <= 0) { scoreMultiplier = 1; updatePowerupHUD(); }
+  }
+  updatePowerupHUD();
+}
+
+// ─── Controls ─────────────────────────────────────────
+function moveLeft() {
+  if (playerLane > 0) { playerLane--; flashLaneSwitch(); }
+}
+function moveRight() {
+  if (playerLane < 2) { playerLane++; flashLaneSwitch(); }
+}
+function doJump() {
+  if (!isJumping && !isSliding) {
+    isJumping = true;
+    player.body.setAllowGravity(true);
+    player.body.setVelocityY(-700);
+  }
+}
+function doSlide() {
+  if (!isJumping && !isSliding) {
+    isSliding = true;
+    slideTimer = 0.6;
+  }
+}
+
+function flashLaneSwitch() {
+  if (!scene) return;
+  const flash = scene.add.rectangle(CENTER_X + LANES[playerLane], GROUND_Y + 20, LANE_W, 4, 0x00ff88, 0.5);
+  flash.setDepth(5);
+  scene.tweens.add({ targets: flash, alpha: 0, duration: 300, onComplete: () => flash.destroy() });
+}
+
+// ─── Spawners ─────────────────────────────────────────
+function spawnObstacle() {
+  const lane = Phaser.Math.Between(0, 2);
+  const x = CENTER_X + LANES[lane];
+  const type = Phaser.Math.Between(0, 2); // 0=barrier, 1=pillar, 2=low beam
+
+  let obs;
+  if (type === 0) {
+    // Barrier (tall wide block)
+    obs = scene.add.rectangle(x, -40, LANE_W - 16, 36, 0xff6b6b);
+    obs.setStrokeStyle(2, 0xff3333);
+    obs.setData('type', 'barrier');
+  } else if (type === 1) {
+    // Pillar (tall thin)
+    obs = scene.add.rectangle(x, -40, 24, 56, 0xa855f7);
+    obs.setStrokeStyle(2, 0x8833cc);
+    obs.setData('type', 'pillar');
+  } else {
+    // Low beam (wide, short — must slide under)
+    obs = scene.add.rectangle(x, -40, LANE_W - 10, 18, 0xffcc00);
+    obs.setStrokeStyle(2, 0xcc9900);
+    obs.setData('type', 'beam');
+    obs.setData('isLow', true);
+  }
+
+  obs.setDepth(8);
+  scene.physics.world.enable(obs);
+  obs.body.setAllowGravity(false);
+  obs.body.setImmovable(true);
+  obstacles.add(obs);
+
+  // Sometimes spawn a second obstacle in different lane
+  if (Math.random() < 0.35 && gameSpeed > 5) {
+    let lane2 = lane;
+    while (lane2 === lane) lane2 = Phaser.Math.Between(0, 2);
+    const x2 = CENTER_X + LANES[lane2];
+    const t2 = Phaser.Math.Between(0, 1);
+    let obs2;
+    if (t2 === 0) {
+      obs2 = scene.add.rectangle(x2, -40, LANE_W - 16, 36, 0xff6b6b);
+      obs2.setStrokeStyle(2, 0xff3333);
+    } else {
+      obs2 = scene.add.rectangle(x2, -40, 24, 56, 0xa855f7);
+      obs2.setStrokeStyle(2, 0x8833cc);
+    }
+    obs2.setDepth(8);
+    scene.physics.world.enable(obs2);
+    obs2.body.setAllowGravity(false);
+    obs2.body.setImmovable(true);
+    obstacles.add(obs2);
+  }
+}
+
+function spawnCoin() {
+  const lane = Phaser.Math.Between(0, 2);
+  const x = CENTER_X + LANES[lane];
+  const coin = scene.add.polygon(x, -30, [0, -8, 7, -4, 7, 4, 0, 8, -7, 4, -7, -4], 0xffcc00, 1);
+  coin.setStrokeStyle(1.5, 0xffaa00);
+  coin.setDepth(7);
+  scene.physics.world.enable(coin);
+  coin.body.setAllowGravity(false);
+  coin.body.setCircle(10, -10, -10);
+  coinGroup.add(coin);
+}
+
+function spawnPowerup() {
+  const lane = Phaser.Math.Between(0, 2);
+  const x = CENTER_X + LANES[lane];
+  const type = Phaser.Math.Between(0, 2); // 0=magnet, 1=shield, 2=multiplier
+  let color, label;
+  if (type === 0) { color = 0x58a6ff; label = '🧲'; }
+  else if (type === 1) { color = 0x00ff88; label = '🛡️'; }
+  else { color = 0xa855f7; label = '2×'; }
+
+  const container = scene.add.container(x, -40);
+  const bg = scene.add.circle(0, 0, 16, color, 0.3);
+  bg.setStrokeStyle(2, color);
+  const txt = scene.add.text(0, 0, label, { fontSize: '14px', fontFamily: 'Segoe UI' }).setOrigin(0.5);
+  container.add([bg, txt]);
+  container.setDepth(9);
+  container.setData('ptype', type);
+  container.setSize(32, 32);
+  scene.physics.world.enable(container);
+  container.body.setAllowGravity(false);
+  container.body.setCircle(16, -16, -16);
+  powerupGroup.add(container);
+}
+
+// ─── Collisions ───────────────────────────────────────
+function collectCoin(p, c) {
+  coins++;
+  $hudCoins.textContent = '🪙 ' + coins;
+  // Flash
+  const flash = scene.add.circle(c.x, c.y, 14, 0xffcc00, 0.7);
+  flash.setDepth(12);
+  scene.tweens.add({ targets: flash, alpha: 0, scaleX: 2, scaleY: 2, duration: 250, onComplete: () => flash.destroy() });
+  c.destroy();
+}
+
+function collectPowerup(p, pu) {
+  const type = pu.getData('ptype');
+  if (type === 0) { hasMagnet = true; magnetTimer = 8; }
+  else if (type === 1) { hasShield = true; shieldTimer = 10; player.shieldGfx.setVisible(true); }
+  else { scoreMultiplier = 2; multiplierTimer = 10; }
+  updatePowerupHUD();
+  // Flash
+  const flash = scene.add.circle(pu.x, pu.y, 20, 0xffffff, 0.5);
+  flash.setDepth(12);
+  scene.tweens.add({ targets: flash, alpha: 0, scaleX: 2.5, scaleY: 2.5, duration: 300, onComplete: () => flash.destroy() });
+  pu.destroy();
+}
+
+function hitObstacle(p, obs) {
+  if (!isAlive) return;
+
+  // Low beam — can pass if sliding
+  if (obs.getData && obs.getData('isLow') && isSliding) return;
+  // Jumping over barrier/pillar
+  if ((obs.getData && !obs.getData('isLow')) && isJumping && player.y < obs.y - 20) return;
+
+  if (hasShield) {
+    hasShield = false;
+    shieldTimer = 0;
+    player.shieldGfx.setVisible(false);
+    obs.destroy();
+    // Shield break flash
+    const flash = scene.add.circle(player.x, player.y, 30, 0x58a6ff, 0.6);
+    flash.setDepth(12);
+    scene.tweens.add({ targets: flash, alpha: 0, scaleX: 3, scaleY: 3, duration: 350, onComplete: () => flash.destroy() });
+    return;
+  }
+
+  gameOver();
+}
+
+function updatePowerupHUD() {
+  const parts = [];
+  if (hasMagnet) parts.push('🧲 Magnet ' + Math.ceil(magnetTimer) + 's');
+  if (hasShield) parts.push('🛡️ Shield ' + Math.ceil(shieldTimer) + 's');
+  if (scoreMultiplier > 1) parts.push('2× Score ' + Math.ceil(multiplierTimer) + 's');
+  if (parts.length > 0) {
+    $hudPowerup.style.display = 'block';
+    $hudPowerup.textContent = parts.join('  ');
+    $hudPowerup.style.background = hasMagnet ? 'rgba(88,166,255,.25)' : hasShield ? 'rgba(0,255,136,.25)' : 'rgba(168,85,247,.25)';
+    $hudPowerup.style.color = hasMagnet ? '#58a6ff' : hasShield ? '#00ff88' : '#a855f7';
+  } else {
+    $hudPowerup.style.display = 'none';
+  }
+}
+
+// ─── Game Over ────────────────────────────────────────
+function gameOver() {
+  isAlive = false;
+  isPaused = true;
+  const finalScore = score * scoreMultiplier;
+
+  // Screen shake
+  scene.cameras.main.shake(300, 0.02);
+
+  // Explosion particles
+  for (let i = 0; i < 16; i++) {
+    const c = [0xff6b6b, 0xffcc00, 0x00ff88, 0xa855f7][i % 4];
+    const p = scene.add.circle(player.x, player.y, Phaser.Math.Between(2, 5), c, 0.9);
+    p.setDepth(15);
+    scene.tweens.add({
+      targets: p,
+      x: player.x + Phaser.Math.Between(-80, 80),
+      y: player.y + Phaser.Math.Between(-80, 80),
+      alpha: 0,
+      duration: Phaser.Math.Between(300, 600),
+      onComplete: () => p.destroy()
+    });
+  }
+
+  // Update best
+  if (finalScore > bestScore) {
+    bestScore = finalScore;
+    localStorage.setItem(LS_KEY, bestScore);
+  }
+
+  $goScore.textContent = 'Score: ' + finalScore;
+  $goBest.textContent = '🏆 Best: ' + bestScore;
+  $goDist.textContent = 'Distance: ' + distance + 'm | Coins: ' + coins;
+
+  setTimeout(() => {
+    $gameOver.classList.add('visible');
+  }, 600);
+}
+
+// ─── Start / Restart ──────────────────────────────────
+function startGame() {
+  gameRuns++;
+  score = 0; coins = 0; distance = 0; distRaw = 0;
+  gameSpeed = 4; speedTimer = 0;
+  playerLane = 1;
+  isJumping = false; isSliding = false; slideTimer = 0;
+  hasShield = false; hasMagnet = false; scoreMultiplier = 1;
+  shieldTimer = 0; magnetTimer = 0; multiplierTimer = 0;
+  spawnTimer = 0; coinSpawnTimer = 0; powerSpawnTimer = 0;
+
+  // Clear groups
+  obstacles.clear(true, true);
+  coinGroup.clear(true, true);
+  powerupGroup.clear(true, true);
+
+  // Reset player
+  player.x = CENTER_X + LANES[1];
+  player.y = GROUND_Y;
+  player.setScale(1, 1);
+  player.body.setVelocityY(0);
+  player.body.setAllowGravity(false);
+  player.body.setSize(PLAYER_SIZE - 4, PLAYER_SIZE + 16);
+  player.shieldGfx.setVisible(false);
+  targetX = player.x;
+
+  // HUD reset
+  $hudScore.textContent = '0';
+  $hudDist.textContent = '0m';
+  $hudCoins.textContent = '🪙 0';
+  $hudPowerup.style.display = 'none';
+
+  isAlive = true;
+  isPaused = false;
+}
+
+// ─── Button handlers ──────────────────────────────────
+$startBtn.onclick = function() {
+  $startScreen.style.display = 'none';
+  if (!game) game = new Phaser.Game(config);
+  // Wait for scene ready
+  const waitReady = setInterval(() => {
+    if (game.scene.scenes.length > 0 && game.scene.scenes[0].physics) {
+      clearInterval(waitReady);
+      setTimeout(() => startGame(), 200);
+    }
+  }, 100);
+};
+
+$goPlayBtn.onclick = function() {
+  $gameOver.classList.remove('visible');
+  showInterstitial(() => startGame());
+};
+</script>
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+</body>
+</html>

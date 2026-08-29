@@ -21,7 +21,7 @@ JellyBolt Games (published by TDSquad AI)
 tdsquadai@gmail.com
 
 ### Privacy Policy
-https://tamirdresher.github.io/jellybolt-games/store-listings/privacy-policy.html
+https://jellybolt-games.github.io/jellybolt-games/store-listings/privacy-policy.html
 
 ---
 

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Conquest — JellyBolt Games</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+#game { width: 100vw; height: 100vh; position: relative; }
+.screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; }
+.screen.active { display: flex; }
+
+/* Title */
+#title-screen { background: linear-gradient(135deg, #0d1117, #161b22, #0d1117); }
+.title-name { font-size: 3.5em; font-weight: 900; background: linear-gradient(135deg, #58a6ff, #bc8cff, #f778ba); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; }
+.title-sub { color: #8b949e; font-size: 1.2em; margin-bottom: 40px; }
+.btn { padding: 14px 45px; font-size: 1.2em; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+.btn:hover { transform: translateY(-2px); }
+.btn-start { background: linear-gradient(135deg, #238636, #2ea043); color: #fff; box-shadow: 0 4px 20px #23863644; }
+.btn-restart { background: linear-gradient(135deg, #58a6ff, #388bfd); color: #fff; box-shadow: 0 4px 20px #58a6ff44; margin-top: 20px; }
+.credit { color: #484f58; font-size: 0.85em; margin-top: 40px; }
+
+/* Game */
+#game-screen { background: #0d1117; flex-direction: row; padding: 10px; gap: 10px; }
+.board-container { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.sidebar { width: 260px; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: #161b22; border-radius: 12px; overflow-y: auto; max-height: 100vh; }
+.board { display: grid; gap: 3px; }
+.cell {
+  width: 100%; aspect-ratio: 1; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-size: 1.5em; cursor: pointer; transition: all 0.15s; border: 2px solid transparent; position: relative;
+}
+.cell:hover { border-color: #58a6ff; transform: scale(1.05); z-index: 2; }
+.cell.neutral { background: #21262d; }
+.cell.player { background: #238636; border-color: #2ea04366; }
+.cell.enemy { background: #da3633; border-color: #f8514966; }
+.cell.obstacle { background: #161b22; cursor: default; }
+.cell.obstacle:hover { border-color: transparent; transform: none; }
+.cell .power { position: absolute; bottom: 2px; right: 4px; font-size: 0.5em; color: #fff; opacity: 0.8; }
+
+.panel { background: #0d1117; border-radius: 10px; padding: 12px; border: 1px solid #30363d; }
+.panel-title { font-size: 0.85em; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.stat { display: flex; justify-content: space-between; margin: 4px 0; font-size: 0.95em; }
+.stat-val { font-weight: 700; }
+.stat-val.green { color: #3fb950; }
+.stat-val.red { color: #f85149; }
+.stat-val.blue { color: #58a6ff; }
+.action-btn {
+  width: 100%; padding: 10px; margin: 3px 0; font-size: 0.95em; font-weight: 600;
+  border: 1px solid #30363d; border-radius: 8px; cursor: pointer; color: #e6edf3;
+  background: #21262d; transition: all 0.15s; text-align: left;
+}
+.action-btn:hover { background: #30363d; border-color: #58a6ff; }
+.action-btn:disabled { opacity: 0.4; cursor: default; }
+.action-btn:disabled:hover { background: #21262d; border-color: #30363d; }
+.log { font-size: 0.8em; color: #8b949e; max-height: 120px; overflow-y: auto; padding: 8px; background: #0d1117; border-radius: 8px; border: 1px solid #30363d; }
+.log-entry { margin: 2px 0; padding: 2px 0; border-bottom: 1px solid #21262d; }
+
+/* Results */
+#result-screen { background: linear-gradient(135deg, #0d1117, #161b22); }
+.result-title { font-size: 3em; font-weight: 900; margin-bottom: 10px; }
+.result-sub { font-size: 1.3em; color: #8b949e; margin-bottom: 5px; }
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="game">
+  <div id="title-screen" class="screen active">
+    <div class="title-name">⚔️ Code Conquest</div>
+    <div class="title-sub">Conquer the digital grid. Build your tech empire.</div>
+    <button class="btn btn-start" onclick="initGame()">⚡ Start Conquest</button>
+    <div style="margin-top:20px; color:#8b949e; max-width:400px; text-align:center; font-size:0.9em;">
+      Click your cells to expand. Capture neutral and enemy territory. Grow your power to dominate the grid!
+    </div>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+
+  <div id="game-screen" class="screen">
+    <div class="board-container">
+      <div class="board" id="board"></div>
+    </div>
+    <div class="sidebar" id="sidebar">
+      <div class="panel">
+        <div class="panel-title">📊 Status — Turn <span id="turn-num">1</span></div>
+        <div class="stat"><span>Your Territory</span><span class="stat-val green" id="p-cells">0</span></div>
+        <div class="stat"><span>Your Power</span><span class="stat-val green" id="p-power">0</span></div>
+        <div class="stat"><span>Enemy Territory</span><span class="stat-val red" id="e-cells">0</span></div>
+        <div class="stat"><span>Enemy Power</span><span class="stat-val red" id="e-power">0</span></div>
+        <div class="stat"><span>Neutral</span><span class="stat-val blue" id="n-cells">0</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">⚡ Actions (pick one)</div>
+        <button class="action-btn" id="btn-expand" onclick="doAction('expand')">🔄 Expand — Grow adjacent cells</button>
+        <button class="action-btn" id="btn-fortify" onclick="doAction('fortify')">🛡️ Fortify — +2 power to all cells</button>
+        <button class="action-btn" id="btn-strike" onclick="doAction('strike')">⚔️ Strike — Attack nearest enemy</button>
+      </div>
+      <div class="panel">
+        <div class="panel-title">📜 Battle Log</div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="result-screen" class="screen">
+    <div class="result-title" id="result-title">Victory!</div>
+    <div class="result-sub" id="result-sub"></div>
+    <div class="result-sub" id="result-turns"></div>
+    <button class="btn btn-restart" onclick="initGame()">🔄 Play Again</button>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+</div>
+
+<script>
+const GRID = 8;
+let grid = [];
+let turn = 0;
+let gameOver = false;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function initGame() {
+  grid = [];
+  turn = 0;
+  gameOver = false;
+  document.getElementById('log').innerHTML = '';
+  for (let r = 0; r < GRID; r++) {
+    grid[r] = [];
+    for (let c = 0; c < GRID; c++) {
+      grid[r][c] = { owner: 'neutral', power: 1 };
+    }
+  }
+  // Place obstacles
+  const obstacles = [[1,1],[1,6],[3,3],[3,4],[4,3],[4,4],[6,1],[6,6]];
+  obstacles.forEach(([r,c]) => { grid[r][c] = { owner: 'obstacle', power: 0 }; });
+  // Starting positions
+  grid[0][0] = { owner: 'player', power: 3 };
+  grid[0][1] = { owner: 'player', power: 2 };
+  grid[1][0] = { owner: 'player', power: 2 };
+  grid[GRID-1][GRID-1] = { owner: 'enemy', power: 3 };
+  grid[GRID-1][GRID-2] = { owner: 'enemy', power: 2 };
+  grid[GRID-2][GRID-1] = { owner: 'enemy', power: 2 };
+  showScreen('game-screen');
+  render();
+  addLog("🟢 Conquest begins! Choose your action.");
+}
+
+function render() {
+  const board = document.getElementById('board');
+  board.style.gridTemplateColumns = `repeat(${GRID}, 1fr)`;
+  board.innerHTML = '';
+  let pCells = 0, pPower = 0, eCells = 0, ePower = 0, nCells = 0;
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      const cell = document.createElement('div');
+      const g = grid[r][c];
+      cell.className = `cell ${g.owner}`;
+      if (g.owner === 'player') { cell.textContent = '🟢'; pCells++; pPower += g.power; }
+      else if (g.owner === 'enemy') { cell.textContent = '🔴'; eCells++; ePower += g.power; }
+      else if (g.owner === 'obstacle') { cell.textContent = '⬛'; }
+      else { cell.textContent = '⬜'; nCells++; }
+      if (g.owner !== 'obstacle') {
+        const pw = document.createElement('span');
+        pw.className = 'power';
+        pw.textContent = g.power;
+        cell.appendChild(pw);
+      }
+      cell.onclick = () => cellClick(r, c);
+      board.appendChild(cell);
+    }
+  }
+  document.getElementById('p-cells').textContent = pCells;
+  document.getElementById('p-power').textContent = pPower;
+  document.getElementById('e-cells').textContent = eCells;
+  document.getElementById('e-power').textContent = ePower;
+  document.getElementById('n-cells').textContent = nCells;
+  document.getElementById('turn-num').textContent = turn + 1;
+}
+
+function getAdjacent(r, c) {
+  return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([rr,cc]) => rr>=0 && rr<GRID && cc>=0 && cc<GRID);
+}
+
+function cellClick(r, c) {
+  // clicking on own cells gives +1 power as a minor bonus
+  if (!gameOver && grid[r][c].owner === 'player') {
+    grid[r][c].power += 1;
+    addLog(`💪 Reinforced cell (${r},${c}) → power ${grid[r][c].power}`);
+    render();
+  }
+}
+
+function doAction(action) {
+  if (gameOver) return;
+  turn++;
+  if (action === 'expand') playerExpand();
+  else if (action === 'fortify') playerFortify();
+  else if (action === 'strike') playerStrike();
+  render();
+  checkWin();
+  if (!gameOver) { setTimeout(() => { enemyTurn(); render(); checkWin(); }, 500); }
+}
+
+function playerExpand() {
+  let expanded = 0;
+  const targets = [];
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      if (grid[r][c].owner === 'player') {
+        getAdjacent(r, c).forEach(([ar, ac]) => {
+          const adj = grid[ar][ac];
+          if (adj.owner === 'neutral') targets.push([ar, ac]);
+        });
+      }
+    }
+  }
+  const unique = [...new Set(targets.map(t => t.join(',')))].map(s => s.split(',').map(Number));
+  unique.forEach(([r, c]) => { grid[r][c] = { owner: 'player', power: 1 }; expanded++; });
+  addLog(`🔄 Expanded to ${expanded} new cells`);
+}
+
+function playerFortify() {
+  let boosted = 0;
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      if (grid[r][c].owner === 'player') { grid[r][c].power += 2; boosted++; }
+    }
+  }
+  addLog(`🛡️ Fortified ${boosted} cells (+2 power each)`);
+}
+
+function playerStrike() {
+  let battles = 0;
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      if (grid[r][c].owner === 'player') {
+        getAdjacent(r, c).forEach(([ar, ac]) => {
+          if (grid[ar][ac].owner === 'enemy') {
+            if (grid[r][c].power > grid[ar][ac].power) {
+              grid[ar][ac] = { owner: 'player', power: 1 };
+              battles++;
+            } else {
+              grid[r][c].power = Math.max(1, grid[r][c].power - 1);
+            }
+          }
+        });
+      }
+    }
+  }
+  addLog(`⚔️ Strike! Captured ${battles} enemy cells`);
+}
+
+function enemyTurn() {
+  const roll = Math.random();
+  if (roll < 0.4) {
+    // Expand
+    const targets = [];
+    for (let r = 0; r < GRID; r++) {
+      for (let c = 0; c < GRID; c++) {
+        if (grid[r][c].owner === 'enemy') {
+          getAdjacent(r, c).forEach(([ar, ac]) => {
+            if (grid[ar][ac].owner === 'neutral') targets.push([ar, ac]);
+          });
+        }
+      }
+    }
+    const unique = [...new Set(targets.map(t => t.join(',')))].map(s => s.split(',').map(Number));
+    unique.forEach(([r, c]) => { grid[r][c] = { owner: 'enemy', power: 1 }; });
+    addLog(`🤖 Enemy expanded to ${unique.length} cells`);
+  } else if (roll < 0.7) {
+    // Fortify
+    for (let r = 0; r < GRID; r++)
+      for (let c = 0; c < GRID; c++)
+        if (grid[r][c].owner === 'enemy') grid[r][c].power += 1;
+    addLog("🤖 Enemy fortified their territory");
+  } else {
+    // Attack
+    let captured = 0;
+    for (let r = 0; r < GRID; r++) {
+      for (let c = 0; c < GRID; c++) {
+        if (grid[r][c].owner === 'enemy') {
+          getAdjacent(r, c).forEach(([ar, ac]) => {
+            if (grid[ar][ac].owner === 'player' && grid[r][c].power > grid[ar][ac].power) {
+              grid[ar][ac] = { owner: 'enemy', power: 1 };
+              captured++;
+            }
+          });
+        }
+      }
+    }
+    addLog(`🤖 Enemy attacked! Captured ${captured} of your cells`);
+  }
+}
+
+function checkWin() {
+  let pc = 0, ec = 0;
+  for (let r = 0; r < GRID; r++)
+    for (let c = 0; c < GRID; c++) {
+      if (grid[r][c].owner === 'player') pc++;
+      if (grid[r][c].owner === 'enemy') ec++;
+    }
+  if (ec === 0 || (pc > 0 && ec > 0 && turn >= 50 && pc > ec)) {
+    gameOver = true;
+    document.getElementById('result-title').textContent = '🏆 Victory!';
+    document.getElementById('result-title').style.color = '#3fb950';
+    document.getElementById('result-sub').textContent = 'You conquered the grid!';
+    document.getElementById('result-turns').textContent = `Completed in ${turn} turns`;
+    showScreen('result-screen');
+    if(window.jbShowInterstitial)jbShowInterstitial();
+    setTimeout(function(){if(window.jbShareScore)jbShareScore(pc)},2000);
+  } else if (pc === 0 || (turn >= 50 && ec >= pc)) {
+    gameOver = true;
+    document.getElementById('result-title').textContent = '💀 Defeated';
+    document.getElementById('result-title').style.color = '#f85149';
+    document.getElementById('result-sub').textContent = 'The enemy conquered you...';
+    document.getElementById('result-turns').textContent = `Lasted ${turn} turns`;
+    showScreen('result-screen');
+    if(window.jbShowInterstitial)jbShowInterstitial();
+    setTimeout(function(){if(window.jbShareScore)jbShareScore(pc)},2000);
+  }
+}
+
+function addLog(msg) {
+  const log = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.textContent = msg;
+  log.prepend(entry);
+  if (log.children.length > 30) log.removeChild(log.lastChild);
+}
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Code Conquest',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Code%20Conquest%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

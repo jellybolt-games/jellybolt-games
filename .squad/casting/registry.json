@@ -1,0 +1,67 @@
+{
+  "entries": [
+    {
+      "persistent_name": "Mario",
+      "agent_folder": "mario",
+      "role": "Lead",
+      "universe": "Video Games",
+      "legacy_named": true,
+      "status": "active",
+      "created_at": "2025-01-15T00:00:00Z"
+    },
+    {
+      "persistent_name": "Sonic",
+      "agent_folder": "sonic",
+      "role": "Mobile Dev",
+      "universe": "Video Games",
+      "legacy_named": true,
+      "status": "active",
+      "created_at": "2025-01-15T00:00:00Z"
+    },
+    {
+      "persistent_name": "Link",
+      "agent_folder": "link",
+      "role": "Backend Dev",
+      "universe": "Video Games",
+      "legacy_named": true,
+      "status": "active",
+      "created_at": "2025-01-15T00:00:00Z"
+    },
+    {
+      "persistent_name": "Yoshi",
+      "agent_folder": "yoshi",
+      "role": "Artist",
+      "universe": "Video Games",
+      "legacy_named": true,
+      "status": "active",
+      "created_at": "2025-01-15T00:00:00Z"
+    },
+    {
+      "persistent_name": "Toad",
+      "agent_folder": "toad",
+      "role": "Monetization",
+      "universe": "Video Games",
+      "legacy_named": true,
+      "status": "active",
+      "created_at": "2025-01-15T00:00:00Z"
+    },
+    {
+      "persistent_name": "Toadette",
+      "agent_folder": "toadette",
+      "role": "Scribe",
+      "universe": "Video Games",
+      "legacy_named": true,
+      "status": "active",
+      "created_at": "2025-01-15T00:00:00Z"
+    },
+    {
+      "persistent_name": "Lakitu",
+      "agent_folder": "lakitu",
+      "role": "Ralph",
+      "universe": "Video Games",
+      "legacy_named": true,
+      "status": "active",
+      "created_at": "2025-01-15T00:00:00Z"
+    }
+  ]
+}

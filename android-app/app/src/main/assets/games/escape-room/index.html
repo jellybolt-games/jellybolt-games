@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Escape Room — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:manipulation;user-select:none;font-family:system-ui,-apple-system,sans-serif}
+canvas{display:block;cursor:pointer}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<canvas id="c"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight-180}
+resize();window.addEventListener('resize',resize);
+
+// ========== GAME STATE ==========
+const STATE={MENU:0,PLAYING:1,PUZZLE:2,INVENTORY:3,ENDING:4};
+let state=STATE.MENU;
+let currentRoom='livingRoom';
+let inventory=[];
+let usedHints=0;
+const maxHints=3;
+let solvedPuzzles=new Set();
+let gameChoices={takeTorch:false,helpedSpirit:false,usedKey:false};
+let timeStarted=null;
+
+// ========== ROOM DEFINITIONS ==========
+const rooms={
+  livingRoom:{
+    name:'Living Room',
+    desc:'A dusty Victorian parlor. Moonlight filters through heavy curtains.',
+    bg:'#1a1520',
+    objects:[
+      {x:100,y:200,w:80,h:120,color:'#4a3830',label:'Bookshelf',type:'puzzle',id:'bookshelf'},
+      {x:300,y:180,w:100,h:140,color:'#2a2a3a',label:'Grandfather Clock',type:'puzzle',id:'clock'},
+      {x:500,y:240,w:60,h:80,color:'#3a2a2a',label:'Vase',type:'item',id:'vase'},
+      {x:650,y:220,w:70,h:100,color:'#5a4a3a',label:'Painting',type:'puzzle',id:'painting'},
+      {x:200,y:380,w:150,h:40,color:'#4a4a4a',label:'Rug',type:'puzzle',id:'rug'}
+    ],
+    exits:[{dir:'East',to:'study',x:W-120,y:H/2-30,w:100,h:60}]
+  },
+  study:{
+    name:'Study',
+    desc:'A scholarly room lined with ancient tomes and scientific instruments.',
+    bg:'#1a1a20',
+    objects:[
+      {x:120,y:180,w:100,h:100,color:'#3a2a2a',label:'Desk',type:'puzzle',id:'desk'},
+      {x:350,y:160,w:80,h:120,color:'#4a3a2a',label:'Globe',type:'item',id:'globe'},
+      {x:550,y:200,w:90,h:110,color:'#2a2a3a',label:'Safe',type:'puzzle',id:'safe'},
+      {x:200,y:340,w:120,h:60,color:'#3a3a3a',label:'Chest',type:'puzzle',id:'chest'},
+      {x:450,y:350,w:70,h:50,color:'#4a4a3a',label:'Telescope',type:'item',id:'telescope'}
+    ],
+    exits:[
+      {dir:'West',to:'livingRoom',x:20,y:H/2-30,w:100,h:60},
+      {dir:'Down',to:'basement',x:W/2-50,y:H-80,w:100,h:60}
+    ]
+  },
+  basement:{
+    name:'Basement',
+    desc:'A damp stone chamber with mysterious glowing symbols on the walls.',
+    bg:'#0a0a15',
+    objects:[
+      {x:100,y:220,w:70,h:90,color:'#2a2a2a',label:'Barrel',type:'item',id:'barrel'},
+      {x:280,y:180,w:110,h:130,color:'#3a1a1a',label:'Altar',type:'puzzle',id:'altar'},
+      {x:480,y:200,w:80,h:100,color:'#1a2a2a',label:'Runes',type:'puzzle',id:'runes'},
+      {x:650,y:240,w:60,h:80,color:'#2a1a2a',label:'Torch',type:'item',id:'torch'},
+      {x:180,y:360,w:100,h:50,color:'#3a3a3a',label:'Chains',type:'puzzle',id:'chains'}
+    ],
+    exits:[
+      {dir:'Up',to:'study',x:W/2-50,y:20,w:100,h:60},
+      {dir:'Secret',to:'laboratory',x:W-120,y:H-100,w:100,h:80,hidden:true,requires:'runesolved'}
+    ]
+  },
+  laboratory:{
+    name:'Laboratory',
+    desc:'An alchemist\'s workshop with bubbling beakers and ancient equipment.',
+    bg:'#151520',
+    objects:[
+      {x:130,y:190,w:90,h:110,color:'#2a3a2a',label:'Workbench',type:'puzzle',id:'workbench'},
+      {x:340,y:170,w:100,h:120,color:'#3a2a3a',label:'Cauldron',type:'puzzle',id:'cauldron'},
+      {x:550,y:200,w:70,h:100,color:'#2a2a3a',label:'Crystal',type:'item',id:'crystal'},
+      {x:200,y:350,w:80,h:60,color:'#3a3a2a',label:'Journal',type:'puzzle',id:'journal'},
+      {x:470,y:360,w:90,h:50,color:'#2a3a3a',label:'Formula',type:'puzzle',id:'formula'}
+    ],
+    exits:[
+      {dir:'Back',to:'basement',x:20,y:H/2-30,w:100,h:60},
+      {dir:'Portal',to:'secretChamber',x:W/2-60,y:H/2-40,w:120,h:80,hidden:true,requires:'formulacomplete'}
+    ]
+  },
+  secretChamber:{
+    name:'Secret Chamber',
+    desc:'The heart of the mystery. Ancient power emanates from a central pedestal.',
+    bg:'#1a1030',
+    objects:[
+      {x:W/2-60,y:H/2-60,w:120,h:120,color:'#4a3a5a',label:'Pedestal',type:'puzzle',id:'pedestal'},
+      {x:150,y:200,w:80,h:100,color:'#2a2a3a',label:'Mirror',type:'puzzle',id:'mirror'},
+      {x:600,y:210,w:70,h:90,color:'#3a2a4a',label:'Orb',type:'item',id:'orb'}
+    ],
+    exits:[]
+  }
+};
+
+// ========== PUZZLE DEFINITIONS ==========
+const puzzles={
+  bookshelf:{
+    title:'Ancient Bookshelf',
+    desc:'A leather-bound book catches your eye. Its title reads: "The weight of knowledge".',
+    type:'riddle',
+    question:'I have no voice, yet I speak to you. I have no body, yet I come alive in your mind. What am I?',
+    answer:'book',
+    hint:'What you\'re looking at right now.',
+    reward:'oldKey',
+    complete:false
+  },
+  clock:{
+    title:'Grandfather Clock',
+    desc:'The clock is stopped at 3:15. There\'s a keyhole beneath the face.',
+    type:'combination',
+    question:'Set the correct time. The clock whispers: "When day meets night, I stand upright."',
+    answer:'12:00',
+    hint:'Noon or midnight - the balance point.',
+    reward:'clockGear',
+    requires:['oldKey'],
+    complete:false
+  },
+  painting:{
+    title:'Mysterious Painting',
+    desc:'A painting of a stormy sea. You can slide the frame sections.',
+    type:'pattern',
+    question:'Arrange the pieces to calm the storm.',
+    pattern:[[3,1,2],[6,4,5],[9,7,8]],
+    answer:[[1,2,3],[4,5,6],[7,8,9]],
+    hint:'Start from top left, work your way down.',
+    reward:'paintingKey',
+    complete:false
+  },
+  rug:{
+    title:'Ancient Rug',
+    desc:'Lifting the rug reveals strange symbols etched into the floor.',
+    type:'inspect',
+    question:'The symbols spell something...',
+    answer:'examine',
+    hint:'Try looking more carefully.',
+    reward:'symbolNote',
+    complete:false
+  },
+  vase:{
+    title:'Ornate Vase',
+    desc:'A delicate porcelain vase. Something rattles inside.',
+    type:'item',
+    question:'Break the vase?',
+    answer:'yes',
+    hint:'Sometimes you must destroy to discover.',
+    reward:'silverCoin',
+    complete:false
+  },
+  desk:{
+    title:'Scholar\'s Desk',
+    desc:'Papers scattered everywhere. A locked drawer needs 3 symbols.',
+    type:'sequence',
+    question:'Enter the symbol sequence found in the living room.',
+    answer:'circle-square-triangle',
+    hint:'Check that note you found under the rug.',
+    requires:['symbolNote'],
+    reward:'deskKey',
+    complete:false
+  },
+  safe:{
+    title:'Wall Safe',
+    desc:'A combination safe with numbers 0-9.',
+    type:'code',
+    question:'Enter 4-digit code. Hint: "My first is in TIME but not in RHYME"',
+    answer:'1863',
+    hint:'T=1st letter, I=9th but as digits think: Year the study was built? Check the painting date.',
+    reward:'goldKey',
+    complete:false
+  },
+  chest:{
+    title:'Locked Chest',
+    desc:'A heavy oak chest with an ornate lock.',
+    type:'keyitem',
+    question:'Use the golden key?',
+    answer:'yes',
+    requires:['goldKey'],
+    reward:'ancientMap',
+    complete:false
+  },
+  globe:{
+    title:'Antique Globe',
+    desc:'A spinning globe with a hidden compartment at the North Pole.',
+    type:'inspect',
+    question:'Open it?',
+    answer:'yes',
+    reward:'compass',
+    complete:false
+  },
+  telescope:{
+    title:'Brass Telescope',
+    desc:'Look through it? The lens shows a constellation pattern.',
+    type:'item',
+    answer:'yes',
+    reward:'starChart',
+    complete:false
+  },
+  altar:{
+    title:'Stone Altar',
+    desc:'An ancient altar with three slots for offerings.',
+    type:'combination',
+    question:'Place items in correct order: Past, Present, Future',
+    answer:'coin-key-crystal',
+    hint:'Silver for old times, keys open now, crystals see ahead.',
+    requires:['silverCoin','oldKey','crystal'],
+    reward:'altarBlessing',
+    complete:false
+  },
+  runes:{
+    title:'Glowing Runes',
+    desc:'Ancient magical runes glow faintly. They seem to form a question.',
+    type:'riddle',
+    question:'I am taken from a mine, and shut up in a wooden case. I am never released, yet I help everyone. What am I?',
+    answer:'pencil',
+    hint:'Made of graphite, writes on paper.',
+    reward:'runesolved',
+    complete:false
+  },
+  chains:{
+    title:'Rusty Chains',
+    desc:'Heavy chains block a passage. A mechanism requires precise timing.',
+    type:'sequence',
+    question:'Pull chains in rhythm: Fast-Slow-Slow-Fast',
+    answer:'f-s-s-f',
+    hint:'Match the heartbeat rhythm you heard.',
+    reward:'chainBroken',
+    complete:false
+  },
+  barrel:{
+    title:'Old Barrel',
+    desc:'A barrel filled with oil and rags.',
+    type:'item',
+    question:'Take materials?',
+    answer:'yes',
+    reward:'oil',
+    complete:false
+  },
+  torch:{
+    title:'Wall Torch',
+    desc:'An unlit torch on the wall.',
+    type:'combine',
+    question:'Combine oil with torch?',
+    answer:'yes',
+    requires:['oil'],
+    reward:'litTorch',
+    complete:false
+  },
+  workbench:{
+    title:'Alchemist\'s Workbench',
+    desc:'Various ingredients and tools. A recipe is pinned to the wall.',
+    type:'puzzle',
+    question:'Mix the elixir: Red + Blue + Yellow in correct amounts.',
+    answer:'2-1-3',
+    hint:'The recipe says: "Much red, little blue, plenty gold"',
+    reward:'elixir',
+    complete:false
+  },
+  cauldron:{
+    title:'Bubbling Cauldron',
+    desc:'A large cauldron bubbles with green liquid.',
+    type:'combine',
+    question:'Pour elixir into cauldron?',
+    answer:'yes',
+    requires:['elixir'],
+    reward:'cauldronComplete',
+    complete:false
+  },
+  journal:{
+    title:'Alchemist\'s Journal',
+    desc:'Detailed notes about transmutation and portal magic.',
+    type:'inspect',
+    question:'Read it?',
+    answer:'yes',
+    reward:'portalKnowledge',
+    complete:false
+  },
+  formula:{
+    title:'Final Formula',
+    desc:'The last page of the journal. Requires 5 key components.',
+    type:'combination',
+    question:'Combine: Blessing + Knowledge + Torch + Map + Compass',
+    answer:'complete',
+    requires:['altarBlessing','portalKnowledge','litTorch','ancientMap','compass'],
+    reward:'formulacomplete',
+    complete:false
+  },
+  crystal:{
+    title:'Mystic Crystal',
+    desc:'A pulsing blue crystal.',
+    type:'item',
+    answer:'yes',
+    reward:'crystal',
+    complete:false
+  },
+  pedestal:{
+    title:'Ancient Pedestal',
+    desc:'The source of all power. Choose your fate.',
+    type:'choice',
+    question:'Place the orb? (1=Destroy, 2=Keep, 3=Share, 4=Hide)',
+    answer:'choice',
+    hint:'Each choice leads to a different ending.',
+    reward:'ending',
+    complete:false
+  },
+  mirror:{
+    title:'Magic Mirror',
+    desc:'Your reflection seems... different.',
+    type:'riddle',
+    question:'I show you who you are, but never who you\'ll be. What am I?',
+    answer:'mirror',
+    hint:'Look at what you\'re using.',
+    reward:'mirrorShard',
+    complete:false
+  },
+  orb:{
+    title:'Power Orb',
+    desc:'The legendary orb of infinite power.',
+    type:'item',
+    answer:'yes',
+    reward:'orb',
+    complete:false
+  }
+};
+
+// ========== INPUT STATE ==========
+let inputValue='';
+let currentPuzzle=null;
+let puzzleState='input';
+let messageText='';
+let messageTimer=0;
+
+// ========== SAVE/LOAD ==========
+function saveGame(){
+  const save={
+    room:currentRoom,
+    inv:inventory,
+    solved:Array.from(solvedPuzzles),
+    hints:usedHints,
+    choices:gameChoices,
+    time:timeStarted
+  };
+  localStorage.setItem('escaperoom_save',JSON.stringify(save));
+  showMessage('Game saved!');
+}
+
+function loadGame(){
+  const saved=localStorage.getItem('escaperoom_save');
+  if(!saved)return false;
+  try{
+    const save=JSON.parse(saved);
+    currentRoom=save.room;
+    inventory=save.inv||[];
+    solvedPuzzles=new Set(save.solved||[]);
+    usedHints=save.hints||0;
+    gameChoices=save.choices||{};
+    timeStarted=save.time||Date.now();
+    return true;
+  }catch(e){return false}
+}
+
+function clearSave(){
+  localStorage.removeItem('escaperoom_save');
+}
+
+function newGame(){
+  currentRoom='livingRoom';
+  inventory=[];
+  solvedPuzzles=new Set();
+  usedHints=0;
+  gameChoices={};
+  timeStarted=Date.now();
+  state=STATE.PLAYING;
+  clearSave();
+}
+
+// ========== HELPERS ==========
+function showMessage(msg){
+  messageText=msg;
+  messageTimer=120;
+}
+
+function hasItem(item){
+  return inventory.includes(item);
+}
+
+function addItem(item){
+  if(!hasItem(item)){
+    inventory.push(item);
+    showMessage(`Found: ${item}!`);
+  }
+}
+
+function checkRequirements(puzzle){
+  if(!puzzle.requires)return true;
+  for(let req of puzzle.requires){
+    if(!hasItem(req))return false;
+  }
+  return true;
+}
+
+function solvePuzzle(puzzleId,userAnswer){
+  const puzzle=puzzles[puzzleId];
+  if(!puzzle||puzzle.complete)return false;
+  
+  let correct=false;
+  if(puzzle.type==='riddle'||puzzle.type==='code'||puzzle.type==='inspect'){
+    correct=userAnswer.toLowerCase().trim()===puzzle.answer.toLowerCase();
+  }else if(puzzle.type==='choice'){
+    gameChoices.finalChoice=parseInt(userAnswer);
+    correct=true;
+  }else{
+    correct=userAnswer===puzzle.answer||userAnswer.toLowerCase()==='yes';
+  }
+  
+  if(correct){
+    puzzle.complete=true;
+    solvedPuzzles.add(puzzleId);
+    if(puzzle.reward){
+      if(puzzle.reward==='ending'){
+        state=STATE.ENDING;
+      }else{
+        addItem(puzzle.reward);
+      }
+    }
+    saveGame();
+    return true;
+  }
+  return false;
+}
+
+function getHint(puzzleId){
+  if(usedHints>=maxHints){
+    showMessage('No hints remaining!');
+    return null;
+  }
+  const puzzle=puzzles[puzzleId];
+  if(puzzle&&puzzle.hint){
+    usedHints++;
+    saveGame();
+    return puzzle.hint;
+  }
+  return null;
+}
+
+// ========== RENDERING ==========
+function drawRoom(){
+  const room=rooms[currentRoom];
+  if(!room)return;
+  
+  ctx.fillStyle=room.bg;
+  ctx.fillRect(0,0,W,H);
+  
+  // Draw stars/ambiance
+  for(let i=0;i<20;i++){
+    const x=(i*97+currentRoom.length*13)%W;
+    const y=(i*67+currentRoom.length*7)%H;
+    ctx.fillStyle=`rgba(255,255,255,${0.1+Math.sin(Date.now()*0.001+i)*0.05})`;
+    ctx.fillRect(x,y,1,1);
+  }
+  
+  // Draw objects
+  room.objects.forEach(obj=>{
+    ctx.fillStyle=obj.color;
+    ctx.fillRect(obj.x,obj.y,obj.w,obj.h);
+    ctx.strokeStyle='#ffffff33';
+    ctx.lineWidth=2;
+    ctx.strokeRect(obj.x,obj.y,obj.w,obj.h);
+    
+    // Label
+    ctx.fillStyle='#fff';
+    ctx.font='bold 11px system-ui';
+    ctx.textAlign='center';
+    ctx.fillText(obj.label,obj.x+obj.w/2,obj.y-5);
+    
+    // Solved indicator
+    if(solvedPuzzles.has(obj.id)){
+      ctx.fillStyle='#00ff88';
+      ctx.font='bold 16px system-ui';
+      ctx.fillText('✓',obj.x+obj.w-10,obj.y+20);
+    }
+  });
+  
+  // Draw exits
+  room.exits.forEach(exit=>{
+    if(exit.hidden&&!solvedPuzzles.has(exit.requires))return;
+    ctx.fillStyle='#4444ff';
+    ctx.fillRect(exit.x,exit.y,exit.w,exit.h);
+    ctx.strokeStyle='#6666ff';
+    ctx.lineWidth=2;
+    ctx.strokeRect(exit.x,exit.y,exit.w,exit.h);
+    ctx.fillStyle='#fff';
+    ctx.font='bold 12px system-ui';
+    ctx.textAlign='center';
+    ctx.fillText(exit.dir,exit.x+exit.w/2,exit.y+exit.h/2+4);
+  });
+  
+  // Room name
+  ctx.fillStyle='#ffcc00';
+  ctx.font='bold 24px system-ui';
+  ctx.textAlign='center';
+  ctx.fillText(room.name,W/2,30);
+  
+  // Room description
+  ctx.fillStyle='#aaa';
+  ctx.font='14px system-ui';
+  ctx.fillText(room.desc,W/2,55);
+  
+  // Progress
+  const totalPuzzles=Object.keys(puzzles).length;
+  const solved=solvedPuzzles.size;
+  ctx.fillStyle='#00ff88';
+  ctx.font='bold 13px system-ui';
+  ctx.textAlign='left';
+  ctx.fillText(`Progress: ${solved}/${totalPuzzles}`,10,H-10);
+  
+  // Hints remaining
+  ctx.fillStyle='#ffaa00';
+  ctx.textAlign='right';
+  ctx.fillText(`Hints: ${maxHints-usedHints}`,W-10,H-10);
+  
+  // Message
+  if(messageTimer>0){
+    messageTimer--;
+    ctx.fillStyle='rgba(0,0,0,0.8)';
+    ctx.fillRect(W/2-150,H/2-30,300,60);
+    ctx.fillStyle='#00ff88';
+    ctx.font='bold 16px system-ui';
+    ctx.textAlign='center';
+    ctx.fillText(messageText,W/2,H/2+5);
+  }
+}
+
+function drawInventory(){
+  ctx.fillStyle='#1a1a2a';
+  ctx.fillRect(0,H-100,W,100);
+  ctx.strokeStyle='#333';
+  ctx.lineWidth=2;
+  ctx.strokeRect(0,H-100,W,100);
+  
+  ctx.fillStyle='#ffcc00';
+  ctx.font='bold 16px system-ui';
+  ctx.textAlign='left';
+  ctx.fillText('INVENTORY',10,H-75);
+  
+  const startX=10;
+  const startY=H-55;
+  const spacing=90;
+  
+  inventory.forEach((item,i)=>{
+    const x=startX+i*spacing;
+    ctx.fillStyle='#3a3a4a';
+    ctx.fillRect(x,startY,80,40);
+    ctx.strokeStyle='#555';
+    ctx.strokeRect(x,startY,80,40);
+    ctx.fillStyle='#fff';
+    ctx.font='11px system-ui';
+    ctx.textAlign='center';
+    const shortName=item.length>10?item.substring(0,9)+'..':item;
+    ctx.fillText(shortName,x+40,startY+24);
+  });
+  
+  if(inventory.length===0){
+    ctx.fillStyle='#666';
+    ctx.font='13px system-ui';
+    ctx.textAlign='center';
+    ctx.fillText('No items yet',W/2,startY+20);
+  }
+}
+
+function drawPuzzle(){
+  if(!currentPuzzle)return;
+  const puzzle=puzzles[currentPuzzle];
+  if(!puzzle)return;
+  
+  // Overlay
+  ctx.fillStyle='rgba(0,0,0,0.85)';
+  ctx.fillRect(0,0,W,H);
+  
+  // Puzzle box
+  const boxW=Math.min(500,W-40);
+  const boxH=Math.min(400,H-100);
+  const boxX=(W-boxW)/2;
+  const boxY=(H-boxH)/2;
+  
+  ctx.fillStyle='#1a1a2a';
+  ctx.fillRect(boxX,boxY,boxW,boxH);
+  ctx.strokeStyle='#444';
+  ctx.lineWidth=3;
+  ctx.strokeRect(boxX,boxY,boxW,boxH);
+  
+  // Title
+  ctx.fillStyle='#ffcc00';
+  ctx.font='bold 20px system-ui';
+  ctx.textAlign='center';
+  ctx.fillText(puzzle.title,W/2,boxY+30);
+  
+  // Description
+  ctx.fillStyle='#aaa';
+  ctx.font='14px system-ui';
+  wrapText(ctx,puzzle.desc,W/2,boxY+60,boxW-40,20);
+  
+  // Question
+  if(puzzle.question){
+    ctx.fillStyle='#fff';
+    ctx.font='bold 15px system-ui';
+    wrapText(ctx,puzzle.question,W/2,boxY+120,boxW-40,22);
+  }
+  
+  // Check requirements
+  if(!checkRequirements(puzzle)){
+    ctx.fillStyle='#ff6b6b';
+    ctx.font='bold 14px system-ui';
+    ctx.fillText('Missing required items!',W/2,boxY+200);
+    ctx.fillStyle='#ffaa00';
+    ctx.font='12px system-ui';
+    const missing=puzzle.requires.filter(r=>!hasItem(r));
+    ctx.fillText(`Need: ${missing.join(', ')}`,W/2,boxY+225);
+  }else if(puzzleState==='input'){
+    // Input field
+    ctx.fillStyle='#2a2a3a';
+    ctx.fillRect(boxX+20,boxY+boxH-120,boxW-40,40);
+    ctx.strokeStyle='#666';
+    ctx.lineWidth=2;
+    ctx.strokeRect(boxX+20,boxY+boxH-120,boxW-40,40);
+    
+    ctx.fillStyle='#fff';
+    ctx.font='16px system-ui';
+    ctx.textAlign='left';
+    ctx.fillText(inputValue+'|',boxX+30,boxY+boxH-93);
+  }else if(puzzleState==='correct'){
+    ctx.fillStyle='#00ff88';
+    ctx.font='bold 18px system-ui';
+    ctx.textAlign='center';
+    ctx.fillText('✓ SOLVED!',W/2,boxY+boxH-90);
+    if(puzzle.reward&&puzzle.reward!=='ending'){
+      ctx.fillStyle='#ffcc00';
+      ctx.font='14px system-ui';
+      ctx.fillText(`Received: ${puzzle.reward}`,W/2,boxY+boxH-65);
+    }
+  }else if(puzzleState==='wrong'){
+    ctx.fillStyle='#ff6b6b';
+    ctx.font='bold 16px system-ui';
+    ctx.textAlign='center';
+    ctx.fillText('✗ Incorrect',W/2,boxY+boxH-90);
+  }
+  
+  // Buttons
+  const btnY=boxY+boxH-40;
+  const btnW=80;
+  const btnH=30;
+  
+  // Submit
+  ctx.fillStyle='#00ff88';
+  ctx.fillRect(W/2-btnW-5,btnY,btnW,btnH);
+  ctx.fillStyle='#000';
+  ctx.font='bold 13px system-ui';
+  ctx.textAlign='center';
+  ctx.fillText('SUBMIT',W/2-btnW/2-5,btnY+20);
+  
+  // Close
+  ctx.fillStyle='#ff6b6b';
+  ctx.fillRect(W/2+5,btnY,btnW,btnH);
+  ctx.fillStyle='#000';
+  ctx.fillText('CLOSE',W/2+btnW/2+5,btnY+20);
+  
+  // Hint button
+  if(usedHints<maxHints&&puzzle.hint){
+    ctx.fillStyle='#ffaa00';
+    ctx.fillRect(boxX+boxW-90,boxY+10,80,25);
+    ctx.fillStyle='#000';
+    ctx.font='bold 12px system-ui';
+    ctx.fillText('HINT',boxX+boxW-50,boxY+26);
+  }
+}
+
+function drawMenu(){
+  ctx.fillStyle='#0a0a1a';
+  ctx.fillRect(0,0,W,H);
+  
+  // Stars
+  for(let i=0;i<50;i++){
+    const x=(i*123)%W;
+    const y=(i*89)%H;
+    ctx.fillStyle=`rgba(255,255,255,${0.2+Math.sin(Date.now()*0.001+i)*0.1})`;
+    ctx.fillRect(x,y,2,2);
+  }
+  
+  // Title
+  ctx.fillStyle='#ffcc00';
+  ctx.shadowColor='#ffcc00';
+  ctx.shadowBlur=20;
+  ctx.font='bold 48px system-ui';
+  ctx.textAlign='center';
+  ctx.fillText('ESCAPE ROOM',W/2,H/2-120);
+  ctx.shadowBlur=0;
+  
+  // Subtitle
+  ctx.fillStyle='#00ff88';
+  ctx.font='20px system-ui';
+  ctx.fillText('The Mystery of the Ancient House',W/2,H/2-80);
+  
+  // Instructions
+  ctx.fillStyle='#aaa';
+  ctx.font='14px system-ui';
+  ctx.fillText('Point & click to interact • Solve 30+ puzzles',W/2,H/2-40);
+  ctx.fillText('5 rooms • 4 different endings • 3 hints',W/2,H/2-20);
+  
+  // Buttons
+  const hasSave=localStorage.getItem('escaperoom_save');
+  
+  ctx.fillStyle='#00ff88';
+  ctx.fillRect(W/2-100,H/2+20,200,50);
+  ctx.fillStyle='#000';
+  ctx.font='bold 18px system-ui';
+  ctx.fillText('NEW GAME',W/2,H/2+50);
+  
+  if(hasSave){
+    ctx.fillStyle='#58a6ff';
+    ctx.fillRect(W/2-100,H/2+80,200,50);
+    ctx.fillStyle='#000';
+    ctx.fillText('CONTINUE',W/2,H/2+110);
+  }
+  
+  // Progress indicator
+  if(hasSave){
+    ctx.fillStyle='#666';
+    ctx.font='12px system-ui';
+    ctx.fillText('(Saved game found)',W/2,H/2+150);
+  }
+  
+  // Credits
+  ctx.fillStyle='#666';
+  ctx.font='13px system-ui';
+  ctx.fillText('⚡ JellyBolt Games',W/2,H-20);
+}
+
+function drawEnding(){
+  ctx.fillStyle='#0a0a1a';
+  ctx.fillRect(0,0,W,H);
+  
+  const choice=gameChoices.finalChoice||1;
+  let title='',desc='',color='';
+  
+  switch(choice){
+    case 1:
+      title='ENDING: DESTROYER';
+      desc='You shattered the orb, releasing its power into the void.\nThe house crumbles, but the world is safe from corruption.\nYou escape into the night, forever changed.';
+      color='#ff6b6b';
+      break;
+    case 2:
+      title='ENDING: KEEPER';
+      desc='You claimed the orb for yourself.\nIts power courses through you, granting immortality.\nBut at what cost? The house becomes your eternal prison.';
+      color='#ffaa00';
+      break;
+    case 3:
+      title='ENDING: SAVIOR';
+      desc='You chose to share the orb\'s power with the world.\nThe ancient magic spreads, healing and enlightening all.\nYou are remembered as a hero for generations.';
+      color='#00ff88';
+      break;
+    case 4:
+      title='ENDING: GUARDIAN';
+      desc='You hid the orb away, sealing it from both good and evil.\nThe house accepts you as its new keeper.\nYou walk between worlds, protecting the secret forever.';
+      color='#58a6ff';
+      break;
+  }
+  
+  ctx.fillStyle=color;
+  ctx.shadowColor=color;
+  ctx.shadowBlur=30;
+  ctx.font='bold 36px system-ui';
+  ctx.textAlign='center';
+  ctx.fillText(title,W/2,H/2-100);
+  ctx.shadowBlur=0;
+  
+  ctx.fillStyle='#fff';
+  ctx.font='16px system-ui';
+  const lines=desc.split('\n');
+  lines.forEach((line,i)=>{
+    ctx.fillText(line,W/2,H/2-40+i*30);
+  });
+  
+  // Stats
+  const timePlayed=timeStarted?Math.floor((Date.now()-timeStarted)/1000):0;
+  const mins=Math.floor(timePlayed/60);
+  const secs=timePlayed%60;
+  
+  ctx.fillStyle='#aaa';
+  ctx.font='14px system-ui';
+  ctx.fillText(`Puzzles Solved: ${solvedPuzzles.size}/${Object.keys(puzzles).length}`,W/2,H/2+80);
+  ctx.fillText(`Time: ${mins}m ${secs}s`,W/2,H/2+100);
+  ctx.fillText(`Hints Used: ${usedHints}/${maxHints}`,W/2,H/2+120);
+  
+  // Menu button
+  ctx.fillStyle='#00ff88';
+  ctx.fillRect(W/2-80,H/2+150,160,45);
+  ctx.fillStyle='#000';
+  ctx.font='bold 16px system-ui';
+  ctx.fillText('MAIN MENU',W/2,H/2+180);
+}
+
+function wrapText(ctx,text,x,y,maxWidth,lineHeight){
+  const words=text.split(' ');
+  let line='';
+  let yPos=y;
+  
+  for(let word of words){
+    const testLine=line+word+' ';
+    const metrics=ctx.measureText(testLine);
+    if(metrics.width>maxWidth&&line!==''){
+      ctx.fillText(line,x,yPos);
+      line=word+' ';
+      yPos+=lineHeight;
+    }else{
+      line=testLine;
+    }
+  }
+  ctx.fillText(line,x,yPos);
+}
+
+// ========== INPUT HANDLING ==========
+function handleClick(x,y){
+  if(state===STATE.MENU){
+    const hasSave=localStorage.getItem('escaperoom_save');
+    if(x>=W/2-100&&x<=W/2+100&&y>=H/2+20&&y<=H/2+70){
+      newGame();
+    }else if(hasSave&&x>=W/2-100&&x<=W/2+100&&y>=H/2+80&&y<=H/2+130){
+      if(loadGame()){
+        state=STATE.PLAYING;
+      }else{
+        newGame();
+      }
+    }
+    return;
+  }
+  
+  if(state===STATE.ENDING){
+    if(x>=W/2-80&&x<=W/2+80&&y>=H/2+150&&y<=H/2+195){
+      clearSave();
+      state=STATE.MENU;
+    }
+    return;
+  }
+  
+  if(state===STATE.PUZZLE){
+    if(!currentPuzzle)return;
+    const puzzle=puzzles[currentPuzzle];
+    const boxW=Math.min(500,W-40);
+    const boxH=Math.min(400,H-100);
+    const boxX=(W-boxW)/2;
+    const boxY=(H-boxH)/2;
+    const btnY=boxY+boxH-40;
+    
+    // Hint button
+    if(usedHints<maxHints&&puzzle.hint){
+      if(x>=boxX+boxW-90&&x<=boxX+boxW-10&&y>=boxY+10&&y<=boxY+35){
+        const hint=getHint(currentPuzzle);
+        if(hint){
+          showMessage(`Hint: ${hint}`);
+        }
+      }
+    }
+    
+    // Submit button
+    if(x>=W/2-85&&x<=W/2-5&&y>=btnY&&y<=btnY+30){
+      if(checkRequirements(puzzle)){
+        const solved=solvePuzzle(currentPuzzle,inputValue);
+        puzzleState=solved?'correct':'wrong';
+        if(solved){
+          setTimeout(()=>{
+            state=STATE.PLAYING;
+            currentPuzzle=null;
+            inputValue='';
+            puzzleState='input';
+          },1500);
+        }else{
+          setTimeout(()=>{puzzleState='input'},1000);
+        }
+      }
+    }
+    
+    // Close button
+    if(x>=W/2+5&&x<=W/2+85&&y>=btnY&&y<=btnY+30){
+      state=STATE.PLAYING;
+      currentPuzzle=null;
+      inputValue='';
+      puzzleState='input';
+    }
+    return;
+  }
+  
+  if(state===STATE.PLAYING){
+    const room=rooms[currentRoom];
+    if(!room)return;
+    
+    // Check objects
+    for(let obj of room.objects){
+      if(x>=obj.x&&x<=obj.x+obj.w&&y>=obj.y&&y<=obj.y+obj.h){
+        if(puzzles[obj.id]&&!puzzles[obj.id].complete){
+          currentPuzzle=obj.id;
+          state=STATE.PUZZLE;
+          inputValue='';
+          puzzleState='input';
+        }else if(solvedPuzzles.has(obj.id)){
+          showMessage('Already solved!');
+        }
+        return;
+      }
+    }
+    
+    // Check exits
+    for(let exit of room.exits){
+      if(exit.hidden&&!solvedPuzzles.has(exit.requires))continue;
+      if(x>=exit.x&&x<=exit.x+exit.w&&y>=exit.y&&y<=exit.y+exit.h){
+        currentRoom=exit.to;
+        saveGame();
+        return;
+      }
+    }
+  }
+}
+
+function handleKeyPress(key){
+  if(state!==STATE.PUZZLE||puzzleState!=='input')return;
+  
+  if(key==='Backspace'){
+    inputValue=inputValue.slice(0,-1);
+  }else if(key==='Enter'){
+    if(!currentPuzzle)return;
+    const puzzle=puzzles[currentPuzzle];
+    if(checkRequirements(puzzle)){
+      const solved=solvePuzzle(currentPuzzle,inputValue);
+      puzzleState=solved?'correct':'wrong';
+      if(solved){
+        setTimeout(()=>{
+          state=STATE.PLAYING;
+          currentPuzzle=null;
+          inputValue='';
+          puzzleState='input';
+        },1500);
+      }else{
+        setTimeout(()=>{puzzleState='input'},1000);
+      }
+    }
+  }else if(key.length===1){
+    if(inputValue.length<30){
+      inputValue+=key;
+    }
+  }
+}
+
+// ========== EVENT LISTENERS ==========
+canvas.addEventListener('click',e=>{
+  const rect=canvas.getBoundingClientRect();
+  const x=e.clientX-rect.left;
+  const y=e.clientY-rect.top;
+  handleClick(x,y);
+});
+
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const rect=canvas.getBoundingClientRect();
+  const touch=e.touches[0];
+  const x=touch.clientX-rect.left;
+  const y=touch.clientY-rect.top;
+  handleClick(x,y);
+},{passive:false});
+
+window.addEventListener('keydown',e=>{
+  handleKeyPress(e.key);
+});
+
+// ========== GAME LOOP ==========
+function update(){
+  // Update logic here if needed
+}
+
+function draw(){
+  if(state===STATE.MENU){
+    drawMenu();
+  }else if(state===STATE.PLAYING){
+    drawRoom();
+    drawInventory();
+  }else if(state===STATE.PUZZLE){
+    drawRoom();
+    drawInventory();
+    drawPuzzle();
+  }else if(state===STATE.ENDING){
+    drawEnding();
+  }
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="if(window.JellyBoltAds)JellyBoltAds.shareScore('Escape Room',0);return false">&#128038; Share</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Escape%20Room%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -40,8 +40,9 @@ canvas{display:block;image-rendering:pixelated;border:2px solid #2a2520;border-r
 .jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
 .minimap{position:fixed;top:44px;right:8px;border:1px solid #2a2520;border-radius:4px;z-index:11}
 </style>
-</head>
+<style>.jb-ad-banner{text-align:center;margin:4px auto;overflow:hidden;max-height:100px}#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}</style></head>
 <body>
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
 <div class="overlay active" id="menu">
   <div class="title">&#x1F3F0; Dungeon Crawler</div>
   <div class="subtitle">Classic — A JellyBolt Games Original</div>
@@ -145,5 +146,8 @@ function onKey(e){if(!alive)return;var K={'ArrowUp':[0,-1],'ArrowDown':[0,1],'Ar
 function render(){if(!ctx)return;var camX=Math.max(0,Math.min(MW-VW,pl.x-Math.floor(VW/2))),camY=Math.max(0,Math.min(MH-VH,pl.y-Math.floor(VH/2)));ctx.fillStyle='#0a0a0a';ctx.fillRect(0,0,C.width,C.height);for(var vy=0;vy<VH;vy++){for(var vx=0;vx<VW;vx++){var mx=camX+vx,my=camY+vy;if(mx>=MW||my>=MH)continue;var sx=vx*TS,sy=vy*TS;if(!seen[my][mx]){ctx.fillStyle='#0a0a0a';ctx.fillRect(sx,sy,TS,TS);continue}var dist=Math.abs(mx-pl.x)+Math.abs(my-pl.y),vis=dist<=SIGHT+1,tile=map[my][mx];if(tile===T.WALL){ctx.fillStyle=vis?'#2a2520':'#1a1815';ctx.fillRect(sx,sy,TS,TS);ctx.fillStyle=vis?'#3a3530':'#222';ctx.fillRect(sx,sy,TS,4);if(vis){ctx.fillStyle='#4a4540';if((mx+my)%2===0){ctx.fillRect(sx+2,sy+10,12,2);ctx.fillRect(sx+18,sy+20,12,2)}else ctx.fillRect(sx+10,sy+15,12,2)}}else{ctx.fillStyle=(mx+my)%2===0?'#1a1815':'#1e1c18';ctx.fillRect(sx,sy,TS,TS);if(tile===T.STAIRS){ctx.fillStyle='rgba(255,204,0,0.15)';ctx.fillRect(sx-2,sy-2,TS+4,TS+4);ctx.font='24px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('\u2B07',sx+TS/2,sy+TS/2)}else if(tile===T.CHEST){ctx.font='22px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('\u{1F4E6}',sx+TS/2,sy+TS/2)}else if(tile===T.POTION){ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('\u{1F9EA}',sx+TS/2,sy+TS/2)}}if(!vis){ctx.fillStyle='rgba(10,10,10,0.55)';ctx.fillRect(sx,sy,TS,TS)}}}for(var i=0;i<mons.length;i++){var e=mons[i];if(e.hp<=0||!seen[e.y][e.x])continue;var d=Math.abs(e.x-pl.x)+Math.abs(e.y-pl.y);if(d>SIGHT+1)continue;var ex=(e.x-camX)*TS,ey=(e.y-camY)*TS;if(ex<0||ey<0||ex>=C.width||ey>=C.height)continue;ctx.font='24px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(e.icon,ex+TS/2,ey+TS/2);var hp=e.hp/e.mhp;ctx.fillStyle='#2a1a1a';ctx.fillRect(ex+4,ey,TS-8,3);ctx.fillStyle=hp>.5?'#ff6b6b':'#ff3333';ctx.fillRect(ex+4,ey,(TS-8)*hp,3)}var px=(pl.x-camX)*TS,py=(pl.y-camY)*TS;ctx.fillStyle='rgba(0,255,136,0.08)';ctx.beginPath();ctx.arc(px+TS/2,py+TS/2,TS,0,Math.PI*2);ctx.fill();ctx.fillStyle='#00ff88';ctx.beginPath();ctx.arc(px+TS/2,py+TS/2+2,10,0,Math.PI*2);ctx.fill();ctx.fillStyle='#00cc6a';ctx.beginPath();ctx.arc(px+TS/2,py+TS/2-4,7,Math.PI,0);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(px+12,py+13,3,3);ctx.fillRect(px+18,py+13,3,3);var s=3;mmx.fillStyle='#000';mmx.fillRect(0,0,mmC.width,mmC.height);for(var y=0;y<MH;y++)for(var x=0;x<MW;x++){if(!seen[y][x])continue;mmx.fillStyle=map[y][x]===T.WALL?'#333':map[y][x]===T.STAIRS?'#ffcc00':'#1a1a1a';mmx.fillRect(x*s,y*s,s,s)}for(var i2=0;i2<mons.length;i2++){var e2=mons[i2];if(e2.hp<=0||!seen[e2.y][e2.x])continue;mmx.fillStyle='#ff6b6b';mmx.fillRect(e2.x*s,e2.y*s,s,s)}mmx.fillStyle='#00ff88';mmx.fillRect(pl.x*s,pl.y*s,s,s)}
 init();
 </script>
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="5123448325" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
 </body>
 </html>

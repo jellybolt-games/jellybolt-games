@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Quest RPG: Dungeon Crawler — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:none;user-select:none;font-family:system-ui,-apple-system,sans-serif}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="game"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+// Quest RPG: Dungeon Crawler
+// A complete Phaser 3 top-down RPG with 3 classes, 5 floors, inventory, leveling, bosses, and multiple endings
+
+const GAME_DATA = {
+  classes: {
+    warrior: {
+      name: 'Warrior',
+      baseHP: 120,
+      baseATK: 15,
+      baseDEF: 10,
+      baseSpeed: 90,
+      color: 0xff4444,
+      description: 'High HP and defense, moderate damage'
+    },
+    mage: {
+      name: 'Mage',
+      baseHP: 80,
+      baseATK: 25,
+      baseDEF: 5,
+      baseSpeed: 85,
+      color: 0x4444ff,
+      description: 'High damage, low defense, magical attacks'
+    },
+    rogue: {
+      name: 'Rogue',
+      baseHP: 90,
+      baseATK: 18,
+      baseDEF: 7,
+      baseSpeed: 120,
+      color: 0x44ff44,
+      description: 'Fast attacks, critical hits, evasion'
+    }
+  },
+  items: {
+    weapons: [
+      { id: 'sword', name: 'Iron Sword', atk: 5, price: 0, level: 1 },
+      { id: 'sword2', name: 'Steel Sword', atk: 10, price: 50, level: 2 },
+      { id: 'sword3', name: 'Legendary Blade', atk: 20, price: 200, level: 4 },
+      { id: 'staff', name: 'Oak Staff', atk: 8, price: 0, level: 1 },
+      { id: 'staff2', name: 'Crystal Staff', atk: 15, price: 60, level: 2 },
+      { id: 'staff3', name: 'Arcane Scepter', atk: 30, price: 250, level: 4 },
+      { id: 'dagger', name: 'Steel Dagger', atk: 6, price: 0, level: 1 },
+      { id: 'dagger2', name: 'Shadow Blade', atk: 12, price: 55, level: 2 },
+      { id: 'dagger3', name: 'Assassin\'s Edge', atk: 25, price: 220, level: 4 }
+    ],
+    armor: [
+      { id: 'leather', name: 'Leather Armor', def: 3, price: 0, level: 1 },
+      { id: 'chain', name: 'Chainmail', def: 7, price: 40, level: 2 },
+      { id: 'plate', name: 'Plate Armor', def: 15, price: 150, level: 3 },
+      { id: 'dragon', name: 'Dragon Scale', def: 25, price: 300, level: 5 }
+    ],
+    potions: [
+      { id: 'health_small', name: 'Health Potion', heal: 30, price: 20, type: 'heal' },
+      { id: 'health_large', name: 'Greater Health', heal: 60, price: 50, type: 'heal' },
+      { id: 'strength', name: 'Strength Potion', atkBoost: 10, duration: 3, price: 40, type: 'buff' }
+    ]
+  },
+  floors: [
+    { level: 1, name: 'Dark Crypt', enemyCount: 5, bossHP: 100, bossATK: 12, color: 0x2a2a3a },
+    { level: 2, name: 'Haunted Halls', enemyCount: 7, bossHP: 150, bossATK: 18, color: 0x3a2a4a },
+    { level: 3, name: 'Fire Caverns', enemyCount: 8, bossHP: 220, bossATK: 25, color: 0x4a2a2a },
+    { level: 4, name: 'Frozen Depths', enemyCount: 10, bossHP: 300, bossATK: 32, color: 0x2a3a4a },
+    { level: 5, name: 'Demon Throne', enemyCount: 12, bossHP: 450, bossATK: 45, color: 0x1a1a2a }
+  ]
+};
+
+class MenuScene extends Phaser.Scene {
+  constructor() {
+    super('MenuScene');
+  }
+
+  create() {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    // Background
+    this.add.rectangle(W/2, H/2, W, H, 0x0a0a1a);
+
+    // Check for saved game
+    const savedGame = localStorage.getItem('quest_rpg_save');
+    
+    // Title
+    const title = this.add.text(W/2, H*0.15, 'QUEST RPG', {
+      fontSize: Math.min(W * 0.12, 64) + 'px',
+      fontStyle: 'bold',
+      color: '#ffdd00',
+      stroke: '#000',
+      strokeThickness: 6
+    }).setOrigin(0.5);
+
+    const subtitle = this.add.text(W/2, H*0.23, 'Dungeon Crawler', {
+      fontSize: Math.min(W * 0.06, 28) + 'px',
+      color: '#00ff88'
+    }).setOrigin(0.5);
+
+    let yPos = H * 0.38;
+
+    if (savedGame) {
+      // Continue button
+      const continueBtn = this.createButton(W/2, yPos, 'Continue Game', 0x00ff88, () => {
+        const data = JSON.parse(savedGame);
+        this.scene.start('GameScene', { loadGame: true, saveData: data });
+      });
+      yPos += 70;
+    }
+
+    // New Game button
+    const newBtn = this.createButton(W/2, yPos, 'New Game', 0x4488ff, () => {
+      this.scene.start('ClassSelectScene');
+    });
+    yPos += 70;
+
+    // Instructions
+    const instructions = this.add.text(W/2, H * 0.82, 
+      'Arrow Keys/WASD or Touch to Move\nSpace/Tap to Attack\nCollect items, defeat enemies, conquer 5 floors!',
+      {
+        fontSize: Math.min(W * 0.03, 16) + 'px',
+        color: '#8b949e',
+        align: 'center'
+      }
+    ).setOrigin(0.5);
+  }
+
+  createButton(x, y, text, color, callback) {
+    const W = this.cameras.main.width;
+    const btnWidth = Math.min(W * 0.5, 300);
+    const btnHeight = 50;
+
+    const bg = this.add.rectangle(x, y, btnWidth, btnHeight, color)
+      .setInteractive({ useHandCursor: true });
+    
+    const label = this.add.text(x, y, text, {
+      fontSize: '22px',
+      fontStyle: 'bold',
+      color: '#000'
+    }).setOrigin(0.5);
+
+    bg.on('pointerover', () => bg.setScale(1.05));
+    bg.on('pointerout', () => bg.setScale(1));
+    bg.on('pointerdown', callback);
+
+    return { bg, label };
+  }
+}
+
+class ClassSelectScene extends Phaser.Scene {
+  constructor() {
+    super('ClassSelectScene');
+  }
+
+  create() {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    this.add.rectangle(W/2, H/2, W, H, 0x0a0a1a);
+
+    this.add.text(W/2, H*0.12, 'Select Your Class', {
+      fontSize: Math.min(W * 0.08, 48) + 'px',
+      fontStyle: 'bold',
+      color: '#ffdd00'
+    }).setOrigin(0.5);
+
+    const classes = Object.keys(GAME_DATA.classes);
+    const cardWidth = Math.min(W * 0.25, 200);
+    const spacing = W * 0.3;
+    const startX = W * 0.2;
+
+    classes.forEach((classKey, idx) => {
+      const classData = GAME_DATA.classes[classKey];
+      const x = startX + idx * spacing;
+      const y = H * 0.45;
+
+      // Card background
+      const card = this.add.rectangle(x, y, cardWidth, H * 0.5, classData.color)
+        .setInteractive({ useHandCursor: true })
+        .setAlpha(0.8);
+
+      // Character icon (simple circle)
+      this.add.circle(x, y - H * 0.12, 35, 0xffffff);
+
+      // Class name
+      this.add.text(x, y - H * 0.02, classData.name, {
+        fontSize: '24px',
+        fontStyle: 'bold',
+        color: '#fff'
+      }).setOrigin(0.5);
+
+      // Stats
+      const stats = [
+        `HP: ${classData.baseHP}`,
+        `ATK: ${classData.baseATK}`,
+        `DEF: ${classData.baseDEF}`,
+        `SPD: ${classData.baseSpeed}`
+      ];
+
+      stats.forEach((stat, i) => {
+        this.add.text(x, y + 25 + i * 22, stat, {
+          fontSize: '14px',
+          color: '#ddd'
+        }).setOrigin(0.5);
+      });
+
+      // Description
+      this.add.text(x, y + H * 0.16, classData.description, {
+        fontSize: '11px',
+        color: '#aaa',
+        wordWrap: { width: cardWidth - 20 },
+        align: 'center'
+      }).setOrigin(0.5);
+
+      card.on('pointerover', () => card.setScale(1.05).setAlpha(1));
+      card.on('pointerout', () => card.setScale(1).setAlpha(0.8));
+      card.on('pointerdown', () => {
+        this.scene.start('GameScene', { playerClass: classKey, loadGame: false });
+      });
+    });
+
+    // Back button
+    const backBtn = this.add.text(30, 30, '← Back', {
+      fontSize: '20px',
+      color: '#8b949e'
+    }).setInteractive({ useHandCursor: true });
+
+    backBtn.on('pointerdown', () => {
+      this.scene.start('MenuScene');
+    });
+  }
+}
+
+class GameScene extends Phaser.Scene {
+  constructor() {
+    super('GameScene');
+  }
+
+  init(data) {
+    this.loadGame = data.loadGame || false;
+    this.saveData = data.saveData || null;
+    this.playerClass = data.playerClass || 'warrior';
+  }
+
+  create() {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    // Initialize game state
+    if (this.loadGame && this.saveData) {
+      this.gameState = this.saveData;
+    } else {
+      const classData = GAME_DATA.classes[this.playerClass];
+      this.gameState = {
+        playerClass: this.playerClass,
+        level: 1,
+        xp: 0,
+        xpToNext: 100,
+        maxHP: classData.baseHP,
+        hp: classData.baseHP,
+        atk: classData.baseATK,
+        def: classData.baseDEF,
+        speed: classData.baseSpeed,
+        gold: 50,
+        floor: 1,
+        inventory: {
+          weapon: this.playerClass === 'warrior' ? 'sword' : this.playerClass === 'mage' ? 'staff' : 'dagger',
+          armor: 'leather',
+          potions: { health_small: 3 }
+        },
+        enemiesKilled: 0,
+        choices: []
+      };
+    }
+
+    this.saveGame();
+
+    // Game world
+    this.tileSize = 40;
+    this.worldWidth = 25;
+    this.worldHeight = 20;
+
+    this.cameras.main.setBackgroundColor(GAME_DATA.floors[this.gameState.floor - 1].color);
+
+    // Create dungeon
+    this.createDungeon();
+
+    // Create player
+    this.createPlayer();
+
+    // Create enemies
+    this.enemies = this.physics.add.group();
+    this.spawnEnemies();
+
+    // Create items
+    this.items = this.physics.add.group();
+    this.spawnItems();
+
+    // Create exit
+    this.createExit();
+
+    // UI
+    this.createUI();
+
+    // Controls
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,E,I,ESC');
+
+    // Touch controls
+    this.input.on('pointerdown', this.handleTouch, this);
+
+    // Combat
+    this.playerAttacking = false;
+    this.playerAttackCooldown = 0;
+
+    // Collisions
+    this.physics.add.collider(this.player, this.wallsGroup);
+    this.physics.add.overlap(this.player, this.enemies, this.handleEnemyCollision, null, this);
+    this.physics.add.overlap(this.player, this.items, this.collectItem, null, this);
+    this.physics.add.overlap(this.player, this.exit, this.handleExit, null, this);
+
+    // Menu states
+    this.inventoryOpen = false;
+    this.isPaused = false;
+
+    // Camera follow
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.cameras.main.setBounds(0, 0, this.worldWidth * this.tileSize, this.worldHeight * this.tileSize);
+  }
+
+  createDungeon() {
+    this.wallsGroup = this.physics.add.staticGroup();
+
+    // Simple dungeon generation
+    this.dungeon = [];
+    for (let y = 0; y < this.worldHeight; y++) {
+      this.dungeon[y] = [];
+      for (let x = 0; x < this.worldWidth; x++) {
+        // Create walls around edges and some random walls
+        const isWall = x === 0 || y === 0 || x === this.worldWidth - 1 || y === this.worldHeight - 1 ||
+                       (Math.random() < 0.12 && x > 2 && y > 2 && x < this.worldWidth - 3 && y < this.worldHeight - 3);
+        
+        this.dungeon[y][x] = isWall ? 1 : 0;
+
+        if (isWall) {
+          const wall = this.add.rectangle(
+            x * this.tileSize + this.tileSize / 2,
+            y * this.tileSize + this.tileSize / 2,
+            this.tileSize,
+            this.tileSize,
+            0x1a1a2a
+          );
+          this.wallsGroup.add(wall);
+          wall.body.setImmovable(true);
+        } else {
+          // Floor tile
+          this.add.rectangle(
+            x * this.tileSize + this.tileSize / 2,
+            y * this.tileSize + this.tileSize / 2,
+            this.tileSize,
+            this.tileSize,
+            GAME_DATA.floors[this.gameState.floor - 1].color
+          ).setAlpha(0.5);
+        }
+      }
+    }
+
+    // Ensure starting area is clear
+    for (let y = 1; y < 4; y++) {
+      for (let x = 1; x < 4; x++) {
+        this.dungeon[y][x] = 0;
+      }
+    }
+  }
+
+  createPlayer() {
+    const classData = GAME_DATA.classes[this.gameState.playerClass];
+    
+    this.player = this.physics.add.sprite(
+      this.tileSize * 2,
+      this.tileSize * 2,
+      null
+    );
+
+    // Draw player
+    const graphics = this.add.graphics();
+    graphics.fillStyle(classData.color, 1);
+    graphics.fillCircle(0, 0, 15);
+    graphics.generateTexture('player', 30, 30);
+    graphics.destroy();
+
+    this.player.setTexture('player');
+    this.player.setCollideWorldBounds(true);
+    this.player.body.setSize(25, 25);
+
+    // Player weapon (visual only)
+    this.playerWeapon = this.add.rectangle(0, 0, 20, 8, 0xcccccc).setVisible(false);
+  }
+
+  spawnEnemies() {
+    const floorData = GAME_DATA.floors[this.gameState.floor - 1];
+    const enemyCount = floorData.enemyCount;
+
+    for (let i = 0; i < enemyCount; i++) {
+      let x, y, attempts = 0;
+      do {
+        x = Phaser.Math.Between(5, this.worldWidth - 5) * this.tileSize;
+        y = Phaser.Math.Between(5, this.worldHeight - 5) * this.tileSize;
+        attempts++;
+      } while (this.isPositionBlocked(x, y) && attempts < 50);
+
+      if (attempts < 50) {
+        const enemy = this.createEnemy(x, y, false);
+        this.enemies.add(enemy);
+      }
+    }
+  }
+
+  createEnemy(x, y, isBoss) {
+    const floorData = GAME_DATA.floors[this.gameState.floor - 1];
+    
+    const enemy = this.physics.add.sprite(x, y, null);
+    
+    // Draw enemy
+    const graphics = this.add.graphics();
+    const color = isBoss ? 0xff0000 : 0xff6600;
+    const size = isBoss ? 25 : 18;
+    graphics.fillStyle(color, 1);
+    graphics.fillCircle(0, 0, size);
+    graphics.generateTexture(isBoss ? 'boss' : 'enemy' + this.gameState.floor, size * 2, size * 2);
+    graphics.destroy();
+
+    enemy.setTexture(isBoss ? 'boss' : 'enemy' + this.gameState.floor);
+    enemy.body.setSize(size * 1.5, size * 1.5);
+
+    // Enemy stats
+    const levelMult = 1 + (this.gameState.floor - 1) * 0.5;
+    enemy.isBoss = isBoss;
+    enemy.maxHP = isBoss ? floorData.bossHP : 30 * levelMult;
+    enemy.hp = enemy.maxHP;
+    enemy.atk = isBoss ? floorData.bossATK : 8 * levelMult;
+    enemy.speed = isBoss ? 40 : 50;
+    enemy.lastAttackTime = 0;
+    enemy.attackCooldown = 1000;
+    enemy.gold = isBoss ? 100 : 15 + this.gameState.floor * 5;
+    enemy.xp = isBoss ? 150 : 25 + this.gameState.floor * 10;
+
+    // HP bar
+    enemy.hpBar = this.add.graphics();
+    enemy.hpBarBg = this.add.graphics();
+
+    return enemy;
+  }
+
+  spawnBoss() {
+    const bossX = (this.worldWidth - 3) * this.tileSize;
+    const bossY = (this.worldHeight - 3) * this.tileSize;
+    
+    const boss = this.createEnemy(bossX, bossY, true);
+    this.enemies.add(boss);
+
+    this.showMessage('Boss Appeared!', 0xff0000, 2000);
+  }
+
+  spawnItems() {
+    // Spawn some random items
+    const itemCount = 5 + this.gameState.floor;
+    
+    for (let i = 0; i < itemCount; i++) {
+      let x, y, attempts = 0;
+      do {
+        x = Phaser.Math.Between(4, this.worldWidth - 4) * this.tileSize;
+        y = Phaser.Math.Between(4, this.worldHeight - 4) * this.tileSize;
+        attempts++;
+      } while (this.isPositionBlocked(x, y) && attempts < 50);
+
+      if (attempts < 50) {
+        const itemTypes = ['gold', 'potion', 'weapon', 'armor'];
+        const type = Phaser.Math.RND.pick(itemTypes);
+        this.createItem(x, y, type);
+      }
+    }
+  }
+
+  createItem(x, y, type) {
+    const item = this.physics.add.sprite(x, y, null);
+    
+    const colors = {
+      gold: 0xffdd00,
+      potion: 0xff0088,
+      weapon: 0xcccccc,
+      armor: 0x8888ff
+    };
+
+    const graphics = this.add.graphics();
+    graphics.fillStyle(colors[type] || 0xffffff, 1);
+    graphics.fillCircle(0, 0, 8);
+    graphics.generateTexture('item_' + type, 16, 16);
+    graphics.destroy();
+
+    item.setTexture('item_' + type);
+    item.itemType = type;
+
+    this.items.add(item);
+  }
+
+  createExit() {
+    const exitX = (this.worldWidth - 2) * this.tileSize;
+    const exitY = (this.worldHeight - 2) * this.tileSize;
+
+    this.exit = this.physics.add.sprite(exitX, exitY, null);
+
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0x00ff88, 1);
+    graphics.fillRect(-15, -15, 30, 30);
+    graphics.fillStyle(0x000000, 1);
+    graphics.fillRect(-10, -10, 20, 20);
+    graphics.generateTexture('exit', 30, 30);
+    graphics.destroy();
+
+    this.exit.setTexture('exit');
+  }
+
+  createUI() {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    // UI Container (fixed to camera)
+    this.uiContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(100);
+
+    // Stats panel (top-left)
+    const panelHeight = 120;
+    const panel = this.add.rectangle(5, 5, 200, panelHeight, 0x000000, 0.7).setOrigin(0, 0);
+    
+    this.floorText = this.add.text(10, 10, '', { fontSize: '14px', color: '#ffdd00', fontStyle: 'bold' });
+    this.hpText = this.add.text(10, 30, '', { fontSize: '14px', color: '#ff4444' });
+    this.levelText = this.add.text(10, 50, '', { fontSize: '14px', color: '#00ff88' });
+    this.goldText = this.add.text(10, 70, '', { fontSize: '14px', color: '#ffdd00' });
+    this.atkText = this.add.text(10, 90, '', { fontSize: '12px', color: '#ddd' });
+
+    this.uiContainer.add([panel, this.floorText, this.hpText, this.levelText, this.goldText, this.atkText]);
+
+    // Controls hint (bottom-left)
+    const hint = this.add.text(10, H - 80, 'Move: Arrows/WASD\nAttack: Space\nMenu: ESC', {
+      fontSize: '11px',
+      color: '#8b949e'
+    }).setScrollFactor(0).setDepth(100);
+
+    this.updateUI();
+  }
+
+  updateUI() {
+    const floorData = GAME_DATA.floors[this.gameState.floor - 1];
+    this.floorText.setText(`Floor ${this.gameState.floor}: ${floorData.name}`);
+    this.hpText.setText(`HP: ${Math.ceil(this.gameState.hp)}/${this.gameState.maxHP}`);
+    this.levelText.setText(`Level ${this.gameState.level} (${this.gameState.xp}/${this.gameState.xpToNext} XP)`);
+    this.goldText.setText(`Gold: ${this.gameState.gold}`);
+    
+    const weaponBonus = this.getEquippedItemBonus('weapon');
+    const armorBonus = this.getEquippedItemBonus('armor');
+    this.atkText.setText(`ATK: ${this.gameState.atk + weaponBonus} | DEF: ${this.gameState.def + armorBonus}`);
+  }
+
+  getEquippedItemBonus(type) {
+    const equipped = this.gameState.inventory[type];
+    if (!equipped) return 0;
+
+    if (type === 'weapon') {
+      const weapon = GAME_DATA.items.weapons.find(w => w.id === equipped);
+      return weapon ? weapon.atk : 0;
+    } else if (type === 'armor') {
+      const armor = GAME_DATA.items.armor.find(a => a.id === equipped);
+      return armor ? armor.def : 0;
+    }
+    return 0;
+  }
+
+  handleTouch(pointer) {
+    if (this.inventoryOpen || this.isPaused) return;
+
+    const camX = this.cameras.main.scrollX;
+    const camY = this.cameras.main.scrollY;
+    const worldX = pointer.x + camX;
+    const worldY = pointer.y + camY;
+
+    const dx = worldX - this.player.x;
+    const dy = worldY - this.player.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 60) {
+      // Tap near player = attack
+      this.attackNearestEnemy();
+    }
+  }
+
+  update(time, delta) {
+    if (this.inventoryOpen || this.isPaused) return;
+
+    // Player movement
+    const speed = this.gameState.speed;
+    this.player.setVelocity(0);
+
+    if (this.cursors.left.isDown || this.keys.A.isDown) {
+      this.player.setVelocityX(-speed);
+    } else if (this.cursors.right.isDown || this.keys.D.isDown) {
+      this.player.setVelocityX(speed);
+    }
+
+    if (this.cursors.up.isDown || this.keys.W.isDown) {
+      this.player.setVelocityY(-speed);
+    } else if (this.cursors.down.isDown || this.keys.S.isDown) {
+      this.player.setVelocityY(speed);
+    }
+
+    // Normalize diagonal movement
+    if (this.player.body.velocity.x !== 0 && this.player.body.velocity.y !== 0) {
+      this.player.body.velocity.normalize().scale(speed);
+    }
+
+    // Attack
+    if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
+      this.attackNearestEnemy();
+    }
+
+    // Inventory
+    if (Phaser.Input.Keyboard.JustDown(this.keys.I)) {
+      this.toggleInventory();
+    }
+
+    // Menu
+    if (Phaser.Input.Keyboard.JustDown(this.keys.ESC)) {
+      this.togglePauseMenu();
+    }
+
+    // Enemy AI
+    this.enemies.children.entries.forEach(enemy => {
+      this.updateEnemy(enemy, time);
+      this.updateEnemyHPBar(enemy);
+    });
+
+    // Update attack cooldown
+    if (this.playerAttackCooldown > 0) {
+      this.playerAttackCooldown -= delta;
+    }
+
+    this.updateUI();
+  }
+
+  updateEnemy(enemy, time) {
+    if (!enemy.active) return;
+
+    const dx = this.player.x - enemy.x;
+    const dy = this.player.y - enemy.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 300) {
+      // Chase player
+      const angle = Math.atan2(dy, dx);
+      enemy.setVelocity(
+        Math.cos(angle) * enemy.speed,
+        Math.sin(angle) * enemy.speed
+      );
+
+      // Attack player if close enough
+      if (dist < 40 && time - enemy.lastAttackTime > enemy.attackCooldown) {
+        this.enemyAttackPlayer(enemy);
+        enemy.lastAttackTime = time;
+      }
+    } else {
+      enemy.setVelocity(0);
+    }
+  }
+
+  updateEnemyHPBar(enemy) {
+    if (!enemy.active || !enemy.hpBar) return;
+
+    const barWidth = 40;
+    const barHeight = 4;
+    const x = enemy.x - barWidth / 2;
+    const y = enemy.y - 30;
+
+    enemy.hpBarBg.clear();
+    enemy.hpBarBg.fillStyle(0x000000, 0.5);
+    enemy.hpBarBg.fillRect(x, y, barWidth, barHeight);
+
+    enemy.hpBar.clear();
+    const hpPercent = enemy.hp / enemy.maxHP;
+    const color = hpPercent > 0.5 ? 0x00ff00 : hpPercent > 0.25 ? 0xffaa00 : 0xff0000;
+    enemy.hpBar.fillStyle(color, 1);
+    enemy.hpBar.fillRect(x, y, barWidth * hpPercent, barHeight);
+  }
+
+  attackNearestEnemy() {
+    if (this.playerAttackCooldown > 0) return;
+
+    const range = 60;
+    let nearestEnemy = null;
+    let minDist = range;
+
+    this.enemies.children.entries.forEach(enemy => {
+      if (!enemy.active) return;
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+      if (dist < minDist) {
+        minDist = dist;
+        nearestEnemy = enemy;
+      }
+    });
+
+    if (nearestEnemy) {
+      this.playerAttackEnemy(nearestEnemy);
+      this.playerAttackCooldown = 600;
+
+      // Visual feedback
+      this.showAttackEffect(nearestEnemy.x, nearestEnemy.y);
+    }
+  }
+
+  playerAttackEnemy(enemy) {
+    const weaponBonus = this.getEquippedItemBonus('weapon');
+    const totalAtk = this.gameState.atk + weaponBonus;
+    
+    // Critical hit chance for rogues
+    const isCrit = this.gameState.playerClass === 'rogue' && Math.random() < 0.25;
+    const damage = isCrit ? totalAtk * 2 : totalAtk;
+
+    enemy.hp -= damage;
+
+    this.showDamageText(enemy.x, enemy.y - 40, '-' + Math.ceil(damage), isCrit ? 0xffff00 : 0xffffff);
+
+    if (enemy.hp <= 0) {
+      this.killEnemy(enemy);
+    }
+  }
+
+  enemyAttackPlayer(enemy) {
+    const armorBonus = this.getEquippedItemBonus('armor');
+    const totalDef = this.gameState.def + armorBonus;
+    const damage = Math.max(1, enemy.atk - totalDef * 0.5);
+
+    this.gameState.hp -= damage;
+
+    this.showDamageText(this.player.x, this.player.y - 40, '-' + Math.ceil(damage), 0xff4444);
+
+    // Screen shake
+    this.cameras.main.shake(100, 0.003);
+
+    if (this.gameState.hp <= 0) {
+      this.gameOver();
+    }
+  }
+
+  killEnemy(enemy) {
+    this.gameState.gold += enemy.gold;
+    this.gameState.xp += enemy.xp;
+    this.gameState.enemiesKilled++;
+
+    this.showDamageText(enemy.x, enemy.y, '+' + enemy.xp + ' XP', 0x00ff88);
+
+    // Check level up
+    if (this.gameState.xp >= this.gameState.xpToNext) {
+      this.levelUp();
+    }
+
+    // Drop loot
+    if (Math.random() < 0.4) {
+      const itemType = Phaser.Math.RND.pick(['gold', 'potion', 'weapon', 'armor']);
+      this.createItem(enemy.x, enemy.y, itemType);
+    }
+
+    // Boss killed - spawn exit if all enemies dead
+    if (enemy.isBoss) {
+      this.showMessage('Boss Defeated!', 0x00ff88, 2500);
+    }
+
+    // Remove enemy
+    if (enemy.hpBar) enemy.hpBar.destroy();
+    if (enemy.hpBarBg) enemy.hpBarBg.destroy();
+    enemy.destroy();
+
+    // Check if all enemies killed
+    if (this.enemies.children.entries.filter(e => e.active).length === 0) {
+      this.showMessage('Floor Clear! Head to the exit!', 0xffdd00, 3000);
+    }
+  }
+
+  levelUp() {
+    this.gameState.level++;
+    this.gameState.xp = 0;
+    this.gameState.xpToNext = Math.floor(this.gameState.xpToNext * 1.5);
+
+    // Stat increases
+    this.gameState.maxHP += 15;
+    this.gameState.hp = this.gameState.maxHP; // Full heal on level up
+    this.gameState.atk += 3;
+    this.gameState.def += 2;
+    this.gameState.speed += 2;
+
+    this.showMessage('LEVEL UP! Level ' + this.gameState.level, 0xffdd00, 2500);
+    this.saveGame();
+  }
+
+  handleEnemyCollision(player, enemy) {
+    // Handled in update loop
+  }
+
+  collectItem(player, item) {
+    const type = item.itemType;
+
+    switch (type) {
+      case 'gold':
+        const goldAmount = 10 + this.gameState.floor * 5;
+        this.gameState.gold += goldAmount;
+        this.showDamageText(item.x, item.y, '+' + goldAmount + ' Gold', 0xffdd00);
+        break;
+
+      case 'potion':
+        const potionKey = 'health_small';
+        if (!this.gameState.inventory.potions[potionKey]) {
+          this.gameState.inventory.potions[potionKey] = 0;
+        }
+        this.gameState.inventory.potions[potionKey]++;
+        this.showDamageText(item.x, item.y, '+1 Potion', 0xff0088);
+        break;
+
+      case 'weapon':
+        // Random weapon upgrade
+        const availableWeapons = GAME_DATA.items.weapons.filter(w => 
+          w.level <= this.gameState.level && w.id.includes(this.gameState.playerClass === 'warrior' ? 'sword' : 
+          this.gameState.playerClass === 'mage' ? 'staff' : 'dagger')
+        );
+        const newWeapon = Phaser.Math.RND.pick(availableWeapons);
+        this.gameState.inventory.weapon = newWeapon.id;
+        this.showDamageText(item.x, item.y, newWeapon.name, 0xcccccc);
+        break;
+
+      case 'armor':
+        const availableArmor = GAME_DATA.items.armor.filter(a => a.level <= this.gameState.level);
+        const newArmor = Phaser.Math.RND.pick(availableArmor);
+        this.gameState.inventory.armor = newArmor.id;
+        this.showDamageText(item.x, item.y, newArmor.name, 0x8888ff);
+        break;
+    }
+
+    item.destroy();
+    this.saveGame();
+  }
+
+  handleExit(player, exit) {
+    if (this.enemies.children.entries.filter(e => e.active).length > 0) {
+      this.showMessage('Defeat all enemies first!', 0xff4444, 2000);
+      return;
+    }
+
+    this.advanceFloor();
+  }
+
+  advanceFloor() {
+    this.gameState.floor++;
+
+    if (this.gameState.floor > 5) {
+      // Game won!
+      this.showEnding();
+    } else {
+      // Next floor
+      this.saveGame();
+      this.showFloorTransition();
+    }
+  }
+
+  showFloorTransition() {
+    this.isPaused = true;
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    const overlay = this.add.rectangle(W/2, H/2, W, H, 0x000000, 0.9)
+      .setScrollFactor(0)
+      .setDepth(200);
+
+    const floorData = GAME_DATA.floors[this.gameState.floor - 1];
+    const text = this.add.text(W/2, H/2 - 30, `Floor ${this.gameState.floor}`, {
+      fontSize: '48px',
+      fontStyle: 'bold',
+      color: '#ffdd00'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+
+    const subtitle = this.add.text(W/2, H/2 + 30, floorData.name, {
+      fontSize: '24px',
+      color: '#00ff88'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+
+    this.time.delayedCall(2500, () => {
+      overlay.destroy();
+      text.destroy();
+      subtitle.destroy();
+      this.isPaused = false;
+      this.scene.restart();
+    });
+  }
+
+  showEnding() {
+    this.isPaused = true;
+
+    // Determine ending based on choices and performance
+    let ending = 'standard';
+    if (this.gameState.enemiesKilled > 50 && this.gameState.level >= 5) {
+      ending = 'champion';
+    } else if (this.gameState.gold > 500) {
+      ending = 'merchant';
+    }
+
+    const endings = {
+      standard: {
+        title: 'Quest Complete!',
+        text: 'You have conquered all 5 floors of the dungeon and emerged victorious. The realm is safe... for now.',
+        color: 0x00ff88
+      },
+      champion: {
+        title: 'Legendary Hero!',
+        text: 'Your prowess in battle is unmatched! You have defeated countless foes and reached the pinnacle of power. Songs will be sung of your valor!',
+        color: 0xffdd00
+      },
+      merchant: {
+        title: 'Wealthy Adventurer!',
+        text: 'You leave the dungeon with pockets full of gold and treasures. Perhaps you\'ll start your own trading empire!',
+        color: 0xff8800
+      }
+    };
+
+    const endData = endings[ending];
+
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    const overlay = this.add.rectangle(W/2, H/2, W, H, 0x000000, 0.95)
+      .setScrollFactor(0)
+      .setDepth(300);
+
+    const title = this.add.text(W/2, H * 0.25, endData.title, {
+      fontSize: '42px',
+      fontStyle: 'bold',
+      color: '#' + endData.color.toString(16)
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(301);
+
+    const text = this.add.text(W/2, H * 0.4, endData.text, {
+      fontSize: '18px',
+      color: '#ddd',
+      wordWrap: { width: W * 0.8 },
+      align: 'center'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(301);
+
+    const stats = this.add.text(W/2, H * 0.6, 
+      `Final Stats:\nLevel: ${this.gameState.level}\nEnemies Defeated: ${this.gameState.enemiesKilled}\nGold Earned: ${this.gameState.gold}`,
+      {
+        fontSize: '16px',
+        color: '#8b949e',
+        align: 'center'
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(301);
+
+    const btn = this.add.text(W/2, H * 0.8, 'Return to Menu', {
+      fontSize: '22px',
+      fontStyle: 'bold',
+      color: '#00ff88',
+      backgroundColor: '#222',
+      padding: { x: 20, y: 10 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setInteractive({ useHandCursor: true });
+
+    btn.on('pointerdown', () => {
+      localStorage.removeItem('quest_rpg_save');
+      this.scene.start('MenuScene');
+    });
+
+    // Share score
+    if (window.jbShareScore) {
+      window.jbShareScore(this.gameState.enemiesKilled * 100 + this.gameState.gold);
+    }
+  }
+
+  gameOver() {
+    this.isPaused = true;
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    const overlay = this.add.rectangle(W/2, H/2, W, H, 0x000000, 0.9)
+      .setScrollFactor(0)
+      .setDepth(200);
+
+    const title = this.add.text(W/2, H * 0.35, 'YOU DIED', {
+      fontSize: '48px',
+      fontStyle: 'bold',
+      color: '#ff4444'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+
+    const stats = this.add.text(W/2, H * 0.5, 
+      `Floor Reached: ${this.gameState.floor}\nLevel: ${this.gameState.level}\nEnemies Defeated: ${this.gameState.enemiesKilled}`,
+      {
+        fontSize: '18px',
+        color: '#ddd',
+        align: 'center'
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+
+    const retryBtn = this.add.text(W/2, H * 0.68, 'Try Again', {
+      fontSize: '22px',
+      fontStyle: 'bold',
+      color: '#00ff88',
+      backgroundColor: '#222',
+      padding: { x: 20, y: 10 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(201).setInteractive({ useHandCursor: true });
+
+    retryBtn.on('pointerdown', () => {
+      localStorage.removeItem('quest_rpg_save');
+      this.scene.start('MenuScene');
+    });
+
+    const menuBtn = this.add.text(W/2, H * 0.78, 'Main Menu', {
+      fontSize: '18px',
+      color: '#8b949e',
+      backgroundColor: '#222',
+      padding: { x: 15, y: 8 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(201).setInteractive({ useHandCursor: true });
+
+    menuBtn.on('pointerdown', () => {
+      localStorage.removeItem('quest_rpg_save');
+      this.scene.start('MenuScene');
+    });
+
+    // Show interstitial
+    if (window.jbShowInterstitial) {
+      this.time.delayedCall(1000, () => jbShowInterstitial());
+    }
+  }
+
+  toggleInventory() {
+    if (this.isPaused) return;
+
+    this.inventoryOpen = !this.inventoryOpen;
+
+    if (this.inventoryOpen) {
+      this.showInventory();
+    } else {
+      this.hideInventory();
+    }
+  }
+
+  showInventory() {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    this.invOverlay = this.add.rectangle(W/2, H/2, W, H, 0x000000, 0.85)
+      .setScrollFactor(0)
+      .setDepth(150)
+      .setInteractive();
+
+    this.invContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(151);
+
+    const title = this.add.text(W/2, H * 0.15, 'INVENTORY', {
+      fontSize: '32px',
+      fontStyle: 'bold',
+      color: '#ffdd00'
+    }).setOrigin(0.5);
+
+    // Equipped items
+    const weaponData = GAME_DATA.items.weapons.find(w => w.id === this.gameState.inventory.weapon);
+    const armorData = GAME_DATA.items.armor.find(a => a.id === this.gameState.inventory.armor);
+
+    const weaponText = this.add.text(W * 0.25, H * 0.3, 
+      `Weapon:\n${weaponData ? weaponData.name : 'None'}\nATK +${weaponData ? weaponData.atk : 0}`,
+      { fontSize: '16px', color: '#ddd', align: 'center' }
+    ).setOrigin(0.5);
+
+    const armorText = this.add.text(W * 0.55, H * 0.3,
+      `Armor:\n${armorData ? armorData.name : 'None'}\nDEF +${armorData ? armorData.def : 0}`,
+      { fontSize: '16px', color: '#ddd', align: 'center' }
+    ).setOrigin(0.5);
+
+    // Potions
+    let potionY = H * 0.5;
+    const potionTitle = this.add.text(W/2, potionY, 'Potions:', {
+      fontSize: '20px',
+      fontStyle: 'bold',
+      color: '#ff0088'
+    }).setOrigin(0.5);
+
+    potionY += 40;
+
+    Object.keys(this.gameState.inventory.potions).forEach(potionKey => {
+      const count = this.gameState.inventory.potions[potionKey];
+      if (count > 0) {
+        const potionData = GAME_DATA.items.potions.find(p => p.id === potionKey);
+        if (potionData) {
+          const potionBtn = this.add.text(W/2, potionY, 
+            `${potionData.name} (${count}) - Use`,
+            { fontSize: '16px', color: '#00ff88', backgroundColor: '#222', padding: { x: 10, y: 5 } }
+          ).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+          potionBtn.on('pointerdown', () => {
+            this.usePotion(potionKey);
+          });
+
+          this.invContainer.add(potionBtn);
+          potionY += 35;
+        }
+      }
+    });
+
+    const closeBtn = this.add.text(W/2, H * 0.85, 'Close (I)', {
+      fontSize: '20px',
+      color: '#8b949e',
+      backgroundColor: '#222',
+      padding: { x: 15, y: 8 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    closeBtn.on('pointerdown', () => {
+      this.toggleInventory();
+    });
+
+    this.invContainer.add([title, weaponText, armorText, potionTitle, closeBtn]);
+  }
+
+  hideInventory() {
+    if (this.invOverlay) this.invOverlay.destroy();
+    if (this.invContainer) this.invContainer.destroy();
+  }
+
+  usePotion(potionKey) {
+    const potionData = GAME_DATA.items.potions.find(p => p.id === potionKey);
+    if (!potionData) return;
+
+    if (potionData.type === 'heal') {
+      this.gameState.hp = Math.min(this.gameState.maxHP, this.gameState.hp + potionData.heal);
+      this.showMessage(`Restored ${potionData.heal} HP!`, 0xff0088, 1500);
+    }
+
+    this.gameState.inventory.potions[potionKey]--;
+    if (this.gameState.inventory.potions[potionKey] <= 0) {
+      delete this.gameState.inventory.potions[potionKey];
+    }
+
+    this.toggleInventory();
+    this.time.delayedCall(100, () => this.toggleInventory());
+  }
+
+  togglePauseMenu() {
+    this.isPaused = !this.isPaused;
+
+    if (this.isPaused) {
+      this.showPauseMenu();
+    } else {
+      this.hidePauseMenu();
+    }
+  }
+
+  showPauseMenu() {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    this.pauseOverlay = this.add.rectangle(W/2, H/2, W, H, 0x000000, 0.85)
+      .setScrollFactor(0)
+      .setDepth(150)
+      .setInteractive();
+
+    this.pauseContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(151);
+
+    const title = this.add.text(W/2, H * 0.3, 'PAUSED', {
+      fontSize: '42px',
+      fontStyle: 'bold',
+      color: '#ffdd00'
+    }).setOrigin(0.5);
+
+    const resumeBtn = this.add.text(W/2, H * 0.5, 'Resume (ESC)', {
+      fontSize: '22px',
+      color: '#00ff88',
+      backgroundColor: '#222',
+      padding: { x: 20, y: 10 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    resumeBtn.on('pointerdown', () => {
+      this.togglePauseMenu();
+    });
+
+    const saveBtn = this.add.text(W/2, H * 0.6, 'Save Game', {
+      fontSize: '20px',
+      color: '#4488ff',
+      backgroundColor: '#222',
+      padding: { x: 20, y: 10 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    saveBtn.on('pointerdown', () => {
+      this.saveGame();
+      this.showMessage('Game Saved!', 0x00ff88, 1500);
+    });
+
+    const menuBtn = this.add.text(W/2, H * 0.7, 'Main Menu', {
+      fontSize: '20px',
+      color: '#ff4444',
+      backgroundColor: '#222',
+      padding: { x: 20, y: 10 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    menuBtn.on('pointerdown', () => {
+      this.scene.start('MenuScene');
+    });
+
+    this.pauseContainer.add([title, resumeBtn, saveBtn, menuBtn]);
+  }
+
+  hidePauseMenu() {
+    if (this.pauseOverlay) this.pauseOverlay.destroy();
+    if (this.pauseContainer) this.pauseContainer.destroy();
+  }
+
+  showMessage(text, color, duration) {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    const msg = this.add.text(W/2, H * 0.25, text, {
+      fontSize: '24px',
+      fontStyle: 'bold',
+      color: '#' + color.toString(16),
+      backgroundColor: '#000000',
+      padding: { x: 15, y: 10 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(250);
+
+    this.tweens.add({
+      targets: msg,
+      alpha: 0,
+      y: H * 0.2,
+      duration: duration,
+      ease: 'Power2',
+      onComplete: () => msg.destroy()
+    });
+  }
+
+  showDamageText(x, y, text, color) {
+    const dmg = this.add.text(x, y, text, {
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#' + color.toString(16)
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: dmg,
+      alpha: 0,
+      y: y - 40,
+      duration: 1000,
+      ease: 'Power2',
+      onComplete: () => dmg.destroy()
+    });
+  }
+
+  showAttackEffect(x, y) {
+    const circle = this.add.circle(x, y, 5, 0xffffff, 1);
+    
+    this.tweens.add({
+      targets: circle,
+      radius: 30,
+      alpha: 0,
+      duration: 300,
+      ease: 'Power2',
+      onComplete: () => circle.destroy()
+    });
+  }
+
+  isPositionBlocked(x, y) {
+    const tileX = Math.floor(x / this.tileSize);
+    const tileY = Math.floor(y / this.tileSize);
+    
+    if (tileY < 0 || tileY >= this.worldHeight || tileX < 0 || tileX >= this.worldWidth) {
+      return true;
+    }
+    
+    return this.dungeon[tileY][tileX] === 1;
+  }
+
+  saveGame() {
+    localStorage.setItem('quest_rpg_save', JSON.stringify(this.gameState));
+  }
+}
+
+// Phaser Configuration
+const config = {
+  type: Phaser.AUTO,
+  parent: 'game',
+  width: Math.min(window.innerWidth, 1200),
+  height: window.innerHeight - 140,
+  backgroundColor: '#0a0a1a',
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 0 },
+      debug: false
+    }
+  },
+  scene: [MenuScene, ClassSelectScene, GameScene],
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  }
+};
+
+const game = new Phaser.Game(config);
+
+// Handle window resize
+window.addEventListener('resize', () => {
+  game.scale.resize(Math.min(window.innerWidth, 1200), window.innerHeight - 140);
+});
+
+// JellyBolt integration
+window.jbShowInterstitial = function() {
+  document.getElementById('jb-interstitial').style.display = 'flex';
+};
+
+window.jbShareScore = function(score) {
+  window._jbLastScore = score;
+};
+
+const JellyBoltAds = {
+  shareScore: function(gameName, score) {
+    const text = `I scored ${score} in ${gameName}! Can you beat it?`;
+    const url = 'https://jellyboltgames.itch.io';
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(twitterUrl, '_blank');
+  }
+};
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Quest RPG',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Quest%20RPG%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+</body>
+</html>

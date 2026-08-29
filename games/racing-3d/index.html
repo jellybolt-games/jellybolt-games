@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>3D Racing — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:none;user-select:none;font-family:Arial,sans-serif}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+<style>
+#ui{position:fixed;top:10px;left:10px;color:#fff;font-size:16px;z-index:100;background:rgba(0,0,0,.7);padding:15px;border-radius:8px}
+#menu{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(20,20,42,.95);padding:40px;border-radius:20px;text-align:center;color:#fff;z-index:1000;max-width:400px;width:90%}
+#menu h1{font-size:2.5em;margin-bottom:20px;color:#00ff88}
+#menu button{margin:10px;padding:15px 30px;font-size:18px;background:linear-gradient(135deg,#00ff88,#00ccff);border:none;border-radius:10px;cursor:pointer;font-weight:700;color:#000;transition:transform .2s}
+#menu button:hover{transform:scale(1.1)}
+#menu .track-btn{display:block;width:100%;margin:8px 0}
+.mobile-controls{position:fixed;bottom:80px;left:0;width:100%;display:none;justify-content:space-around;padding:20px;z-index:100}
+.mobile-btn{width:80px;height:80px;background:rgba(0,255,136,.3);border:3px solid #00ff88;border-radius:50%;font-size:24px;color:#fff;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none}
+.mobile-btn:active{background:rgba(0,255,136,.6)}
+@media(max-width:768px){.mobile-controls{display:flex}}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="menu">
+  <h1>🏎️ 3D Racing</h1>
+  <p style="margin-bottom:20px">Choose Your Track:</p>
+  <button class="track-btn" onclick="startRace(0)">🟢 Easy Track</button>
+  <button class="track-btn" onclick="startRace(1)">🟡 Medium Track</button>
+  <button class="track-btn" onclick="startRace(2)">🔴 Hard Track</button>
+  <div id="best-times" style="margin-top:20px;font-size:14px;color:#aaa"></div>
+</div>
+
+<div id="ui" style="display:none">
+  <div>Lap: <span id="lap">1</span> / 3</div>
+  <div>Time: <span id="time">0.0</span>s</div>
+  <div>Best: <span id="best">--</span></div>
+  <div>Speed: <span id="speed">0</span> km/h</div>
+  <div style="margin-top:10px;font-size:12px">Use Arrow Keys or WASD</div>
+  <button onclick="backToMenu()" style="margin-top:10px;padding:8px 16px;background:#ff6b6b;border:none;border-radius:5px;color:#fff;cursor:pointer">Back to Menu</button>
+</div>
+
+<div class="mobile-controls">
+  <div class="mobile-btn" id="btn-left">◄</div>
+  <div class="mobile-btn" id="btn-accel">▲</div>
+  <div class="mobile-btn" id="btn-right">►</div>
+</div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a href="https://buymeacoffee.com/jellyboltgames" class="jb-btn-coffee" target="_blank" rel="noopener">☕ Support Us</a>
+  <a href="https://jellybolt-games.github.io/jellybolt-games" class="jb-btn-games" target="_blank" rel="noopener">🎮 More Games</a>
+  <a href="https://twitter.com/intent/tweet?text=Check%20out%20this%20awesome%203D%20racing%20game!%20%F0%9F%8F%8E%EF%B8%8F&url=https://jellybolt-games.github.io/jellybolt-games" class="jb-btn-share" target="_blank" rel="noopener">🐦 Share</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+// Game State
+let scene, camera, renderer;
+let playerCar, aiCars = [];
+let track, trackData;
+let keys = {};
+let gameActive = false;
+let currentTrack = 0;
+let lapCount = 0, maxLaps = 3;
+let startTime, lapTime;
+let checkpoints = [];
+let playerProgress = 0;
+
+// Car physics
+let playerVelocity = 0, playerAngle = 0, playerRotation = 0;
+const maxSpeed = 0.8, acceleration = 0.02, friction = 0.98, turnSpeed = 0.04;
+
+// Track configurations
+const tracks = [
+  { name: 'Easy', points: 20, radius: 40, hills: 0.5, curves: 0.3, aiSpeed: 0.6 },
+  { name: 'Medium', points: 30, radius: 50, hills: 1.5, curves: 0.6, aiSpeed: 0.7 },
+  { name: 'Hard', points: 40, radius: 60, hills: 2.5, curves: 1, aiSpeed: 0.75 }
+];
+
+// Initialize Three.js
+function initThree() {
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+  
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x87ceeb);
+  document.body.insertBefore(renderer.domElement, document.body.firstChild);
+  
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+  
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(10, 20, 10);
+  scene.add(dirLight);
+  
+  // Ground
+  const groundGeo = new THREE.PlaneGeometry(300, 300);
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0x228b22 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -2;
+  scene.add(ground);
+  
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+}
+
+// Create low-poly car
+function createCar(color) {
+  const car = new THREE.Group();
+  
+  // Body
+  const bodyGeo = new THREE.BoxGeometry(2, 0.8, 3);
+  const bodyMat = new THREE.MeshLambertMaterial({ color });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.4;
+  car.add(body);
+  
+  // Cabin
+  const cabinGeo = new THREE.BoxGeometry(1.5, 0.6, 1.5);
+  const cabinMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+  const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+  cabin.position.set(0, 1, -0.2);
+  car.add(cabin);
+  
+  // Wheels
+  const wheelGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.3, 8);
+  const wheelMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+  
+  const wheels = [
+    [-1, 0, 1.2], [1, 0, 1.2], [-1, 0, -1.2], [1, 0, -1.2]
+  ];
+  
+  wheels.forEach(([x, y, z]) => {
+    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(x, y, z);
+    car.add(wheel);
+  });
+  
+  return car;
+}
+
+// Generate track
+function generateTrack(trackIndex) {
+  const config = tracks[trackIndex];
+  trackData = { points: [], checkpoints: [] };
+  
+  const points = config.points;
+  const radius = config.radius;
+  
+  for (let i = 0; i <= points; i++) {
+    const angle = (i / points) * Math.PI * 2;
+    const curve = Math.sin(angle * 3) * config.curves * 10;
+    const x = Math.cos(angle) * (radius + curve);
+    const z = Math.sin(angle) * (radius + curve);
+    const y = Math.sin(angle * 2) * config.hills;
+    
+    trackData.points.push(new THREE.Vector3(x, y, z));
+    
+    if (i % Math.floor(points / 8) === 0 && i > 0) {
+      trackData.checkpoints.push(i);
+    }
+  }
+  
+  // Create track mesh
+  if (track) scene.remove(track);
+  track = new THREE.Group();
+  
+  // Road
+  const roadWidth = 8;
+  for (let i = 0; i < trackData.points.length - 1; i++) {
+    const p1 = trackData.points[i];
+    const p2 = trackData.points[i + 1];
+    
+    const dir = new THREE.Vector3().subVectors(p2, p1);
+    const length = dir.length();
+    const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+    
+    const roadGeo = new THREE.BoxGeometry(roadWidth, 0.2, length);
+    const roadMat = new THREE.MeshLambertMaterial({ color: 0x444444 });
+    const roadSegment = new THREE.Mesh(roadGeo, roadMat);
+    
+    roadSegment.position.copy(mid);
+    roadSegment.lookAt(p2);
+    roadSegment.rotateX(Math.PI / 2);
+    
+    track.add(roadSegment);
+    
+    // Walls
+    const wallHeight = 1;
+    const wallGeo = new THREE.BoxGeometry(0.5, wallHeight, length);
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0xff3333 });
+    
+    const perpendicular = new THREE.Vector3(-dir.z, 0, dir.x).normalize().multiplyScalar(roadWidth / 2);
+    
+    for (let side of [-1, 1]) {
+      const wall = new THREE.Mesh(wallGeo, wallMat);
+      wall.position.copy(mid).add(perpendicular.clone().multiplyScalar(side));
+      wall.position.y += wallHeight / 2;
+      wall.lookAt(p2);
+      wall.rotateX(Math.PI / 2);
+      track.add(wall);
+    }
+  }
+  
+  scene.add(track);
+}
+
+// Start race
+function startRace(trackIndex) {
+  currentTrack = trackIndex;
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('ui').style.display = 'block';
+  
+  // Clear previous race
+  if (playerCar) scene.remove(playerCar);
+  aiCars.forEach(car => scene.remove(car));
+  aiCars = [];
+  
+  generateTrack(trackIndex);
+  
+  // Create player car
+  playerCar = createCar(0x00ff88);
+  const startPos = trackData.points[0];
+  playerCar.position.copy(startPos);
+  playerCar.position.y += 0.5;
+  
+  const nextPos = trackData.points[1];
+  playerCar.lookAt(nextPos);
+  
+  scene.add(playerCar);
+  
+  // Create AI cars
+  const aiColors = [0xff6b6b, 0x58a6ff, 0xffcc00];
+  for (let i = 0; i < 3; i++) {
+    const aiCar = createCar(aiColors[i]);
+    const offset = i + 1;
+    const pos = trackData.points[offset % trackData.points.length];
+    aiCar.position.copy(pos);
+    aiCar.position.y += 0.5;
+    aiCar.position.x += (i - 1) * 3;
+    
+    aiCar.userData = {
+      progress: offset,
+      speed: 0,
+      lap: 0
+    };
+    
+    scene.add(aiCar);
+    aiCars.push(aiCar);
+  }
+  
+  // Reset game state
+  playerVelocity = 0;
+  playerProgress = 0;
+  lapCount = 0;
+  startTime = Date.now();
+  gameActive = true;
+  
+  updateUI();
+  animate();
+}
+
+// Back to menu
+function backToMenu() {
+  gameActive = false;
+  document.getElementById('menu').style.display = 'block';
+  document.getElementById('ui').style.display = 'none';
+  updateBestTimes();
+}
+
+// Update UI
+function updateUI() {
+  const elapsed = (Date.now() - startTime) / 1000;
+  document.getElementById('lap').textContent = Math.min(lapCount + 1, maxLaps);
+  document.getElementById('time').textContent = elapsed.toFixed(1);
+  document.getElementById('speed').textContent = Math.round(Math.abs(playerVelocity) * 100);
+  
+  const bestKey = `race3d_best_${currentTrack}`;
+  const best = localStorage.getItem(bestKey);
+  document.getElementById('best').textContent = best ? `${parseFloat(best).toFixed(1)}s` : '--';
+}
+
+// Update best times display
+function updateBestTimes() {
+  let html = '<strong>Best Times:</strong><br>';
+  for (let i = 0; i < 3; i++) {
+    const best = localStorage.getItem(`race3d_best_${i}`);
+    html += `${tracks[i].name}: ${best ? parseFloat(best).toFixed(1) + 's' : '--'}<br>`;
+  }
+  document.getElementById('best-times').innerHTML = html;
+}
+
+// Get position on track
+function getTrackPosition(progress) {
+  const index = Math.floor(progress) % trackData.points.length;
+  const nextIndex = (index + 1) % trackData.points.length;
+  const t = progress - Math.floor(progress);
+  
+  const p1 = trackData.points[index];
+  const p2 = trackData.points[nextIndex];
+  
+  return new THREE.Vector3().lerpVectors(p1, p2, t);
+}
+
+// Check wall collision
+function checkWallCollision(position) {
+  const index = Math.floor(playerProgress) % trackData.points.length;
+  const trackPos = trackData.points[index];
+  const distance = Math.sqrt(
+    Math.pow(position.x - trackPos.x, 2) + 
+    Math.pow(position.z - trackPos.z, 2)
+  );
+  return distance > 5;
+}
+
+// Update player
+function updatePlayer(delta) {
+  // Controls
+  let accel = 0, turn = 0;
+  
+  if (keys['ArrowUp'] || keys['w'] || keys['W']) accel = 1;
+  if (keys['ArrowDown'] || keys['s'] || keys['S']) accel = -0.5;
+  if (keys['ArrowLeft'] || keys['a'] || keys['A']) turn = 1;
+  if (keys['ArrowRight'] || keys['d'] || keys['D']) turn = -1;
+  
+  // Acceleration
+  if (accel !== 0) {
+    playerVelocity += accel * acceleration;
+    playerVelocity = Math.max(-maxSpeed * 0.5, Math.min(maxSpeed, playerVelocity));
+  }
+  
+  // Friction
+  playerVelocity *= friction;
+  
+  // Turning
+  if (Math.abs(playerVelocity) > 0.01) {
+    playerRotation += turn * turnSpeed * Math.abs(playerVelocity);
+  }
+  
+  // Move forward
+  const moveX = Math.sin(playerRotation) * playerVelocity;
+  const moveZ = Math.cos(playerRotation) * playerVelocity;
+  
+  playerCar.position.x += moveX;
+  playerCar.position.z += moveZ;
+  
+  // Check collision
+  if (checkWallCollision(playerCar.position)) {
+    playerVelocity *= 0.5;
+    playerCar.position.x -= moveX * 0.5;
+    playerCar.position.z -= moveZ * 0.5;
+  }
+  
+  // Update progress
+  let minDist = Infinity;
+  let closestIndex = 0;
+  
+  for (let i = 0; i < trackData.points.length; i++) {
+    const p = trackData.points[i];
+    const dist = playerCar.position.distanceTo(p);
+    if (dist < minDist) {
+      minDist = dist;
+      closestIndex = i;
+    }
+  }
+  
+  const prevProgress = playerProgress;
+  playerProgress = closestIndex;
+  
+  // Lap detection
+  if (prevProgress > trackData.points.length - 10 && playerProgress < 10) {
+    lapCount++;
+    
+    if (lapCount >= maxLaps) {
+      finishRace();
+    }
+  }
+  
+  // Snap to track height
+  const trackPos = getTrackPosition(playerProgress);
+  playerCar.position.y = trackPos.y + 0.5;
+  
+  // Rotation
+  playerCar.rotation.y = playerRotation;
+  
+  // Camera follow
+  camera.position.x = playerCar.position.x - Math.sin(playerRotation) * 15;
+  camera.position.z = playerCar.position.z - Math.cos(playerRotation) * 15;
+  camera.position.y = playerCar.position.y + 8;
+  camera.lookAt(playerCar.position);
+}
+
+// Update AI cars
+function updateAI(delta) {
+  const config = tracks[currentTrack];
+  
+  aiCars.forEach((car, idx) => {
+    const data = car.userData;
+    
+    // Move along track
+    data.speed = config.aiSpeed + Math.sin(Date.now() / 1000 + idx) * 0.05;
+    data.progress += data.speed;
+    
+    // Lap detection
+    if (data.progress >= trackData.points.length) {
+      data.progress -= trackData.points.length;
+      data.lap++;
+    }
+    
+    // Position
+    const pos = getTrackPosition(data.progress);
+    car.position.copy(pos);
+    car.position.y += 0.5;
+    car.position.x += (idx - 1) * 2.5;
+    
+    // Rotation
+    const nextPos = getTrackPosition(data.progress + 1);
+    car.lookAt(nextPos);
+  });
+}
+
+// Finish race
+function finishRace() {
+  gameActive = false;
+  const finalTime = (Date.now() - startTime) / 1000;
+  
+  // Save best time
+  const bestKey = `race3d_best_${currentTrack}`;
+  const currentBest = localStorage.getItem(bestKey);
+  
+  if (!currentBest || finalTime < parseFloat(currentBest)) {
+    localStorage.setItem(bestKey, finalTime.toFixed(1));
+    alert(`🏁 Race Complete!\n\nNew Best Time: ${finalTime.toFixed(1)}s`);
+  } else {
+    alert(`🏁 Race Complete!\n\nTime: ${finalTime.toFixed(1)}s\nBest: ${currentBest}s`);
+  }
+  
+  backToMenu();
+}
+
+// Animation loop
+function animate() {
+  if (!gameActive) return;
+  
+  updatePlayer(0.016);
+  updateAI(0.016);
+  updateUI();
+  
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+// Input handling
+window.addEventListener('keydown', e => {
+  keys[e.key] = true;
+});
+
+window.addEventListener('keyup', e => {
+  keys[e.key] = false;
+});
+
+// Mobile controls
+let mobileInputs = { left: false, right: false, accel: false };
+
+document.getElementById('btn-left').addEventListener('touchstart', e => {
+  e.preventDefault();
+  keys['ArrowLeft'] = true;
+});
+
+document.getElementById('btn-left').addEventListener('touchend', e => {
+  e.preventDefault();
+  keys['ArrowLeft'] = false;
+});
+
+document.getElementById('btn-right').addEventListener('touchstart', e => {
+  e.preventDefault();
+  keys['ArrowRight'] = true;
+});
+
+document.getElementById('btn-right').addEventListener('touchend', e => {
+  e.preventDefault();
+  keys['ArrowRight'] = false;
+});
+
+document.getElementById('btn-accel').addEventListener('touchstart', e => {
+  e.preventDefault();
+  keys['ArrowUp'] = true;
+});
+
+document.getElementById('btn-accel').addEventListener('touchend', e => {
+  e.preventDefault();
+  keys['ArrowUp'] = false;
+});
+
+// Initialize
+initThree();
+updateBestTimes();
+</script>
+
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="5123448325" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+</body>
+</html>

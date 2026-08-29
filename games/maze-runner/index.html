@@ -57,8 +57,9 @@ footer .social a:hover{color:#00e5ff;border-color:rgba(0,229,255,.3)}
 .made{margin-top:10px;color:#666;font-size:.8rem}
 @media(max-width:600px){.game-hud{font-size:.8rem;gap:10px;padding:4px 10px}.dpad.show{display:block}}
 </style>
-</head>
+<style>.jb-ad-banner{text-align:center;margin:4px auto;overflow:hidden;max-height:100px}#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}</style></head>
 <body>
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
 
 <!-- ===== START SCREEN ===== -->
 <div id="start-screen" class="screen active">
@@ -642,5 +643,8 @@ window.addEventListener('resize',()=>{
 
 })();
 </script>
+<script src="../shared/ads.js"></script>
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="8171848729" style="display:inline-block;width:728px;height:90px"></ins></div>
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="5123448325" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
 </body>
 </html>

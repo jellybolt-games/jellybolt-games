@@ -1,0 +1,399 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - generic:
+      - img
+      - progressbar
+      - generic: Loading Google Play Console
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e6]:
+        - button "Show navigation sidebar" [ref=e7] [cursor=pointer]:
+          - img [ref=e10]: menu
+        - generic [ref=e44]:
+          - button "Unread notifications Open notification center" [ref=e49]:
+            - img [ref=e53]: notifications_unread
+            - generic [ref=e55]: Unread notifications
+          - button "JellyBolt Games Collection" [ref=e63] [cursor=pointer]:
+            - img [ref=e69]
+    - generic [ref=e15]:
+      - button "Switch developer accounts JellyBolt Game tdsquadai@gmail.com" [ref=e19] [cursor=pointer]:
+        - img "Switch developer accounts" [ref=e20]
+        - generic [ref=e21]:
+          - generic [ref=e22]: JellyBolt Game
+          - generic [ref=e23]: tdsquadai@gmail.com
+      - navigation [ref=e72]:
+        - link "All apps" [ref=e73] [cursor=pointer]:
+          - /url: /console/u/0/developers/9213992152789777496/app-list
+          - img [ref=e75]: keyboard_backspace
+          - generic [ref=e76]: All apps
+        - list [ref=e77]:
+          - listitem "Dashboard" [ref=e80]:
+            - button "Dashboard" [ref=e81] [cursor=pointer]:
+              - img [ref=e84]: dashboard
+              - generic [ref=e85]: Dashboard
+          - listitem "Statistics" [ref=e88]:
+            - button "Statistics" [ref=e89] [cursor=pointer]:
+              - img [ref=e92]: bar_chart
+              - generic [ref=e93]: Statistics
+          - listitem "Publishing overview" [ref=e96]:
+            - button "Publishing overview" [ref=e97] [cursor=pointer]:
+              - img [ref=e100]: overview
+              - generic [ref=e101]: Publishing overview
+          - listitem "Test and release" [ref=e104]:
+            - button "Test and release" [ref=e105] [cursor=pointer]:
+              - img [ref=e108]: rocket_launch
+              - generic [ref=e109]: Test and release
+          - listitem "Monitor and improve" [ref=e112]:
+            - button "Monitor and improve" [ref=e113] [cursor=pointer]:
+              - img [ref=e116]: vital_signs
+              - generic [ref=e117]: Monitor and improve
+          - listitem "Grow users" [ref=e120]:
+            - button "Grow users" [ref=e121] [cursor=pointer]:
+              - img [ref=e124]: finance_mode
+              - generic [ref=e125]: Grow users
+            - list [ref=e126]:
+              - generic [ref=e128]:
+                - listitem "Store presence" [ref=e130]:
+                  - button "Store presence" [ref=e131] [cursor=pointer]:
+                    - generic [ref=e132]: Store presence
+                    - img [ref=e134]: expand_less
+                  - list [ref=e135]:
+                    - generic [ref=e137]:
+                      - listitem "Store listings" [ref=e139]:
+                        - button "Store listings" [ref=e140] [cursor=pointer]:
+                          - generic [ref=e141]: Store listings
+                      - listitem "Store listing experiments" [ref=e143]:
+                        - button "Store listing experiments" [ref=e144] [cursor=pointer]:
+                          - generic [ref=e145]: Store listing experiments
+                      - listitem "Promotional content" [ref=e147]:
+                        - button "Promotional content" [ref=e148] [cursor=pointer]:
+                          - generic [ref=e149]: Promotional content
+                      - listitem "YouTube videos" [ref=e151]:
+                        - button "YouTube videos" [ref=e152] [cursor=pointer]:
+                          - generic [ref=e153]: YouTube videos
+                      - listitem "Store settings" [ref=e155]:
+                        - button "Store settings" [ref=e156] [cursor=pointer]:
+                          - generic [ref=e157]: Store settings
+                - listitem "Store performance" [ref=e159]:
+                  - button "Store performance" [ref=e160] [cursor=pointer]:
+                    - generic [ref=e161]: Store performance
+                    - img [ref=e163]: expand_more
+                - listitem "Play Games Services" [ref=e165]:
+                  - button "Play Games Services" [ref=e166] [cursor=pointer]:
+                    - generic [ref=e167]: Play Games Services
+                    - img [ref=e169]: expand_more
+                - listitem "Translations" [ref=e171]:
+                  - button "Translations" [ref=e172] [cursor=pointer]:
+                    - generic [ref=e173]: Translations
+                    - img [ref=e175]: expand_more
+                - listitem "Deep links" [ref=e177]:
+                  - button "Deep links" [ref=e178] [cursor=pointer]:
+                    - generic [ref=e179]: Deep links
+          - listitem "Monetize with Play" [ref=e182]:
+            - button "Monetize with Play" [ref=e183] [cursor=pointer]:
+              - img [ref=e186]: sell
+              - generic [ref=e187]: Monetize with Play
+    - generic [ref=e25]:
+      - generic [ref=e191]:
+        - generic [ref=e195]:
+          - generic:
+            - generic:
+              - link "Go back to Store listings":
+                - /url: /console/u/0/developers/9213992152789777496/app/4975197531897745068/store-listings
+                - img [ref=e202] [cursor=pointer]: keyboard_backspace
+                - generic [ref=e203] [cursor=pointer]: Store listings
+          - heading "Default store listing" [level=1] [ref=e212]
+        - generic [ref=e233]:
+          - generic [ref=e237]:
+            - generic [ref=e240]: Default – English (United States) – en-US
+            - button "Manage translations" [ref=e244] [cursor=pointer]:
+              - generic [ref=e247]: Manage translations
+              - img [ref=e249]: arrow_drop_down
+          - paragraph [ref=e252]: "* – Required fields. Enter all fields in English (United States) – en-US"
+          - generic [ref=e254]:
+            - heading "Listing assets" [level=2] [ref=e266]
+            - paragraph [ref=e270]:
+              - generic [ref=e272]:
+                - text: Check the
+                - link "Metadata policy" [ref=e273] [cursor=pointer]:
+                  - /url: https://play.google.com/about/storelisting-promotional/metadata
+                - text: and
+                - link "Help Center guidance" [ref=e274] [cursor=pointer]:
+                  - /url: https://support.google.com/googleplay/android-developer/answer/9866151
+                - text: to avoid common issues with your store listing. Review all
+                - link "program policies" [ref=e275] [cursor=pointer]:
+                  - /url: https://play.google.com/about/developer-content-policy
+                - text: before submitting your app.
+                - text: If you're eligible to
+                - link "provide advance notice" [ref=e276] [cursor=pointer]:
+                  - /url: https://support.google.com/googleplay/android-developer/answer/6320428
+                - text: to the app review team, contact us before publishing your store listing.
+            - generic [ref=e280]:
+              - group "App name" [ref=e282]:
+                - generic [ref=e285]: App name *
+                - generic [ref=e291]:
+                  - textbox "Name of the app" [ref=e293]: JellyBolt Games Collection
+                  - generic [ref=e294]:
+                    - paragraph [ref=e295]: This is how your app will appear on Google Play
+                    - generic [ref=e296]:
+                      - generic [ref=e297]: 26 / 30
+                      - generic [ref=e298]: Text is 26 characters out of 30
+              - group "Short description" [ref=e300]:
+                - generic [ref=e303]: Short description *
+                - generic [ref=e306]:
+                  - generic [ref=e309]:
+                    - textbox "Short description of the app" [ref=e311]: 24 free HTML5 games — arcade, puzzle, RPG, typing & more. Play instantly!
+                    - generic [ref=e312]:
+                      - paragraph [ref=e313]: A short description for your app. Users can expand to view your full description.
+                      - generic [ref=e314]:
+                        - generic [ref=e315]: 73 / 80
+                        - generic [ref=e316]: Text is 73 characters out of 80
+                  - generic [ref=e317]:
+                    - img [ref=e320]: info
+                    - generic [ref=e323]:
+                      - text: "Your app may not be promoted on Google Play because your short description does not meet the following guidelines:"
+                      - list [ref=e324]:
+                        - listitem [ref=e325]: Should not use keywords that indicate price or promotion
+                    - link "View content guidelines about short description" [ref=e332] [cursor=pointer]:
+                      - /url: https://support.google.com/googleplay/android-developer/answer/9866151#zippy=%2Cshort-description
+                      - generic [ref=e335]: View content guidelines
+              - group "Full description" [ref=e337]:
+                - generic [ref=e340]: Full description *
+                - generic [ref=e346]:
+                  - textbox "Full description of the app" [ref=e349]: JellyBolt Games Collection brings 24 free HTML5 browser games to your Android device. From space shooters and roguelike dungeons to typing challenges and puzzle games, there's something for everyone. No downloads, no installs — just pure gaming fun. Games include Dungeon Bolt, Asteroid Dash, BrainRot Quiz Battle, Neon Snake, Color Match, Cube Runner, and 18 more. All games run in your browser for instant play. Free forever. No ads required. Made with ⚡ by JellyBolt Games.
+                  - generic [ref=e350]:
+                    - paragraph [ref=e351]
+                    - generic [ref=e352]:
+                      - generic [ref=e353]: 476 / 4000
+                      - generic [ref=e354]: Text is 476 characters out of 4000
+            - heading "Graphics" [level=2] [ref=e366]
+            - paragraph [ref=e370]:
+              - generic [ref=e372]:
+                - text: Manage your app icon, screenshots, and videos to promote your app on Google Play. Review the
+                - link "content guidelines" [ref=e373] [cursor=pointer]:
+                  - /url: https://support.google.com/googleplay/android-developer/answer/9866151#zippy=%2Capp-icon
+                - text: before uploading new graphics. If you add translations for your store listing without localized graphics, we will use the graphics from your default language.
+            - generic [ref=e377]:
+              - group "App icon" [ref=e379]:
+                - generic [ref=e382]: App icon *
+                - generic [ref=e387]:
+                  - generic [ref=e954]:
+                    - generic [ref=e956]:
+                      - img "icon.png" [ref=e958]
+                      - generic [ref=e959]:
+                        - button "Remove" [ref=e960] [cursor=pointer]:
+                          - img [ref=e963]: delete
+                        - button "View details" [ref=e964] [cursor=pointer]:
+                          - img [ref=e967]: arrow_right_alt
+                    - generic [ref=e968]:
+                      - generic "Icon 1 of 1" [ref=e969]: 1 / 1
+                      - button "Add assets" [ref=e971]:
+                        - generic [ref=e974]: Add assets
+                  - paragraph [ref=e397]:
+                    - generic [ref=e399]:
+                      - text: Your app icon must be a PNG or JPEG, up to 1 MB, 512 px by 512 px, and meet our
+                      - link "design specifications" [ref=e400] [cursor=pointer]:
+                        - /url: https://developer.android.com/google-play/resources/icon-design-specifications
+                      - text: and
+                      - link "metadata policy" [ref=e401] [cursor=pointer]:
+                        - /url: https://support.google.com/googleplay/android-developer/answer/9898842
+              - group "Feature graphic" [ref=e403]:
+                - generic [ref=e406]: Feature graphic *
+                - generic [ref=e411]:
+                  - generic [ref=e1154]:
+                    - generic [ref=e1156]:
+                      - img "feature-graphic.png" [ref=e1158]
+                      - generic [ref=e1159]:
+                        - button "Remove" [ref=e1160] [cursor=pointer]:
+                          - img [ref=e1163]: delete
+                        - button "View details" [ref=e1164] [cursor=pointer]:
+                          - img [ref=e1167]: arrow_right_alt
+                    - generic [ref=e1168]:
+                      - generic "Image 1 of 1" [ref=e1169]: 1 / 1
+                      - button "Add assets" [ref=e1171]:
+                        - generic [ref=e1174]: Add assets
+                  - paragraph [ref=e421]:
+                    - generic [ref=e422]: Your feature graphic must be a PNG or JPEG, up to 15 MB, and 1,024 px by 500 px
+              - group "Video" [ref=e424]:
+                - generic [ref=e427]: Video
+                - generic [ref=e433]:
+                  - generic [ref=e434]:
+                    - generic:
+                      - generic:
+                        - generic: https://www.youtube.com/watch?v=
+                    - textbox "Promotional YouTube video URL for the app" [ref=e435]
+                  - paragraph [ref=e437]: Add a video by entering a YouTube URL. This video must be public or unlisted, ads must be turned off, and it must not be age restricted.
+            - heading "Phone" [level=3] [ref=e449]
+            - group "Phone screenshots" [ref=e455]:
+              - generic [ref=e458]: Phone screenshots *
+              - generic [ref=e460]:
+                - generic [ref=e463]:
+                  - generic [ref=e1409]:
+                    - generic [ref=e1410]:
+                      - generic [ref=e1411]:
+                        - img "01-game-hub.png" [ref=e1413]
+                        - generic [ref=e1414]:
+                          - button "Remove" [ref=e1415] [cursor=pointer]:
+                            - img [ref=e1418]: delete
+                          - button "View details" [ref=e1419] [cursor=pointer]:
+                            - img [ref=e1422]: arrow_right_alt
+                      - generic [ref=e1423]:
+                        - img "02-neon-snake.png" [ref=e1425]
+                        - generic [ref=e1426]:
+                          - button "Remove" [ref=e1427] [cursor=pointer]:
+                            - img [ref=e1430]: delete
+                          - button "View details" [ref=e1431] [cursor=pointer]:
+                            - img [ref=e1434]: arrow_right_alt
+                      - generic [ref=e1435]:
+                        - img "03-memory-matrix.png" [ref=e1437]
+                        - generic [ref=e1438]:
+                          - button "Remove" [ref=e1439] [cursor=pointer]:
+                            - img [ref=e1442]: delete
+                          - button "View details" [ref=e1443] [cursor=pointer]:
+                            - img [ref=e1446]: arrow_right_alt
+                      - generic [ref=e1447]:
+                        - img "04-asteroid-dash.png" [ref=e1449]
+                        - generic [ref=e1450]:
+                          - button "Remove" [ref=e1451] [cursor=pointer]:
+                            - img [ref=e1454]: delete
+                          - button "View details" [ref=e1455] [cursor=pointer]:
+                            - img [ref=e1458]: arrow_right_alt
+                    - generic [ref=e1460]:
+                      - generic "Screenshot 4 of 8" [ref=e1461]: 4 / 8
+                      - button "Add assets" [ref=e1463]:
+                        - generic [ref=e1466]: Add assets
+                  - paragraph [ref=e473]:
+                    - generic [ref=e474]: Upload 2-8 phone screenshots. Screenshots must be PNG or JPEG, up to 8 MB each, 16:9 or 9:16 aspect ratio, with each side between 320 px and 3,840 px
+                - generic [ref=e475]:
+                  - img [ref=e478]: info
+                  - generic [ref=e481]: To be eligible for promotion, include at least 4 screenshots, with at least 3 in 16:9 or 9:16 and at least 1080 px.
+                  - link "View content guidelines about phone screenshots" [ref=e488] [cursor=pointer]:
+                    - /url: https://support.google.com/googleplay/android-developer/answer/9866151#screenshots
+                    - generic [ref=e491]: View content guidelines
+            - heading "Tablet" [level=3] [ref=e503]
+            - generic [ref=e507]:
+              - group "7-inch tablet screenshots" [ref=e509]:
+                - generic [ref=e512]: 7-inch tablet screenshots *
+                - generic [ref=e517]:
+                  - button "Add assets" [ref=e522]:
+                    - generic [ref=e525]: Add assets
+                  - paragraph [ref=e527]:
+                    - generic [ref=e528]: Upload up to eight 7-inch tablet screenshots. Screenshots must be PNG or JPEG, up to 8 MB each, 16:9 or 9:16 aspect ratio, with each side between 320 px and 3,840 px
+              - group "10-inch tablet screenshots" [ref=e530]:
+                - generic [ref=e533]: 10-inch tablet screenshots *
+                - generic [ref=e538]:
+                  - button "Add assets" [ref=e543]:
+                    - generic [ref=e546]: Add assets
+                  - paragraph [ref=e548]:
+                    - generic [ref=e549]: Upload up to eight 10-inch tablet screenshots. Screenshots must be PNG or JPEG, up to 8 MB each, 16:9 or 9:16 aspect ratio, with each side between 1,080 px and 7,680 px
+            - heading "Google Play Games on PC" [level=3] [ref=e561]
+            - generic [ref=e563]:
+              - paragraph [ref=e565]:
+                - generic [ref=e567]:
+                  - text: Your Google Play Games on PC logo is centered and overlaid on top of your feature graphic to make up a game card, which is used to represent your game on Google Play Games. To make sure that your game card looks correct, make sure that you follow the guidelines for both images.
+                  - link "View guidelines" [ref=e568] [cursor=pointer]:
+                    - /url: https://support.google.com/googleplay/android-developer/answer/13743525
+              - generic [ref=e570]:
+                - group "Google Play Games on PC logo" [ref=e572]:
+                  - generic [ref=e575]: Google Play Games on PC logo
+                  - generic [ref=e580]:
+                    - button "Add assets" [ref=e585]:
+                      - generic [ref=e588]: Add assets
+                    - paragraph [ref=e590]:
+                      - generic [ref=e592]:
+                        - text: Your logo is centered and overlaid on top of your feature graphic to make up your game card, which is used to represent your game on Google Play Games. Your logo must be a transparent PNG, up to 8 MB, and 600 px by 400 px. It must represent the name of your game.
+                        - link "View guidelines" [ref=e593] [cursor=pointer]:
+                          - /url: https://support.google.com/googleplay/android-developer/answer/13743525
+                - group "Google Play Games on PC feature graphic" [ref=e595]:
+                  - generic [ref=e598]: Google Play Games on PC feature graphic
+                  - generic [ref=e603]:
+                    - button "Add assets" [ref=e608]:
+                      - generic [ref=e611]: Add assets
+                    - paragraph [ref=e613]:
+                      - generic [ref=e615]:
+                        - text: Your feature graphic is combined with your logo to make up your game card, which is used to represent your game on Google Play Games. Your feature graphic must be a PNG or JPG, up to 15 MB, 16:9 aspect ratio, with each side between 720 px and 7,680 px. It must represent your game cover, and not contain any text.
+                        - link "View guidelines" [ref=e616] [cursor=pointer]:
+                          - /url: https://support.google.com/googleplay/android-developer/answer/13743525
+                - group "Google Play Games on PC screenshots" [ref=e618]:
+                  - generic [ref=e621]: Google Play Games on PC screenshots
+                  - generic [ref=e626]:
+                    - button "Add assets" [ref=e631]:
+                      - generic [ref=e634]: Add assets
+                    - paragraph [ref=e636]:
+                      - generic [ref=e637]: Upload 4-8 screenshots. Screenshots must be PNG or JPEG, up to 15 MB each, 16:9 or 9:16 aspect ratio, with each side between 720 px and 7,680 px
+                - group "Google Play Games on PC video" [ref=e639]:
+                  - generic [ref=e642]: Google Play Games on PC video
+                  - generic [ref=e648]:
+                    - generic [ref=e649]:
+                      - generic:
+                        - generic:
+                          - generic: https://www.youtube.com/watch?v=
+                      - textbox "https://www.youtube.com/watch?v=" [ref=e650]
+                    - paragraph [ref=e652]: Add a video by entering a YouTube URL. This video must be public or unlisted, ads must be turned off, and it must not be age restricted.
+            - heading "Chromebook" [level=3] [ref=e664]
+            - group "Chromebook screenshots" [ref=e670]:
+              - generic [ref=e673]: Chromebook screenshots
+              - generic [ref=e678]:
+                - button "Add assets" [ref=e683]:
+                  - generic [ref=e686]: Add assets
+                - paragraph [ref=e688]:
+                  - generic [ref=e689]: Upload 4-8 screenshots. Screenshots must be PNG or JPEG, up to 8 MB each, 16:9 or 9:16 aspect ratio, with each side between 1,080 px and 7,680 px
+            - heading "Android XR" [level=3] [ref=e701]
+            - generic [ref=e705]:
+              - group "Android XR screenshots" [ref=e707]:
+                - generic [ref=e710]: Android XR screenshots
+                - generic [ref=e715]:
+                  - button "Add assets" [ref=e720]:
+                    - generic [ref=e723]: Add assets
+                  - paragraph [ref=e725]:
+                    - generic [ref=e726]: Upload 4-8 screenshots. Screenshots must be PNG or JPEG, up to 15 MB each, 16:9 or 9:16 aspect ratio, with each side between 720 px and 7,680 px
+              - group "Spatial XR video" [ref=e728]:
+                - generic [ref=e731]: Spatial XR video
+                - generic [ref=e736]:
+                  - generic [ref=e738]:
+                    - generic:
+                      - generic:
+                        - generic: https://www.youtube.com/watch?v=
+                    - textbox "https://www.youtube.com/watch?v=" [ref=e739]
+                  - paragraph [ref=e741]:
+                    - generic [ref=e743]:
+                      - text: Add a
+                      - link "spatial XR video" [ref=e744] [cursor=pointer]:
+                        - /url: https://support.google.com/googleplay/android-developer/answer/9866151#zippy=%2Cpreview-video
+                      - text: for an immersive preview of your features by entering a YouTube URL. This video must be in 360°, 180°, or 3D, be public or unlisted, ads must be turned off, and it must not be age restricted.
+              - group "Non-spatial XR video" [ref=e746]:
+                - generic [ref=e749]: Non-spatial XR video
+                - generic [ref=e754]:
+                  - generic [ref=e756]:
+                    - generic:
+                      - generic:
+                        - generic: https://www.youtube.com/watch?v=
+                    - textbox "https://www.youtube.com/watch?v=" [ref=e757]
+                  - paragraph [ref=e759]:
+                    - generic [ref=e760]: Add a non-spatial XR video by entering a YouTube URL. This video must be public or unlisted, ads must be turned off, and it must not be age restricted.
+        - generic [ref=e764]:
+          - generic [ref=e766]: If you save, changes will be saved in Publishing overview, ready for you to send for review
+          - generic [ref=e768]:
+            - button "Discard" [ref=e976]:
+              - generic [ref=e979]: Discard
+            - generic [ref=e775]:
+              - button "Save as draft" [ref=e981]:
+                - generic [ref=e984]: Save as draft
+              - button "Save" [ref=e986]:
+                - generic [ref=e989]: Save
+      - generic [ref=e33]:
+        - generic [ref=e788]:
+          - link "Product updates" [ref=e789] [cursor=pointer]:
+            - /url: https://play.google.com/console/about/whats-new/
+          - link "Status dashboard" [ref=e790] [cursor=pointer]:
+            - /url: https://status.play.google.com/
+          - link "Help" [ref=e791] [cursor=pointer]:
+            - /url: /console/u/0/developers/9213992152789777496/help-and-support?app=4975197531897745068
+        - generic [ref=e792]:
+          - generic [ref=e793]: © 2026 Google
+          - link "Privacy" [ref=e794] [cursor=pointer]:
+            - /url: https://www.google.com/policies/privacy/
+          - link "Developer Distribution Agreement" [ref=e795] [cursor=pointer]:
+            - /url: https://play.google.com/about/developer-distribution-agreement.html
+          - link "Terms of Service" [ref=e796] [cursor=pointer]:
+            - /url: https://play.google.com/about/console/terms-of-service/

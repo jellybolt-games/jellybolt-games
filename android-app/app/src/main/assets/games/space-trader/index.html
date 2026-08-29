@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Space Trader — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#c8d8e8;font-family:'Segoe UI',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:auto;touch-action:pan-y}
+#app{width:100%;max-width:520px;padding:15px;min-height:100vh}
+.screen{display:none}.screen.active{display:block}
+.title{font-size:2.4em;font-weight:900;background:linear-gradient(135deg,#58a6ff,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center}
+.sub{color:#6b7b8b;text-align:center;margin-bottom:20px;font-size:.95em}
+.btn{padding:12px 30px;font-size:1.05em;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:all .2s;margin:4px;display:inline-block}
+.btn:hover{transform:translateY(-2px)}
+.btn-play{background:linear-gradient(135deg,#58a6ff,#00d4ff);color:#0a0a1a}
+.btn-trade{background:#1a2a3a;border:1px solid #2a3a4a;color:#c8d8e8;font-size:.95em;padding:10px 16px;width:100%}
+.btn-trade:hover{border-color:#58a6ff;background:#1a3040}
+.btn-nav{background:#162030;border:1px solid #2a3a4a;color:#58a6ff;padding:10px 20px;font-size:.9em}
+.btn-nav:hover{border-color:#58a6ff}
+.btn-nav.active{background:#1a3050;border-color:#58a6ff}
+.credit{color:#3a4a5a;font-size:.75em;text-align:center;margin-top:15px}
+.panel{background:#0d1520;border:1px solid #1a2a3a;border-radius:10px;padding:12px;margin:8px 0}
+.panel-title{font-size:.8em;color:#4a6a8a;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:.9em}
+.stat-val{font-weight:700}
+.gold{color:#ffcc00}.green{color:#00ff88}.red{color:#ff6b6b}.blue{color:#58a6ff}
+.system-name{font-size:1.3em;font-weight:900;color:#58a6ff;text-align:center;margin:5px 0}
+.system-desc{color:#6b7b8b;font-size:.85em;text-align:center;margin-bottom:10px}
+.goods-list{display:flex;flex-direction:column;gap:4px}
+.good-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#0a1520;border:1px solid #1a2a3a;border-radius:8px}
+.good-row:hover{border-color:#2a4a6a}
+.good-name{font-weight:700;font-size:.95em}
+.good-price{font-size:.9em}
+.good-btns{display:flex;gap:4px}
+.good-btn{padding:4px 10px;font-size:.8em;font-weight:700;border:1px solid #2a3a4a;border-radius:6px;cursor:pointer;background:#162030;color:#c8d8e8;transition:all .15s}
+.good-btn:hover{border-color:#58a6ff}
+.good-btn.buy{color:#00ff88;border-color:#00ff8844}
+.good-btn.sell{color:#ff9f43;border-color:#ff9f4344}
+.nav-bar{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap;justify-content:center}
+.cargo-item{display:flex;justify-content:space-between;padding:4px 8px;font-size:.85em;background:#0a1520;border-radius:6px;margin:2px 0}
+.event-box{background:#1a1a00;border:1px solid #3a3a00;border-radius:8px;padding:10px;margin:8px 0;color:#ffcc00;font-size:.9em;text-align:center}
+.turn-label{text-align:center;color:#4a6a8a;font-size:.8em;margin:5px 0}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="app">
+  <div id="menu" class="screen active">
+    <div style="text-align:center;padding-top:30px">
+      <div class="title">🚀 Space Trader</div>
+      <div class="sub">Buy low. Sell high. Build your fortune across the stars.</div>
+      <button class="btn btn-play" onclick="startGame()">🌌 Launch</button>
+      <div style="margin-top:15px;color:#6b7b8b;font-size:.85em;max-width:350px;margin:15px auto;text-align:center">
+        <p>Travel between 6 star systems. Each has different goods at different prices.</p>
+        <p>Buy cheap, sell expensive. Watch for random events. 30 turns to get rich!</p>
+      </div>
+      <div class="credit">⚡ JellyBolt Games</div>
+    </div>
+  </div>
+
+  <div id="game" class="screen">
+    <div class="turn-label">Turn <span id="turn">1</span>/30 — <span id="sys-name-top"></span></div>
+    <div class="panel">
+      <div class="panel-title">💰 Your Stats</div>
+      <div class="stat-row"><span>Credits</span><span class="stat-val gold" id="credits">1000</span></div>
+      <div class="stat-row"><span>Cargo</span><span class="stat-val" id="cargo-count">0/20</span></div>
+      <div class="stat-row"><span>Net Worth</span><span class="stat-val green" id="net-worth">1000</span></div>
+    </div>
+    <div id="event-area"></div>
+    <div class="system-name" id="sys-name"></div>
+    <div class="system-desc" id="sys-desc"></div>
+    <div class="panel">
+      <div class="panel-title">📦 Market — Buy & Sell</div>
+      <div class="goods-list" id="market"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">🎒 Your Cargo</div>
+      <div id="cargo-list"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">🗺️ Travel (costs 1 turn)</div>
+      <div class="nav-bar" id="nav-bar"></div>
+    </div>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+
+  <div id="results" class="screen">
+    <div style="text-align:center;padding-top:40px">
+      <div style="font-size:1.1em;color:#6b7b8b">Game Over — 30 turns elapsed</div>
+      <div style="font-size:3em;font-weight:900;color:#ffcc00;margin:10px 0" id="final-worth">0</div>
+      <div style="color:#6b7b8b">Final Net Worth</div>
+      <div style="margin:10px 0;color:#aaa;font-size:.9em" id="result-detail"></div>
+      <div style="margin:15px 0" id="result-rank"></div>
+      <button class="btn btn-play" onclick="startGame()">🔄 Trade Again</button>
+      <button class="btn btn-nav" onclick="showScreen('menu')">🏠 Menu</button>
+      <div class="credit">⚡ JellyBolt Games</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SYSTEMS=[
+  {name:'Sol Station',desc:'Earth\'s trade hub. Balanced prices.',icon:'🌍',base:{food:10,water:8,fuel:15,metals:40,tech:80,luxuries:120}},
+  {name:'Nova Prime',desc:'Industrial powerhouse. Cheap metals.',icon:'🏭',base:{food:15,water:12,fuel:12,metals:20,tech:90,luxuries:140}},
+  {name:'Aqua Drift',desc:'Ocean world. Water is dirt cheap.',icon:'🌊',base:{food:12,water:3,fuel:18,metals:50,tech:100,luxuries:100}},
+  {name:'Helios Gate',desc:'Energy hub. Fuel costs nothing here.',icon:'☀️',base:{food:18,water:15,fuel:5,metals:45,tech:85,luxuries:130}},
+  {name:'Nexus VII',desc:'Tech capital. Cheapest electronics.',icon:'💻',base:{food:20,water:18,fuel:20,metals:55,tech:30,luxuries:110}},
+  {name:'Luxe Haven',desc:'Resort world. Luxuries sell for a fortune.',icon:'💎',base:{food:25,water:20,fuel:22,metals:60,tech:110,luxuries:50}},
+];
+const GOODS=['food','water','fuel','metals','tech','luxuries'];
+const GOOD_ICONS={food:'🌾',water:'💧',fuel:'⛽',metals:'⚙️',tech:'💻',luxuries:'💎'};
+const CARGO_MAX=20;
+
+let player,currentSystem,turn,prices,highWorth;
+highWorth=parseInt(localStorage.getItem('st_high')||'0');
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+function startGame(){
+  player={credits:1000,cargo:{}};
+  GOODS.forEach(g=>player.cargo[g]=0);
+  currentSystem=0;turn=1;
+  generatePrices();
+  showScreen('game');
+  renderGame();
+}
+
+function generatePrices(){
+  prices=SYSTEMS.map(sys=>{
+    const p={};
+    GOODS.forEach(g=>{
+      const base=sys.base[g];
+      const variance=0.6+Math.random()*0.8;
+      p[g]=Math.max(1,Math.round(base*variance));
+    });
+    return p;
+  });
+}
+
+function cargoTotal(){return GOODS.reduce((s,g)=>s+player.cargo[g],0)}
+function netWorth(){
+  let val=player.credits;
+  GOODS.forEach(g=>{val+=player.cargo[g]*prices[currentSystem][g]});
+  return val;
+}
+
+function buy(good){
+  const price=prices[currentSystem][good];
+  if(player.credits<price||cargoTotal()>=CARGO_MAX)return;
+  player.credits-=price;
+  player.cargo[good]++;
+  renderGame();
+}
+
+function sell(good){
+  if(player.cargo[good]<=0)return;
+  player.credits+=prices[currentSystem][good];
+  player.cargo[good]--;
+  renderGame();
+}
+
+function travel(sysIdx){
+  if(sysIdx===currentSystem)return;
+  currentSystem=sysIdx;
+  turn++;
+  generatePrices();
+  // Random event (20% chance)
+  let event=null;
+  if(Math.random()<0.2){
+    const events=[
+      {text:'🏴‍☠️ Space pirates! Lost some credits.',effect:()=>{const loss=Math.floor(player.credits*0.15);player.credits-=loss;return`-${loss} credits`}},
+      {text:'💰 Found a derelict ship! Salvage bonus.',effect:()=>{const gain=50+Math.floor(Math.random()*100);player.credits+=gain;return`+${gain} credits`}},
+      {text:'📈 Trade boom! All prices doubled here.',effect:()=>{GOODS.forEach(g=>prices[currentSystem][g]*=2);return'Prices x2!'}},
+      {text:'📉 Market crash! Prices halved here.',effect:()=>{GOODS.forEach(g=>prices[currentSystem][g]=Math.max(1,Math.floor(prices[currentSystem][g]/2)));return'Prices halved!'}},
+      {text:'🎁 Free cargo! Gained random goods.',effect:()=>{const g=GOODS[Math.floor(Math.random()*GOODS.length)];const amt=Math.min(3,CARGO_MAX-cargoTotal());player.cargo[g]+=amt;return`+${amt} ${g}`}},
+    ];
+    event=events[Math.floor(Math.random()*events.length)];
+    const detail=event.effect();
+    event.detail=detail;
+  }
+  if(turn>30){endGame();return}
+  renderGame(event);
+}
+
+function renderGame(event){
+  const sys=SYSTEMS[currentSystem];
+  document.getElementById('turn').textContent=turn;
+  document.getElementById('sys-name-top').textContent=sys.name;
+  document.getElementById('credits').textContent=player.credits;
+  document.getElementById('cargo-count').textContent=`${cargoTotal()}/${CARGO_MAX}`;
+  document.getElementById('net-worth').textContent=netWorth();
+  document.getElementById('sys-name').textContent=`${sys.icon} ${sys.name}`;
+  document.getElementById('sys-desc').textContent=sys.desc;
+  // Event
+  const ea=document.getElementById('event-area');
+  ea.innerHTML=event?`<div class="event-box">${event.text}<br><strong>${event.detail}</strong></div>`:'';
+  // Market
+  const mkt=document.getElementById('market');
+  mkt.innerHTML=GOODS.map(g=>{
+    const p=prices[currentSystem][g];
+    const avg=SYSTEMS.reduce((s,sys)=>s+sys.base[g],0)/SYSTEMS.length;
+    const diff=((p-avg)/avg*100).toFixed(0);
+    const diffColor=diff<0?'green':'red';
+    return`<div class="good-row"><div><span class="good-name">${GOOD_ICONS[g]} ${g}</span></div><div class="good-price"><span class="${diffColor}">${p}c</span> <span style="font-size:.7em;color:#6b7b8b">(${diff>0?'+':''}${diff}%)</span></div><div class="good-btns"><button class="good-btn buy" onclick="buy('${g}')">Buy</button><button class="good-btn sell" onclick="sell('${g}')">Sell${player.cargo[g]>0?` (${player.cargo[g]})`:''}</button></div></div>`;
+  }).join('');
+  // Cargo
+  const cl=document.getElementById('cargo-list');
+  const hasCargo=GOODS.some(g=>player.cargo[g]>0);
+  cl.innerHTML=hasCargo?GOODS.filter(g=>player.cargo[g]>0).map(g=>
+    `<div class="cargo-item"><span>${GOOD_ICONS[g]} ${g} x${player.cargo[g]}</span><span class="blue">${player.cargo[g]*prices[currentSystem][g]}c value</span></div>`
+  ).join(''):'<div style="color:#4a6a8a;font-size:.85em;text-align:center">Empty — buy goods to fill your cargo hold</div>';
+  // Nav
+  const nav=document.getElementById('nav-bar');
+  nav.innerHTML=SYSTEMS.map((s,i)=>
+    `<button class="btn btn-nav${i===currentSystem?' active':''}" onclick="travel(${i})" ${i===currentSystem?'disabled':''}>${s.icon} ${s.name}</button>`
+  ).join('');
+}
+
+function endGame(){
+  const nw=netWorth();
+  if(nw>highWorth){highWorth=nw;localStorage.setItem('st_high',highWorth.toString())}
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(nw)},2000);
+  document.getElementById('final-worth').textContent=`${nw}c`;
+  document.getElementById('result-detail').textContent=`Started: 1,000c | Profit: ${nw-1000>0?'+':''}${nw-1000}c | Best: ${highWorth}c`;
+  let rank='';
+  if(nw>=10000)rank='<div style="font-size:1.3em;color:#ffcc00">🏆 GALACTIC MOGUL</div>';
+  else if(nw>=5000)rank='<div style="font-size:1.3em;color:#00ff88">⭐ SPACE TYCOON</div>';
+  else if(nw>=2500)rank='<div style="font-size:1.3em;color:#58a6ff">📈 SAVVY TRADER</div>';
+  else if(nw>=1000)rank='<div style="font-size:1.3em;color:#bc8cff">🤝 BROKE EVEN</div>';
+  else rank='<div style="font-size:1.3em;color:#ff6b6b">📉 BANKRUPT</div>';
+  document.getElementById('result-rank').innerHTML=rank;
+  showScreen('results');
+}
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Space Trader',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Space%20Trader%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

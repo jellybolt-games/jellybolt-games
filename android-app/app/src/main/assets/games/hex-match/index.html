@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Hex Match — JellyBolt Games</title>
+<!-- Google AdSense — uncomment and add your publisher ID when approved -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8350556723025693" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d0d2b;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;touch-action:none;user-select:none;padding-bottom:102px}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<canvas id="c"></canvas>
+
+<!-- Google AdSense Banner Ad — paste your ad unit code below -->
+</div>
+
+<!-- Interstitial Ad — shown between rounds/deaths -->
+<script>
+// === JellyBolt Ad Management ===
+let _adInterstitialCount = 0;
+function showInterstitialAd() {
+  _adInterstitialCount++;
+  // Show interstitial ad every 2nd death/game-over
+  if (_adInterstitialCount % 2 === 0) {
+    document.getElementById('ad-interstitial').style.display = 'flex';
+    // When real AdSense is set up, uncomment:
+    // (adsbygoogle = window.adsbygoogle || []).push({});
+  }
+}
+function closeInterstitialAd() {
+  document.getElementById('ad-interstitial').style.display = 'none';
+}
+</script>
+
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',()=>{resize();if(state===ST.PLAY)buildHexGrid()});
+
+const ST={MENU:0,PLAY:1,OVER:2};
+let state=ST.MENU;
+const COLORS=['#ff6b6b','#00ff88','#58a6ff','#ffcc00','#bc8cff','#ff9f43'];
+const COLS=7,ROWS=9;
+let grid=[],hexR=0,offX=0,offY=0,selected=null,score=0,moves=30,combo=0,
+    highScore=parseInt(localStorage.getItem('hm_high')||'0'),
+    particles=[],animating=false,swapAnim=null;
+
+function hexW(){return hexR*Math.sqrt(3)}
+function hexH(){return hexR*2}
+
+function buildHexGrid(){
+  hexR=Math.min((W-20)/(COLS*Math.sqrt(3)+0.5*Math.sqrt(3))/1,((H-100)/(ROWS*1.5+0.5))/1);
+  hexR=Math.min(hexR,28);
+  const gw=COLS*hexW();
+  const gh=ROWS*1.5*hexR+0.5*hexR;
+  offX=(W-gw)/2+hexR*Math.sqrt(3)/2;
+  offY=(H-gh)/2+hexR+40;
+}
+
+function hexCenter(r,c){
+  const x=offX+c*hexW()+(r%2?hexW()/2:0);
+  const y=offY+r*hexR*1.5;
+  return{x,y};
+}
+
+function init(){
+  score=0;moves=30;combo=0;selected=null;animating=false;
+  buildHexGrid();
+  grid=[];
+  for(let r=0;r<ROWS;r++){grid[r]=[];for(let c=0;c<COLS;c++)grid[r][c]=randColor()}
+  // Remove initial matches
+  let safe=0;
+  while(findMatches().length>0&&safe++<100){
+    const m=findMatches();
+    m.forEach(([r,c])=>grid[r][c]=randColor());
+  }
+}
+
+function randColor(){return Math.floor(Math.random()*COLORS.length)}
+
+function neighbors(r,c){
+  const n=[];
+  const odd=r%2;
+  // hex neighbors
+  const dirs=odd?[[-1,0],[-1,1],[0,-1],[0,1],[1,0],[1,1]]:[[-1,-1],[-1,0],[0,-1],[0,1],[1,-1],[1,0]];
+  dirs.forEach(([dr,dc])=>{
+    const nr=r+dr,nc=c+dc;
+    if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS)n.push([nr,nc]);
+  });
+  return n;
+}
+
+function findMatches(){
+  const visited=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+  const matched=new Set();
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(visited[r][c])continue;
+      const color=grid[r][c];
+      if(color<0)continue;
+      // BFS to find connected group
+      const group=[];
+      const queue=[[r,c]];
+      visited[r][c]=true;
+      while(queue.length){
+        const[cr,cc]=queue.shift();
+        group.push([cr,cc]);
+        neighbors(cr,cc).forEach(([nr,nc])=>{
+          if(!visited[nr][nc]&&grid[nr][nc]===color){
+            visited[nr][nc]=true;
+            queue.push([nr,nc]);
+          }
+        });
+      }
+      if(group.length>=3)group.forEach(([gr,gc])=>matched.add(`${gr},${gc}`));
+    }
+  }
+  return[...matched].map(s=>s.split(',').map(Number));
+}
+
+function swap(r1,c1,r2,c2){
+  const t=grid[r1][c1];grid[r1][c1]=grid[r2][c2];grid[r2][c2]=t;
+}
+
+function isNeighbor(r1,c1,r2,c2){
+  return neighbors(r1,c1).some(([nr,nc])=>nr===r2&&nc===c2);
+}
+
+function processMatches(){
+  animating=true;
+  const m=findMatches();
+  if(m.length===0){animating=false;combo=0;if(moves<=0)endGame();return}
+  combo++;
+  const pts=m.length*10*combo;
+  score+=pts;
+  // Particles
+  m.forEach(([r,c])=>{
+    const{x,y}=hexCenter(r,c);
+    const col=COLORS[grid[r][c]]||'#fff';
+    for(let i=0;i<5;i++)particles.push({x,y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:1,color:col,size:3+Math.random()*3});
+    grid[r][c]=-1;
+  });
+  setTimeout(()=>{
+    // Drop tiles down
+    for(let c=0;c<COLS;c++){
+      let empty=[];
+      for(let r=ROWS-1;r>=0;r--){
+        if(grid[r][c]<0)empty.push(r);
+        else if(empty.length){
+          const target=empty.shift();
+          grid[target][c]=grid[r][c];
+          grid[r][c]=-1;
+          empty.push(r);
+        }
+      }
+      // Fill top
+      for(let r=0;r<ROWS;r++){if(grid[r][c]<0)grid[r][c]=randColor()}
+    }
+    setTimeout(()=>processMatches(),200);
+  },300);
+}
+
+function endGame(){
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000);
+  state=ST.OVER;
+  if(score>highScore){highScore=score;localStorage.setItem('hm_high',highScore.toString())}
+}
+
+// Input
+let touchStart=null;
+function getCellAt(px,py){
+  let best=null,bestD=Infinity;
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const{x,y}=hexCenter(r,c);
+      const d=Math.sqrt((px-x)**2+(py-y)**2);
+      if(d<hexR&&d<bestD){bestD=d;best=[r,c]}
+    }
+  }
+  return best;
+}
+
+canvas.addEventListener('click',e=>{
+  if(state===ST.MENU){state=ST.PLAY;init();return}
+  if(state===ST.OVER){state=ST.MENU;return}
+  if(animating)return;
+  const cell=getCellAt(e.clientX,e.clientY);
+  if(!cell)return;
+  if(!selected){selected=cell;return}
+  const[r1,c1]=selected;
+  const[r2,c2]=cell;
+  if(r1===r2&&c1===c2){selected=null;return}
+  if(!isNeighbor(r1,c1,r2,c2)){selected=cell;return}
+  // Try swap
+  swap(r1,c1,r2,c2);
+  const m=findMatches();
+  if(m.length===0){swap(r1,c1,r2,c2);selected=null;return} // invalid
+  moves--;
+  selected=null;
+  processMatches();
+});
+
+canvas.addEventListener('touchstart',e=>{e.preventDefault();
+  if(state===ST.MENU){state=ST.PLAY;init();return}
+  if(state===ST.OVER){state=ST.MENU;return}
+  touchStart=getCellAt(e.touches[0].clientX,e.touches[0].clientY);
+},{passive:false});
+canvas.addEventListener('touchend',e=>{e.preventDefault();
+  if(!touchStart||animating)return;
+  const end=getCellAt(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+  if(!end){touchStart=null;return}
+  const[r1,c1]=touchStart;
+  const[r2,c2]=end;
+  if(r1===r2&&c1===c2){
+    if(!selected){selected=touchStart}else{
+      if(isNeighbor(selected[0],selected[1],r1,c1)){
+        swap(selected[0],selected[1],r1,c1);
+        if(findMatches().length===0){swap(selected[0],selected[1],r1,c1);selected=null}
+        else{moves--;selected=null;processMatches()}
+      }else selected=[r1,c1];
+    }
+  }else if(isNeighbor(r1,c1,r2,c2)){
+    swap(r1,c1,r2,c2);
+    if(findMatches().length===0){swap(r1,c1,r2,c2)}
+    else{moves--;selected=null;processMatches()}
+  }
+  touchStart=null;
+},{passive:false});
+
+function drawHex(x,y,r,fill,stroke,lw){
+  ctx.beginPath();
+  for(let i=0;i<6;i++){
+    const a=Math.PI/6+i*Math.PI/3;
+    const px=x+r*Math.cos(a),py=y+r*Math.sin(a);
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill()}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1;ctx.stroke()}
+}
+
+function draw(){
+  ctx.fillStyle='#0d0d2b';ctx.fillRect(0,0,W,H);
+
+  if(state===ST.MENU){
+    ctx.textAlign='center';
+    ctx.fillStyle='#ff6b6b';ctx.shadowColor='#ff6b6b';ctx.shadowBlur=25;
+    ctx.font='bold 50px system-ui';ctx.fillText('HEX MATCH',W/2,H/2-90);ctx.shadowBlur=0;
+    ctx.fillStyle='#58a6ff';ctx.font='18px system-ui';
+    ctx.fillText('Swap adjacent hex tiles to match 3+ of a color',W/2,H/2-40);
+    ctx.fillStyle='#ffcc00';ctx.font='bold 26px system-ui';
+    ctx.fillText('TAP TO START',W/2,H/2+10);
+    ctx.fillStyle='#8b949e';ctx.font='15px system-ui';
+    ctx.fillText(`High Score: ${highScore}`,W/2,H/2+50);
+    // Demo hexes
+    for(let i=0;i<6;i++){
+      const a=i*Math.PI/3;
+      drawHex(W/2+Math.cos(a)*50,H/2+130+Math.sin(a)*50,20,COLORS[i],'#ffffff22',1);
+    }
+    drawHex(W/2,H/2+130,20,COLORS[0],'#ffffff22',1);
+    ctx.fillStyle='#484f58';ctx.font='13px system-ui';ctx.fillText('⚡ JellyBolt Games',W/2,H-25);
+    return;
+  }
+
+  // HUD
+  ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='bold 20px system-ui';
+  ctx.fillText(`Score: ${score}`,15,30);
+  ctx.textAlign='right';
+  ctx.fillStyle=moves<=5?'#ff6b6b':'#8b949e';ctx.font='bold 18px system-ui';
+  ctx.fillText(`Moves: ${moves}`,W-15,30);
+  ctx.textAlign='center';ctx.fillStyle='#8b949e';ctx.font='13px system-ui';
+  ctx.fillText(`Best: ${highScore}`,W/2,30);
+  if(combo>1){ctx.fillStyle='#ffcc00';ctx.font='bold 16px system-ui';ctx.fillText(`Combo x${combo}!`,W/2,52)}
+
+  // Grid
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const{x,y}=hexCenter(r,c);
+      const ci=grid[r][c];
+      if(ci<0)continue;
+      const isSel=selected&&selected[0]===r&&selected[1]===c;
+      drawHex(x,y,hexR-2,COLORS[ci],isSel?'#fff':'#ffffff15',isSel?3:1);
+      if(isSel){
+        ctx.shadowColor=COLORS[ci];ctx.shadowBlur=15;
+        drawHex(x,y,hexR-2,null,COLORS[ci],2);
+        ctx.shadowBlur=0;
+      }
+    }
+  }
+
+  // Particles
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.025;
+    ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;
+    ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size)});
+  ctx.globalAlpha=1;
+  particles=particles.filter(p=>p.life>0);
+
+  if(state===ST.OVER){
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';
+    ctx.fillStyle='#ff6b6b';ctx.font='bold 44px system-ui';ctx.fillText('GAME OVER',W/2,H/2-50);
+    ctx.fillStyle='#ffcc00';ctx.font='bold 32px system-ui';ctx.fillText(`Score: ${score}`,W/2,H/2);
+    if(score>=highScore&&score>0){ctx.fillStyle='#00ff88';ctx.font='bold 20px system-ui';ctx.fillText('🏆 NEW HIGH SCORE!',W/2,H/2+40)}
+    ctx.fillStyle='#8b949e';ctx.font='16px system-ui';ctx.fillText('Tap to continue',W/2,H/2+90);
+  }
+}
+
+function loop(){draw();requestAnimationFrame(loop)}
+loop();
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Hex Match',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Hex%20Match%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Memory Matrix — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a2e;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;touch-action:none}
+#app{width:100%;max-width:500px;padding:20px;text-align:center}
+.title{font-size:2.5em;font-weight:900;background:linear-gradient(135deg,#00ff88,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:5px}
+.sub{color:#8b949e;font-size:1em;margin-bottom:25px}
+.btn{padding:14px 40px;font-size:1.2em;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:all .2s;display:inline-block;margin:5px}
+.btn:hover{transform:translateY(-2px)}
+.btn-play{background:linear-gradient(135deg,#00ff88,#00cc66);color:#0a0a2e;box-shadow:0 4px 20px #00ff8844}
+.btn-again{background:linear-gradient(135deg,#58a6ff,#388bfd);color:#fff;box-shadow:0 4px 20px #58a6ff44}
+.credit{color:#484f58;font-size:.8em;margin-top:25px}
+.hud{display:flex;justify-content:space-between;margin-bottom:15px;font-size:1em;color:#8b949e}
+.hud span{color:#00ff88;font-weight:700}
+.grid{display:grid;gap:6px;margin:0 auto;max-width:400px}
+.cell{aspect-ratio:1;border-radius:10px;cursor:pointer;transition:all .2s;position:relative;display:flex;align-items:center;justify-content:center;font-size:1.5em}
+.cell.idle{background:#161b22;border:2px solid #21262d}
+.cell.idle:hover{border-color:#58a6ff;transform:scale(1.03)}
+.cell.lit{background:linear-gradient(135deg,#00ff88,#00cc66);border:2px solid #00ff88;box-shadow:0 0 15px #00ff8844}
+.cell.wrong{background:linear-gradient(135deg,#ff6b6b,#da3633);border:2px solid #ff6b6b;box-shadow:0 0 15px #ff6b6b44}
+.cell.correct{background:linear-gradient(135deg,#00ff88,#2ea043);border:2px solid #00ff88}
+.cell.disabled{pointer-events:none;opacity:.7}
+.msg{font-size:1.4em;font-weight:700;margin:15px 0;min-height:40px}
+.msg.good{color:#00ff88}
+.msg.bad{color:#ff6b6b}
+.msg.watch{color:#ffcc00}
+.screen{display:none}.screen.active{display:block}
+.result-score{font-size:3.5em;font-weight:900;color:#00ff88;text-shadow:0 0 30px #00ff8844}
+.result-label{font-size:1.3em;color:#8b949e;margin-bottom:5px}
+.result-detail{font-size:1em;color:#aaa;margin:5px 0}
+.streak-badge{display:inline-block;padding:5px 15px;border-radius:20px;margin:10px 0;font-weight:700;font-size:1.1em}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="app">
+  <div id="menu" class="screen active">
+    <div class="title">🧩 Memory Matrix</div>
+    <div class="sub">Watch the pattern. Repeat it. How far can you go?</div>
+    <button class="btn btn-play" onclick="startGame()">▶ PLAY</button>
+    <div style="margin-top:15px;color:#8b949e;font-size:.9em">
+      <p>Tiles light up in a pattern — memorize and repeat!</p>
+      <p>Each round adds more tiles. One mistake and it's over.</p>
+    </div>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+
+  <div id="game" class="screen">
+    <div class="hud">
+      <div>Level <span id="level">1</span></div>
+      <div>Score <span id="score">0</span></div>
+      <div>Best <span id="best">0</span></div>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div id="results" class="screen">
+    <div class="result-label">Game Over</div>
+    <div class="result-score" id="final-score">0</div>
+    <div class="result-detail" id="result-level"></div>
+    <div class="result-detail" id="result-tiles"></div>
+    <div id="result-badge"></div>
+    <button class="btn btn-again" onclick="startGame()">🔄 Play Again</button>
+    <button class="btn btn-play" onclick="showMenu()" style="font-size:1em;padding:10px 25px">🏠 Menu</button>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+</div>
+
+<script>
+let gridSize=3,sequence=[],playerIdx=0,level=1,score=0,bestScore=parseInt(localStorage.getItem('mm_best')||'0'),
+    isShowingPattern=false,isPlayerTurn=false,totalTilesCorrect=0;
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function showMenu(){showScreen('menu')}
+function setMsg(text,cls){const m=document.getElementById('msg');m.textContent=text;m.className='msg'+(cls?' '+cls:'')}
+
+function startGame(){
+  level=1;score=0;totalTilesCorrect=0;gridSize=3;
+  document.getElementById('best').textContent=bestScore;
+  showScreen('game');
+  nextRound();
+}
+
+function getGridSize(){
+  if(level<=3)return 3;
+  if(level<=6)return 4;
+  if(level<=10)return 5;
+  return 6;
+}
+
+function getSeqLen(){return Math.min(2+level,20)}
+
+function buildGrid(){
+  const g=document.getElementById('grid');
+  gridSize=getGridSize();
+  g.style.gridTemplateColumns=`repeat(${gridSize},1fr)`;
+  g.innerHTML='';
+  for(let i=0;i<gridSize*gridSize;i++){
+    const c=document.createElement('div');
+    c.className='cell idle disabled';
+    c.dataset.idx=i;
+    c.onclick=()=>playerTap(i);
+    g.appendChild(c);
+  }
+}
+
+function nextRound(){
+  document.getElementById('level').textContent=level;
+  document.getElementById('score').textContent=score;
+  buildGrid();
+  const total=gridSize*gridSize;
+  sequence=[];
+  const len=getSeqLen();
+  while(sequence.length<len){
+    const r=Math.floor(Math.random()*total);
+    if(!sequence.includes(r))sequence.push(r);
+  }
+  playerIdx=0;
+  isShowingPattern=true;
+  isPlayerTurn=false;
+  setMsg('👀 Watch carefully...','watch');
+  showPattern();
+}
+
+function showPattern(){
+  const cells=document.querySelectorAll('.cell');
+  setTimeout(()=>{
+    sequence.forEach(idx=>{cells[idx].className='cell lit'});
+    const showTime=Math.max(600,2000-level*80);
+    setTimeout(()=>{
+      cells.forEach(c=>c.className='cell idle');
+      isShowingPattern=false;
+      isPlayerTurn=true;
+      setMsg('🎯 Your turn! Tap the tiles','');
+    },showTime);
+  },500);
+}
+
+function playerTap(idx){
+  if(!isPlayerTurn)return;
+  const cells=document.querySelectorAll('.cell');
+  if(sequence[playerIdx]===idx){
+    cells[idx].className='cell correct';
+    playerIdx++;
+    totalTilesCorrect++;
+    score+=10*level;
+    document.getElementById('score').textContent=score;
+    if(playerIdx>=sequence.length){
+      isPlayerTurn=false;
+      score+=level*50;
+      document.getElementById('score').textContent=score;
+      setMsg('✅ Perfect!','good');
+      level++;
+      setTimeout(nextRound,1000);
+    }
+  } else {
+    cells[idx].className='cell wrong';
+    sequence.forEach((s,i)=>{if(i>=playerIdx)cells[s].className='cell lit'});
+    isPlayerTurn=false;
+    setMsg('❌ Wrong tile!','bad');
+    setTimeout(endGame,1500);
+  }
+}
+
+function endGame(){
+  if(score>bestScore){bestScore=score;localStorage.setItem('mm_best',bestScore.toString())}
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(score)},2000);
+  document.getElementById('final-score').textContent=score;
+  document.getElementById('result-level').textContent=`Reached Level ${level}`;
+  document.getElementById('result-tiles').textContent=`${totalTilesCorrect} tiles memorized correctly`;
+  let badge='';
+  if(level>=15)badge='<div class="streak-badge" style="background:#ffcc00;color:#000">🏆 MEMORY MASTER</div>';
+  else if(level>=10)badge='<div class="streak-badge" style="background:#00ff88;color:#000">🧠 BIG BRAIN</div>';
+  else if(level>=6)badge='<div class="streak-badge" style="background:#58a6ff;color:#fff">👍 SHARP MIND</div>';
+  else if(level>=3)badge='<div class="streak-badge" style="background:#bc8cff;color:#fff">🤔 GETTING THERE</div>';
+  else badge='<div class="streak-badge" style="background:#ff6b6b;color:#fff">💀 GOLDFISH BRAIN</div>';
+  document.getElementById('result-badge').innerHTML=badge;
+  showScreen('results');
+}
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Memory Matrix',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Memory%20Matrix%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>

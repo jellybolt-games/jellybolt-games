@@ -61,7 +61,7 @@ Since we do not collect personal data, there is no personal data to access, modi
 If you have any questions or concerns about this Privacy Policy, please contact us:
 
 - **Email:** tdsquadai@gmail.com
-- **Website:** https://tamirdresher.com
+- **Website:** https://jellyboltgames.itch.io
 
 ---
 

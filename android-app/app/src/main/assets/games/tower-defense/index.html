@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tower Defense Fantasy — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;touch-action:none;user-select:none;font-family:system-ui,-apple-system,sans-serif}
+canvas{display:block}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="game-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+// Tower Defense Fantasy - JellyBolt Games
+const GRID_SIZE = 48;
+const GRID_COLS = 14;
+const GRID_ROWS = 12;
+
+const TOWER_TYPES = {
+  ARCHER: { name: 'Archer', cost: 100, damage: 15, range: 120, fireRate: 800, color: 0x8B4513, icon: '🏹' },
+  MAGE: { name: 'Mage', cost: 150, damage: 25, range: 140, fireRate: 1200, color: 0x9370DB, icon: '🔮' },
+  ICE: { name: 'Ice', cost: 175, damage: 10, range: 100, fireRate: 1500, color: 0x87CEEB, icon: '❄️', slow: 0.5 },
+  CANNON: { name: 'Cannon', cost: 200, damage: 50, range: 150, fireRate: 2000, color: 0x696969, icon: '💣', splash: 60 },
+  POISON: { name: 'Poison', cost: 180, damage: 8, range: 110, fireRate: 600, color: 0x32CD32, icon: '☠️', poison: 3 },
+  TESLA: { name: 'Tesla', cost: 250, damage: 35, range: 130, fireRate: 1000, color: 0x4169E1, icon: '⚡', chain: 3 }
+};
+
+const ENEMY_TYPES = {
+  GOBLIN: { health: 50, speed: 60, gold: 10, color: 0x228B22, size: 16 },
+  ORC: { health: 100, speed: 45, gold: 20, color: 0x8B0000, size: 20 },
+  TROLL: { health: 200, speed: 30, gold: 40, color: 0x4B0082, size: 24 },
+  DRAGON: { health: 500, speed: 35, gold: 100, color: 0xFF4500, size: 32, boss: true }
+};
+
+const PATH = [
+  {x: -1, y: 6}, {x: 2, y: 6}, {x: 2, y: 2}, {x: 5, y: 2}, {x: 5, y: 8},
+  {x: 8, y: 8}, {x: 8, y: 4}, {x: 11, y: 4}, {x: 11, y: 9}, {x: 15, y: 9}
+];
+
+class MainScene extends Phaser.Scene {
+  constructor() {
+    super('MainScene');
+  }
+
+  create() {
+    this.cameras.main.setBackgroundColor('#0a0a1a');
+    
+    // Game state
+    this.gameStarted = false;
+    this.waveActive = false;
+    this.gold = 400;
+    this.lives = 20;
+    this.wave = 0;
+    this.score = 0;
+    this.highScore = parseInt(localStorage.getItem('td_high') || '0');
+    this.maxWave = parseInt(localStorage.getItem('td_maxwave') || '0');
+    
+    // Game objects
+    this.towers = [];
+    this.enemies = [];
+    this.projectiles = [];
+    this.selectedTowerType = null;
+    this.selectedTower = null;
+    this.hoverCell = null;
+    
+    // Setup
+    this.setupGrid();
+    this.setupUI();
+    this.setupInput();
+    
+    // Show menu
+    this.showMenu();
+  }
+
+  setupGrid() {
+    this.grid = [];
+    for (let row = 0; row < GRID_ROWS; row++) {
+      this.grid[row] = [];
+      for (let col = 0; col < GRID_COLS; col++) {
+        this.grid[row][col] = { tower: null, path: false };
+      }
+    }
+    
+    // Mark path cells
+    for (let i = 0; i < PATH.length - 1; i++) {
+      const start = PATH[i];
+      const end = PATH[i + 1];
+      const dx = end.x > start.x ? 1 : (end.x < start.x ? -1 : 0);
+      const dy = end.y > start.y ? 1 : (end.y < start.y ? -1 : 0);
+      let x = start.x, y = start.y;
+      while (x !== end.x || y !== end.y) {
+        if (x >= 0 && x < GRID_COLS && y >= 0 && y < GRID_ROWS) {
+          this.grid[y][x].path = true;
+        }
+        x += dx;
+        y += dy;
+      }
+    }
+    if (PATH[PATH.length-1].x >= 0 && PATH[PATH.length-1].x < GRID_COLS) {
+      this.grid[PATH[PATH.length-1].y][PATH[PATH.length-1].x].path = true;
+    }
+  }
+
+  setupUI() {
+    const uiY = GRID_ROWS * GRID_SIZE + 10;
+    
+    // HUD background
+    this.add.rectangle(this.cameras.main.width/2, uiY + 35, this.cameras.main.width, 70, 0x0d0d22, 0.95);
+    
+    // Gold
+    this.goldText = this.add.text(20, uiY, `💰 Gold: ${this.gold}`, {
+      fontSize: '18px', fontWeight: 'bold', color: '#ffcc00'
+    });
+    
+    // Lives
+    this.livesText = this.add.text(20, uiY + 25, `❤️ Lives: ${this.lives}`, {
+      fontSize: '18px', fontWeight: 'bold', color: '#ff6b6b'
+    });
+    
+    // Wave
+    this.waveText = this.add.text(20, uiY + 50, `🌊 Wave: ${this.wave}/10`, {
+      fontSize: '18px', fontWeight: 'bold', color: '#58a6ff'
+    });
+    
+    // Start wave button
+    this.startWaveBtn = this.add.rectangle(this.cameras.main.width - 100, uiY + 25, 150, 40, 0x00ff88);
+    this.startWaveBtn.setInteractive({ cursor: 'pointer' });
+    this.startWaveBtnText = this.add.text(this.cameras.main.width - 100, uiY + 25, 'START WAVE', {
+      fontSize: '16px', fontWeight: 'bold', color: '#000'
+    }).setOrigin(0.5);
+    
+    this.startWaveBtn.on('pointerdown', () => this.startWave());
+    this.startWaveBtn.on('pointerover', () => this.startWaveBtn.setFillStyle(0x00dd77));
+    this.startWaveBtn.on('pointerout', () => this.startWaveBtn.setFillStyle(0x00ff88));
+    
+    // Tower selection panel
+    const panelX = this.cameras.main.width - 280;
+    const panelY = 100;
+    this.add.rectangle(panelX + 125, panelY + 180, 260, 380, 0x14142a, 0.95);
+    this.add.text(panelX + 10, panelY - 20, 'TOWER SHOP', {
+      fontSize: '20px', fontWeight: 'bold', color: '#00ff88'
+    });
+    
+    let btnY = panelY;
+    Object.keys(TOWER_TYPES).forEach((key, idx) => {
+      const tower = TOWER_TYPES[key];
+      const btn = this.add.rectangle(panelX + 125, btnY, 240, 55, 0x1a1a3a);
+      btn.setInteractive({ cursor: 'pointer' });
+      
+      const icon = this.add.text(panelX + 20, btnY, tower.icon, { fontSize: '24px' }).setOrigin(0.5);
+      const name = this.add.text(panelX + 60, btnY - 10, tower.name, {
+        fontSize: '14px', fontWeight: 'bold', color: '#fff'
+      });
+      const cost = this.add.text(panelX + 60, btnY + 10, `💰 ${tower.cost}`, {
+        fontSize: '12px', color: '#ffcc00'
+      });
+      const stats = this.add.text(panelX + 140, btnY, `DMG:${tower.damage} RNG:${tower.range}`, {
+        fontSize: '10px', color: '#8b949e'
+      });
+      
+      btn.on('pointerdown', () => {
+        this.selectedTowerType = key;
+        this.selectedTower = null;
+      });
+      btn.on('pointerover', () => btn.setFillStyle(0x252535));
+      btn.on('pointerout', () => btn.setFillStyle(0x1a1a3a));
+      
+      btnY += 60;
+    });
+  }
+
+  setupInput() {
+    this.input.on('pointerdown', (pointer) => {
+      if (!this.gameStarted) return;
+      
+      const gridX = Math.floor(pointer.x / GRID_SIZE);
+      const gridY = Math.floor(pointer.y / GRID_SIZE);
+      
+      if (gridX >= 0 && gridX < GRID_COLS && gridY >= 0 && gridY < GRID_ROWS) {
+        if (this.selectedTowerType && !this.grid[gridY][gridX].path && !this.grid[gridY][gridX].tower) {
+          this.placeTower(gridX, gridY, this.selectedTowerType);
+        } else if (this.grid[gridY][gridX].tower) {
+          this.selectTower(this.grid[gridY][gridX].tower);
+        }
+      }
+    });
+    
+    this.input.on('pointermove', (pointer) => {
+      if (!this.gameStarted) return;
+      const gridX = Math.floor(pointer.x / GRID_SIZE);
+      const gridY = Math.floor(pointer.y / GRID_SIZE);
+      if (gridX >= 0 && gridX < GRID_COLS && gridY >= 0 && gridY < GRID_ROWS) {
+        this.hoverCell = { x: gridX, y: gridY };
+      } else {
+        this.hoverCell = null;
+      }
+    });
+  }
+
+  placeTower(gridX, gridY, type) {
+    const towerDef = TOWER_TYPES[type];
+    if (this.gold < towerDef.cost) return;
+    
+    this.gold -= towerDef.cost;
+    this.updateUI();
+    
+    const x = gridX * GRID_SIZE + GRID_SIZE / 2;
+    const y = gridY * GRID_SIZE + GRID_SIZE / 2;
+    
+    const tower = {
+      x, y, gridX, gridY, type, level: 1,
+      ...towerDef,
+      lastFire: 0,
+      graphics: this.add.graphics(),
+      iconText: this.add.text(x, y, towerDef.icon, { fontSize: '20px' }).setOrigin(0.5)
+    };
+    
+    this.drawTower(tower);
+    this.towers.push(tower);
+    this.grid[gridY][gridX].tower = tower;
+    this.selectedTowerType = null;
+  }
+
+  drawTower(tower) {
+    tower.graphics.clear();
+    tower.graphics.fillStyle(tower.color, 1);
+    tower.graphics.fillCircle(tower.x, tower.y, 18);
+    tower.graphics.lineStyle(2, 0xffffff, 0.3);
+    tower.graphics.strokeCircle(tower.x, tower.y, 18);
+  }
+
+  selectTower(tower) {
+    this.selectedTower = tower;
+    // Could add upgrade UI here
+  }
+
+  startWave() {
+    if (this.waveActive || this.wave >= 10) return;
+    
+    this.wave++;
+    this.waveActive = true;
+    this.updateUI();
+    
+    const isBossWave = this.wave % 5 === 0;
+    const enemyCount = isBossWave ? 1 : 10 + this.wave * 2;
+    const enemyType = isBossWave ? 'DRAGON' : 
+                      this.wave < 3 ? 'GOBLIN' :
+                      this.wave < 6 ? 'ORC' : 'TROLL';
+    
+    this.spawnEnemyWave(enemyType, enemyCount);
+  }
+
+  spawnEnemyWave(type, count) {
+    let spawned = 0;
+    const spawnInterval = setInterval(() => {
+      if (spawned >= count || !this.gameStarted) {
+        clearInterval(spawnInterval);
+        return;
+      }
+      this.spawnEnemy(type);
+      spawned++;
+    }, 800);
+  }
+
+  spawnEnemy(type) {
+    const enemyDef = ENEMY_TYPES[type];
+    const startPos = PATH[0];
+    
+    const enemy = {
+      x: startPos.x * GRID_SIZE + GRID_SIZE / 2,
+      y: startPos.y * GRID_SIZE + GRID_SIZE / 2,
+      pathIndex: 0,
+      ...enemyDef,
+      maxHealth: enemyDef.health,
+      type,
+      effects: { slow: 1, poison: 0 },
+      graphics: this.add.graphics(),
+      healthBar: this.add.graphics()
+    };
+    
+    this.enemies.push(enemy);
+    this.drawEnemy(enemy);
+  }
+
+  drawEnemy(enemy) {
+    enemy.graphics.clear();
+    enemy.graphics.fillStyle(enemy.color, 1);
+    enemy.graphics.fillCircle(enemy.x, enemy.y, enemy.size / 2);
+    
+    if (enemy.boss) {
+      enemy.graphics.lineStyle(3, 0xffcc00, 1);
+      enemy.graphics.strokeCircle(enemy.x, enemy.y, enemy.size / 2 + 2);
+    }
+    
+    // Health bar
+    enemy.healthBar.clear();
+    const healthPct = enemy.health / enemy.maxHealth;
+    const barWidth = enemy.size;
+    const barHeight = 4;
+    enemy.healthBar.fillStyle(0x000000, 0.5);
+    enemy.healthBar.fillRect(enemy.x - barWidth/2, enemy.y - enemy.size/2 - 8, barWidth, barHeight);
+    const healthColor = healthPct > 0.5 ? 0x00ff88 : healthPct > 0.25 ? 0xffcc00 : 0xff6b6b;
+    enemy.healthBar.fillStyle(healthColor, 1);
+    enemy.healthBar.fillRect(enemy.x - barWidth/2, enemy.y - enemy.size/2 - 8, barWidth * healthPct, barHeight);
+  }
+
+  update(time, delta) {
+    if (!this.gameStarted) return;
+    
+    this.drawBackground();
+    
+    // Update enemies
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const enemy = this.enemies[i];
+      
+      // Apply poison
+      if (enemy.effects.poison > 0) {
+        enemy.health -= enemy.effects.poison * delta / 1000;
+        enemy.effects.poison *= 0.99;
+      }
+      
+      if (enemy.health <= 0) {
+        this.gold += enemy.gold;
+        this.score += enemy.gold;
+        enemy.graphics.destroy();
+        enemy.healthBar.destroy();
+        this.enemies.splice(i, 1);
+        this.updateUI();
+        continue;
+      }
+      
+      // Move enemy
+      const target = PATH[enemy.pathIndex + 1];
+      if (target) {
+        const targetX = target.x * GRID_SIZE + GRID_SIZE / 2;
+        const targetY = target.y * GRID_SIZE + GRID_SIZE / 2;
+        const dx = targetX - enemy.x;
+        const dy = targetY - enemy.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 5) {
+          enemy.pathIndex++;
+        } else {
+          const moveSpeed = enemy.speed * enemy.effects.slow * delta / 1000;
+          enemy.x += (dx / dist) * moveSpeed;
+          enemy.y += (dy / dist) * moveSpeed;
+        }
+        
+        enemy.effects.slow = Math.min(1, enemy.effects.slow + 0.01);
+      } else {
+        // Reached exit
+        this.lives--;
+        enemy.graphics.destroy();
+        enemy.healthBar.destroy();
+        this.enemies.splice(i, 1);
+        this.updateUI();
+        
+        if (this.lives <= 0) {
+          this.gameOver();
+        }
+      }
+      
+      this.drawEnemy(enemy);
+    }
+    
+    // Update towers
+    this.towers.forEach(tower => {
+      if (time - tower.lastFire > tower.fireRate) {
+        const target = this.findTarget(tower);
+        if (target) {
+          this.fireTower(tower, target, time);
+        }
+      }
+    });
+    
+    // Update projectiles
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const proj = this.projectiles[i];
+      
+      if (!proj.target || proj.target.health <= 0) {
+        proj.graphics.destroy();
+        this.projectiles.splice(i, 1);
+        continue;
+      }
+      
+      const dx = proj.target.x - proj.x;
+      const dy = proj.target.y - proj.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < 10) {
+        this.hitTarget(proj);
+        proj.graphics.destroy();
+        this.projectiles.splice(i, 1);
+      } else {
+        proj.x += (dx / dist) * 300 * delta / 1000;
+        proj.y += (dy / dist) * 300 * delta / 1000;
+        
+        proj.graphics.clear();
+        proj.graphics.fillStyle(0xffcc00, 1);
+        proj.graphics.fillCircle(proj.x, proj.y, 4);
+      }
+    }
+    
+    // Check wave completion
+    if (this.waveActive && this.enemies.length === 0) {
+      this.waveActive = false;
+      if (this.wave >= 10) {
+        this.victory();
+      }
+    }
+  }
+
+  drawBackground() {
+    // Draw grid and path
+    const graphics = this.add.graphics();
+    
+    for (let row = 0; row < GRID_ROWS; row++) {
+      for (let col = 0; col < GRID_COLS; col++) {
+        const x = col * GRID_SIZE;
+        const y = row * GRID_SIZE;
+        
+        if (this.grid[row][col].path) {
+          graphics.fillStyle(0x2d2d4a, 1);
+          graphics.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+        } else {
+          graphics.fillStyle(0x0a0a1a, 1);
+          graphics.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+        }
+        
+        graphics.lineStyle(1, 0x222244, 0.3);
+        graphics.strokeRect(x, y, GRID_SIZE, GRID_SIZE);
+      }
+    }
+    
+    // Hover cell
+    if (this.hoverCell && this.selectedTowerType) {
+      const canPlace = !this.grid[this.hoverCell.y][this.hoverCell.x].path && 
+                       !this.grid[this.hoverCell.y][this.hoverCell.x].tower;
+      graphics.fillStyle(canPlace ? 0x00ff88 : 0xff6b6b, 0.3);
+      graphics.fillRect(this.hoverCell.x * GRID_SIZE, this.hoverCell.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+    }
+    
+    graphics.destroy();
+  }
+
+  findTarget(tower) {
+    let nearest = null;
+    let minDist = tower.range;
+    
+    this.enemies.forEach(enemy => {
+      const dx = enemy.x - tower.x;
+      const dy = enemy.y - tower.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = enemy;
+      }
+    });
+    
+    return nearest;
+  }
+
+  fireTower(tower, target, time) {
+    tower.lastFire = time;
+    
+    const proj = {
+      x: tower.x,
+      y: tower.y,
+      target,
+      tower,
+      graphics: this.add.graphics()
+    };
+    
+    this.projectiles.push(proj);
+  }
+
+  hitTarget(proj) {
+    const tower = proj.tower;
+    const target = proj.target;
+    
+    target.health -= tower.damage;
+    
+    if (tower.slow) {
+      target.effects.slow = tower.slow;
+    }
+    
+    if (tower.poison) {
+      target.effects.poison = tower.poison;
+    }
+    
+    if (tower.splash) {
+      this.enemies.forEach(enemy => {
+        if (enemy === target) return;
+        const dx = enemy.x - target.x;
+        const dy = enemy.y - target.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < tower.splash) {
+          enemy.health -= tower.damage * 0.5;
+        }
+      });
+    }
+    
+    if (tower.chain && tower.chain > 1) {
+      let chainTarget = target;
+      for (let i = 1; i < tower.chain; i++) {
+        const next = this.findNearestEnemy(chainTarget, 80, [chainTarget]);
+        if (next) {
+          next.health -= tower.damage * 0.7;
+          chainTarget = next;
+        }
+      }
+    }
+  }
+
+  findNearestEnemy(from, maxRange, exclude) {
+    let nearest = null;
+    let minDist = maxRange;
+    
+    this.enemies.forEach(enemy => {
+      if (exclude.includes(enemy)) return;
+      const dx = enemy.x - from.x;
+      const dy = enemy.y - from.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = enemy;
+      }
+    });
+    
+    return nearest;
+  }
+
+  updateUI() {
+    this.goldText.setText(`💰 Gold: ${this.gold}`);
+    this.livesText.setText(`❤️ Lives: ${this.lives}`);
+    this.waveText.setText(`🌊 Wave: ${this.wave}/10`);
+  }
+
+  showMenu() {
+    const menuBg = this.add.rectangle(this.cameras.main.width/2, this.cameras.main.height/2, 
+                                      this.cameras.main.width, this.cameras.main.height, 0x000000, 0.85);
+    
+    const title = this.add.text(this.cameras.main.width/2, 120, 'TOWER DEFENSE\nFANTASY', {
+      fontSize: '48px', fontWeight: 'bold', color: '#ffcc00', align: 'center'
+    }).setOrigin(0.5);
+    
+    const desc = this.add.text(this.cameras.main.width/2, 220, 
+      'Defend your kingdom from fantasy enemies!\n\nPlace towers strategically to stop the invasion.\n6 tower types • 10 waves • Epic boss battles', {
+      fontSize: '16px', color: '#58a6ff', align: 'center', lineSpacing: 8
+    }).setOrigin(0.5);
+    
+    const startBtn = this.add.rectangle(this.cameras.main.width/2, 340, 200, 50, 0x00ff88);
+    startBtn.setInteractive({ cursor: 'pointer' });
+    const startText = this.add.text(this.cameras.main.width/2, 340, 'START GAME', {
+      fontSize: '20px', fontWeight: 'bold', color: '#000'
+    }).setOrigin(0.5);
+    
+    const highScoreTxt = this.add.text(this.cameras.main.width/2, 420, 
+      `High Score: ${this.highScore} | Max Wave: ${this.maxWave}`, {
+      fontSize: '14px', color: '#8b949e'
+    }).setOrigin(0.5);
+    
+    const creditsTxt = this.add.text(this.cameras.main.width/2, this.cameras.main.height - 40, 
+      '⚡ JellyBolt Games', {
+      fontSize: '13px', color: '#484f58'
+    }).setOrigin(0.5);
+    
+    startBtn.on('pointerover', () => startBtn.setFillStyle(0x00dd77));
+    startBtn.on('pointerout', () => startBtn.setFillStyle(0x00ff88));
+    startBtn.on('pointerdown', () => {
+      menuBg.destroy();
+      title.destroy();
+      desc.destroy();
+      startBtn.destroy();
+      startText.destroy();
+      highScoreTxt.destroy();
+      creditsTxt.destroy();
+      this.gameStarted = true;
+    });
+  }
+
+  gameOver() {
+    this.gameStarted = false;
+    
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
+      localStorage.setItem('td_high', this.highScore.toString());
+    }
+    
+    if (this.wave > this.maxWave) {
+      this.maxWave = this.wave;
+      localStorage.setItem('td_maxwave', this.maxWave.toString());
+    }
+    
+    const overlay = this.add.rectangle(this.cameras.main.width/2, this.cameras.main.height/2,
+                                       this.cameras.main.width, this.cameras.main.height, 0x000000, 0.75);
+    
+    const title = this.add.text(this.cameras.main.width/2, 180, 'KINGDOM FALLEN!', {
+      fontSize: '44px', fontWeight: 'bold', color: '#ff6b6b'
+    }).setOrigin(0.5);
+    
+    const scoreTxt = this.add.text(this.cameras.main.width/2, 250, `Score: ${this.score}`, {
+      fontSize: '30px', fontWeight: 'bold', color: '#ffcc00'
+    }).setOrigin(0.5);
+    
+    const waveTxt = this.add.text(this.cameras.main.width/2, 290, `Reached Wave: ${this.wave}`, {
+      fontSize: '18px', color: '#8b949e'
+    }).setOrigin(0.5);
+    
+    if (this.score >= this.highScore && this.score > 0) {
+      this.add.text(this.cameras.main.width/2, 330, '🏆 NEW HIGH SCORE!', {
+        fontSize: '20px', fontWeight: 'bold', color: '#00ff88'
+      }).setOrigin(0.5);
+    }
+    
+    const restartBtn = this.add.rectangle(this.cameras.main.width/2, 400, 180, 45, 0x00ff88);
+    restartBtn.setInteractive({ cursor: 'pointer' });
+    const restartText = this.add.text(this.cameras.main.width/2, 400, 'PLAY AGAIN', {
+      fontSize: '18px', fontWeight: 'bold', color: '#000'
+    }).setOrigin(0.5);
+    
+    restartBtn.on('pointerover', () => restartBtn.setFillStyle(0x00dd77));
+    restartBtn.on('pointerout', () => restartBtn.setFillStyle(0x00ff88));
+    restartBtn.on('pointerdown', () => {
+      this.scene.restart();
+    });
+    
+    if (window.jbShowInterstitial) window.jbShowInterstitial();
+    window._jbLastScore = this.score;
+  }
+
+  victory() {
+    this.gameStarted = false;
+    
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
+      localStorage.setItem('td_high', this.highScore.toString());
+    }
+    
+    this.maxWave = 10;
+    localStorage.setItem('td_maxwave', '10');
+    
+    const overlay = this.add.rectangle(this.cameras.main.width/2, this.cameras.main.height/2,
+                                       this.cameras.main.width, this.cameras.main.height, 0x000000, 0.75);
+    
+    const title = this.add.text(this.cameras.main.width/2, 160, '🏆 VICTORY! 🏆', {
+      fontSize: '48px', fontWeight: 'bold', color: '#00ff88'
+    }).setOrigin(0.5);
+    
+    const subtitle = this.add.text(this.cameras.main.width/2, 220, 'Kingdom Defended!', {
+      fontSize: '24px', color: '#ffcc00'
+    }).setOrigin(0.5);
+    
+    const scoreTxt = this.add.text(this.cameras.main.width/2, 270, `Final Score: ${this.score}`, {
+      fontSize: '28px', fontWeight: 'bold', color: '#fff'
+    }).setOrigin(0.5);
+    
+    const statsLine1 = this.add.text(this.cameras.main.width/2, 320, 
+      `All 10 waves completed! • ${this.towers.length} towers built`, {
+      fontSize: '16px', color: '#8b949e'
+    }).setOrigin(0.5);
+    
+    const restartBtn = this.add.rectangle(this.cameras.main.width/2, 400, 180, 45, 0x00ff88);
+    restartBtn.setInteractive({ cursor: 'pointer' });
+    const restartText = this.add.text(this.cameras.main.width/2, 400, 'PLAY AGAIN', {
+      fontSize: '18px', fontWeight: 'bold', color: '#000'
+    }).setOrigin(0.5);
+    
+    restartBtn.on('pointerover', () => restartBtn.setFillStyle(0x00dd77));
+    restartBtn.on('pointerout', () => restartBtn.setFillStyle(0x00ff88));
+    restartBtn.on('pointerdown', () => {
+      this.scene.restart();
+    });
+    
+    if (window.jbShowInterstitial) window.jbShowInterstitial();
+    window._jbLastScore = this.score;
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  parent: 'game-container',
+  width: GRID_COLS * GRID_SIZE,
+  height: GRID_ROWS * GRID_SIZE + 80,
+  backgroundColor: '#0a0a1a',
+  scene: MainScene,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  }
+};
+
+const game = new Phaser.Game(config);
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="if(window.JellyBoltAds)JellyBoltAds.shareScore('Tower Defense Fantasy',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Tower%20Defense%20Fantasy%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script>
+// JellyBolt monetization stubs (actual implementations in shared files if available)
+window.jbShowInterstitial = window.jbShowInterstitial || function() {
+  document.getElementById('jb-interstitial').style.display = 'flex';
+};
+window.JellyBoltAds = window.JellyBoltAds || {
+  shareScore: function(game, score) {
+    const text = `I scored ${score} in ${game}! Can you beat it?`;
+    const url = 'https://jellyboltgames.itch.io';
+    if (navigator.share) {
+      navigator.share({ title: game, text: text, url: url });
+    } else {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`);
+    }
+  }
+};
+</script>
+
+</body>
+</html>

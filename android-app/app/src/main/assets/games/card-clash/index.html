@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Card Clash — JellyBolt Games</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;touch-action:none}
+#app{width:100%;max-width:520px;padding:15px;text-align:center}
+.screen{display:none}.screen.active{display:block}
+.title{font-size:2.6em;font-weight:900;background:linear-gradient(135deg,#ff6b6b,#ffcc00);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:#8b949e;margin-bottom:25px}
+.btn{padding:13px 38px;font-size:1.15em;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:all .2s;margin:5px}
+.btn:hover{transform:translateY(-2px)}
+.btn-play{background:linear-gradient(135deg,#ff6b6b,#ee5a24);color:#fff;box-shadow:0 4px 20px #ff6b6b44}
+.btn-again{background:linear-gradient(135deg,#58a6ff,#388bfd);color:#fff}
+.credit{color:#484f58;font-size:.8em;margin-top:20px}
+/* Game */
+.board{display:flex;justify-content:space-between;align-items:flex-start;margin:15px 0;gap:10px}
+.side{flex:1;text-align:center}
+.side-label{font-size:.85em;color:#8b949e;margin-bottom:8px}
+.played-card{width:90px;height:130px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 10px;font-size:2em;font-weight:900;border:3px solid;transition:all .3s}
+.played-card.empty{background:#161b22;border-color:#21262d;font-size:1em;color:#484f58}
+.played-card.player{background:linear-gradient(135deg,#0d3320,#0a2a1a);border-color:#238636}
+.played-card.enemy{background:linear-gradient(135deg,#3d1418,#2a0a0e);border-color:#da3633}
+.vs{font-size:2em;font-weight:900;color:#ffcc00;align-self:center}
+.score-bar{display:flex;justify-content:space-around;margin:10px 0;padding:10px;background:#161b22;border-radius:10px}
+.score-item{text-align:center}.score-item .val{font-size:1.4em;font-weight:900}.score-item .lbl{font-size:.75em;color:#8b949e}
+.hand{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:12px 0}
+.card{width:55px;height:80px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-weight:900;font-size:1.3em;border:2px solid #30363d;background:#161b22;transition:all .15s;position:relative}
+.card:hover{transform:translateY(-4px);border-color:#58a6ff;box-shadow:0 4px 12px #58a6ff33}
+.card.special{border-color:#ffcc00;background:linear-gradient(135deg,#1a1800,#2a2000)}
+.card .power-icon{font-size:.6em;position:absolute;top:3px;right:5px}
+.msg{font-size:1.2em;font-weight:700;min-height:30px;margin:8px 0}
+.msg.win{color:#00ff88}.msg.lose{color:#ff6b6b}.msg.draw{color:#ffcc00}
+.round-label{color:#8b949e;font-size:.85em;margin-bottom:5px}
+.result-big{font-size:3em;font-weight:900;margin:10px 0}
+.result-big.win{color:#00ff88}.result-big.lose{color:#ff6b6b}
+.powers{display:flex;gap:6px;justify-content:center;margin:8px 0}
+.power-btn{padding:6px 14px;font-size:.85em;font-weight:700;border:2px solid #30363d;border-radius:8px;background:#161b22;color:#fff;cursor:pointer;transition:all .15s}
+.power-btn:hover{border-color:#ffcc00;background:#1a1800}
+.power-btn.used{opacity:.35;pointer-events:none}
+</style>
+<style>
+/* JellyBolt Monetization */
+.jb-ad-banner{text-align:center;padding:6px 0;background:#0d0d22;width:100%;z-index:998}
+.jb-ad-banner ins{display:inline-block;width:728px;max-width:100%;height:90px}
+.jb-monetization-bar{position:fixed;bottom:0;left:0;width:100%;display:flex;justify-content:center;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,10,26,.95);border-top:1px solid #222244;z-index:9998;flex-wrap:wrap}
+.jb-monetization-bar a{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;transition:transform .15s}
+.jb-monetization-bar a:hover{transform:scale(1.05)}
+.jb-btn-coffee{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#000}
+.jb-btn-games{background:linear-gradient(135deg,#00ff88,#00ccff);color:#000}
+.jb-btn-share{background:linear-gradient(135deg,#1da1f2,#0d8ecf);color:#fff}
+.jb-btn-share-fb{background:linear-gradient(135deg,#1877f2,#0d5bbf);color:#fff}
+.jb-btn-share-wa{background:linear-gradient(135deg,#25d366,#128c3e);color:#fff}
+#jb-interstitial{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
+#jb-interstitial .jb-interstitial-box{background:#14142a;border:1px solid #333;border-radius:14px;padding:30px;text-align:center;max-width:360px}
+#jb-interstitial .jb-interstitial-close{margin-top:14px;padding:8px 24px;background:#00ff88;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- JellyBolt Ads: Top Banner -->
+<div class="jb-ad-banner" id="ad-top"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<div id="app">
+  <div id="menu" class="screen active">
+    <div class="title">🃏 Card Clash</div>
+    <div class="sub">Play cards. Use powers. Beat the AI. Best of 7 wins!</div>
+    <button class="btn btn-play" onclick="startGame()">⚔️ BATTLE</button>
+    <div style="margin-top:15px;color:#8b949e;font-size:.85em">
+      <p>Each round, pick a card from your hand.</p>
+      <p>Higher card wins the round. Use special powers wisely!</p>
+      <p><strong>🔥 Double</strong> = 2x your card &nbsp; <strong>🛡️ Shield</strong> = block if you lose &nbsp; <strong>👁️ Peek</strong> = see AI's pick</p>
+    </div>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+
+  <div id="game" class="screen">
+    <div class="round-label">Round <span id="round">1</span> of 7</div>
+    <div class="score-bar">
+      <div class="score-item"><div class="val" style="color:#00ff88" id="p-wins">0</div><div class="lbl">Your Wins</div></div>
+      <div class="score-item"><div class="val" style="color:#ffcc00" id="draws">0</div><div class="lbl">Draws</div></div>
+      <div class="score-item"><div class="val" style="color:#ff6b6b" id="e-wins">0</div><div class="lbl">AI Wins</div></div>
+    </div>
+    <div class="board">
+      <div class="side">
+        <div class="side-label">You</div>
+        <div class="played-card empty" id="p-card">?</div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="side">
+        <div class="side-label">AI</div>
+        <div class="played-card empty" id="e-card">?</div>
+      </div>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="powers" id="powers"></div>
+    <div style="color:#8b949e;font-size:.8em;margin-bottom:5px">Your Hand:</div>
+    <div class="hand" id="hand"></div>
+  </div>
+
+  <div id="results" class="screen">
+    <div style="font-size:1.1em;color:#8b949e">Match Over</div>
+    <div class="result-big" id="result-text">Victory!</div>
+    <div style="color:#aaa;margin:5px" id="result-score"></div>
+    <div style="color:#aaa;margin:5px" id="result-detail"></div>
+    <button class="btn btn-again" onclick="startGame()">🔄 Rematch</button>
+    <button class="btn btn-play" onclick="showScreen('menu')" style="font-size:.95em;padding:10px 20px">🏠 Menu</button>
+    <div class="credit">⚡ JellyBolt Games</div>
+  </div>
+</div>
+
+<script>
+let playerHand=[],aiHand=[],pWins=0,eWins=0,draws=0,round=0,
+    powers={double:1,shield:1,peek:1},activePower=null,
+    aiCard=null,peeked=false,roundActive=true;
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
+function startGame(){
+  const deck=shuffle([1,2,3,4,5,6,7,8,9,10,11,12,13,14]);
+  playerHand=deck.slice(0,7);
+  aiHand=deck.slice(7,14);
+  playerHand.sort((a,b)=>a-b);
+  pWins=0;eWins=0;draws=0;round=0;
+  powers={double:1,shield:1,peek:1};
+  activePower=null;peeked=false;
+  showScreen('game');
+  nextRound();
+}
+
+function nextRound(){
+  round++;roundActive=true;activePower=null;peeked=false;
+  document.getElementById('round').textContent=round;
+  document.getElementById('p-wins').textContent=pWins;
+  document.getElementById('e-wins').textContent=eWins;
+  document.getElementById('draws').textContent=draws;
+  document.getElementById('p-card').className='played-card empty';
+  document.getElementById('p-card').textContent='?';
+  document.getElementById('e-card').className='played-card empty';
+  // AI picks its card (smart: pick proportional to round importance)
+  const aiIdx=Math.floor(Math.random()*aiHand.length);
+  aiCard=aiHand[aiIdx];
+  aiHand.splice(aiIdx,1);
+  if(peeked)document.getElementById('e-card').textContent=aiCard;
+  else document.getElementById('e-card').textContent='?';
+  document.getElementById('msg').textContent='';
+  document.getElementById('msg').className='msg';
+  renderHand();
+  renderPowers();
+}
+
+function renderHand(){
+  const h=document.getElementById('hand');
+  h.innerHTML='';
+  playerHand.forEach((val,i)=>{
+    const c=document.createElement('div');
+    c.className='card'+(val>10?' special':'');
+    c.innerHTML=val+(val>10?'<span class="power-icon">⭐</span>':'');
+    c.style.color=val>10?'#ffcc00':val>7?'#58a6ff':'#e6edf3';
+    c.onclick=()=>playCard(i);
+    h.appendChild(c);
+  });
+}
+
+function renderPowers(){
+  const p=document.getElementById('powers');
+  p.innerHTML='';
+  [{key:'double',icon:'🔥',label:'Double'},{key:'shield',icon:'🛡️',label:'Shield'},{key:'peek',icon:'👁️',label:'Peek'}].forEach(pw=>{
+    const b=document.createElement('button');
+    b.className='power-btn'+(powers[pw.key]<=0?' used':'')+(activePower===pw.key?' used':'');
+    b.textContent=`${pw.icon} ${pw.label}`;
+    if(activePower===pw.key)b.style.borderColor='#ffcc00';
+    b.onclick=()=>usePower(pw.key);
+    p.appendChild(b);
+  });
+}
+
+function usePower(key){
+  if(!roundActive||powers[key]<=0)return;
+  if(key==='peek'){
+    powers.peek--;peeked=true;
+    document.getElementById('e-card').textContent=aiCard;
+    document.getElementById('e-card').className='played-card enemy';
+  }else{
+    activePower=activePower===key?null:key;
+  }
+  renderPowers();
+}
+
+function playCard(idx){
+  if(!roundActive)return;
+  roundActive=false;
+  let pVal=playerHand[idx];
+  playerHand.splice(idx,1);
+  // Apply double
+  const doubled=activePower==='double';
+  const shielded=activePower==='shield';
+  if(doubled){powers.double--;pVal*=2}
+  if(shielded)powers.shield--;
+  // Show cards
+  const pc=document.getElementById('p-card');
+  pc.className='played-card player';
+  pc.innerHTML=doubled?`${pVal/2}<span style="font-size:.5em;color:#ffcc00">×2=${pVal}</span>`:pVal;
+  const ec=document.getElementById('e-card');
+  ec.className='played-card enemy';
+  ec.textContent=aiCard;
+  // Resolve
+  const msg=document.getElementById('msg');
+  if(pVal>aiCard){pWins++;msg.textContent='✅ You win this round!';msg.className='msg win'}
+  else if(pVal<aiCard){
+    if(shielded){draws++;msg.textContent='🛡️ Shield blocked the loss!';msg.className='msg draw'}
+    else{eWins++;msg.textContent='❌ AI wins this round!';msg.className='msg lose'}
+  }else{draws++;msg.textContent='🤝 Draw!';msg.className='msg draw'}
+  document.getElementById('p-wins').textContent=pWins;
+  document.getElementById('e-wins').textContent=eWins;
+  document.getElementById('draws').textContent=draws;
+  renderHand();
+  // Check match end
+  if(round>=7||playerHand.length===0||pWins>=4||eWins>=4){
+    setTimeout(endMatch,1500);
+  }else{
+    setTimeout(nextRound,1500);
+  }
+}
+
+function endMatch(){
+  const rt=document.getElementById('result-text');
+  if(pWins>eWins){rt.textContent='🏆 VICTORY!';rt.className='result-big win'}
+  else if(eWins>pWins){rt.textContent='💀 DEFEAT';rt.className='result-big lose'}
+  else{rt.textContent='🤝 DRAW';rt.className='result-big';rt.style.color='#ffcc00'}
+  document.getElementById('result-score').textContent=`${pWins} - ${eWins} (${draws} draws)`;
+  document.getElementById('result-detail').textContent=pWins>eWins?'You outplayed the AI!':eWins>pWins?'The AI was stronger this time...':'Evenly matched!';
+  showScreen('results');
+  if(window.jbShowInterstitial)jbShowInterstitial();
+  setTimeout(function(){if(window.jbShareScore)jbShareScore(pWins)},2000);
+}
+</script>
+
+<!-- JellyBolt Ads: Bottom Banner -->
+<div class="jb-ad-banner" id="ad-bottom"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:728px;height:90px"></ins></div>
+
+<!-- JellyBolt Interstitial -->
+<div id="jb-interstitial"><div class="jb-interstitial-box"><p style="color:#aaa;font-size:.8rem">Advertisement</p><div style="width:300px;height:250px;background:#1a1a3a;display:flex;align-items:center;justify-content:center;border-radius:8px;margin:10px auto;color:#555"><ins class="adsbygoogle" data-ad-client="ca-pub-8350556723025693" data-ad-slot="PLACEHOLDER" style="display:inline-block;width:300px;height:250px"></ins></div><button class="jb-interstitial-close" onclick="this.closest('#jb-interstitial').style.display='none'">Continue Playing</button></div></div>
+
+<!-- JellyBolt Monetization Bar -->
+<div class="jb-monetization-bar">
+  <a class="jb-btn-coffee" href="https://buymeacoffee.com/jellyboltgames" target="_blank" rel="noopener">&#9749; Support JellyBolt</a>
+  <a class="jb-btn-games" href="https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#127918; More Games</a>
+  <a class="jb-btn-share" href="#" onclick="JellyBoltAds.shareScore('Card Clash',window._jbLastScore||0);return false">&#128038; Share Score</a>
+  <a class="jb-btn-share-fb" href="https://www.facebook.com/sharer/sharer.php?u=https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128216; Share</a>
+  <a class="jb-btn-share-wa" href="https://wa.me/?text=Play%20Card%20Clash%20at%20https://jellyboltgames.itch.io" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+</div>
+
+<script src="../shared/monetization.js"></script>
+<script src="../shared/ads.js"></script>
+
+</body>
+</html>
