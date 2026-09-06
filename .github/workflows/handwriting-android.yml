@@ -10,6 +10,11 @@ on:
       - 'android-app-handwriting/**'
       - '.github/workflows/handwriting-android.yml'
   workflow_dispatch:
+    inputs:
+      signed_release:
+        description: 'Build signed Play bundle / בניית חבילת הפצה חתומה'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -25,14 +30,40 @@ jobs:
           java-version: '17'
       - uses: android-actions/setup-android@v3
       - name: Install Android platform
-        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
       - name: Build and exercise offline app
         working-directory: android-app-handwriting
         run: bash ./gradlew testDebugUnitTest assembleDebug lintDebug --console=plain
+      - name: Restore upload key for requested release
+        if: github.event_name == 'workflow_dispatch' && inputs.signed_release
+        env:
+          UPLOAD_KEY_BASE64: ${{ secrets.HANDWRITING_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          if [[ -z "$UPLOAD_KEY_BASE64" ]]; then
+            echo "Missing HANDWRITING_UPLOAD_KEYSTORE_BASE64 secret" >&2
+            exit 1
+          fi
+          printf '%s' "$UPLOAD_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/my-handwriting-upload.keystore"
+      - name: Build signed Play bundle
+        if: github.event_name == 'workflow_dispatch' && inputs.signed_release
+        working-directory: android-app-handwriting
+        env:
+          HANDWRITING_KEYSTORE_FILE: ${{ runner.temp }}/my-handwriting-upload.keystore
+          HANDWRITING_STORE_PASSWORD: ${{ secrets.HANDWRITING_STORE_PASSWORD }}
+        run: bash ./gradlew bundleRelease --console=plain
+      - name: Remove temporary upload key
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.signed_release
+        run: rm -f "$RUNNER_TEMP/my-handwriting-upload.keystore"
       - uses: actions/upload-artifact@v4
         with:
           name: my-writing-debug-apk
           path: android-app-handwriting/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch' && inputs.signed_release
+        with:
+          name: my-handwriting-signed-play-bundle
+          path: android-app-handwriting/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()

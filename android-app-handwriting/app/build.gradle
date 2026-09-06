@@ -2,16 +2,24 @@ plugins {
     id 'com.android.application'
 }
 
+def uploadKeyFile = System.getenv('HANDWRITING_KEYSTORE_FILE')
+def uploadKeyPassword = System.getenv('HANDWRITING_STORE_PASSWORD')
+def signingReady = uploadKeyFile && uploadKeyPassword
+if ((uploadKeyFile || uploadKeyPassword) && !signingReady) {
+    throw new GradleException('Set both HANDWRITING_KEYSTORE_FILE and HANDWRITING_STORE_PASSWORD.')
+}
+
 android {
     namespace 'com.jellybolt.handwriting'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.jellybolt.handwriting'
         minSdk 26
-        targetSdk 34
-        versionCode 1
-        versionName '0.1.0'
+        targetSdk 36
+        versionCode 2
+        versionName '0.2.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
 
     compileOptions {
@@ -19,8 +27,37 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    signingConfigs {
+        if (signingReady) {
+            upload {
+                storeFile file(uploadKeyFile)
+                storePassword uploadKeyPassword
+                keyAlias 'my-handwriting-upload'
+                keyPassword uploadKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (signingReady) {
+                signingConfig signingConfigs.upload
+            }
+        }
+    }
+
     testOptions {
         unitTests.includeAndroidResources = true
+    }
+
+    tasks.configureEach {
+        if (name == 'preReleaseBuild') {
+            doFirst {
+                if (!signingReady) {
+                    throw new GradleException('Release signing is required. See README for secure upload-key setup.')
+                }
+            }
+        }
     }
 
     bundle {
@@ -33,4 +70,6 @@ android {
 dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.13'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
 }

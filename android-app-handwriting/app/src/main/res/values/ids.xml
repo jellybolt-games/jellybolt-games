@@ -7,4 +7,5 @@
     <item type="id" name="confirm_character_button" />
     <item type="id" name="output_text" />
     <item type="id" name="status_text" />
+    <item type="id" name="window_content" />
 </resources>

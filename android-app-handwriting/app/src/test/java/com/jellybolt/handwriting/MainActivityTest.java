@@ -4,8 +4,10 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Looper;
+import android.graphics.Insets;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -62,6 +64,19 @@ public class MainActivityTest {
     private void launch(Bundle state) {
         controller = Robolectric.buildActivity(MainActivity.class).create(state).start().resume().visible();
         activity = controller.get();
+    }
+
+    @Test public void edgeToEdgeKeepsContentOutsideBarsCutoutsAndKeyboard() {
+        launch(null);
+        View root = activity.findViewById(R.id.window_content);
+        root.dispatchApplyWindowInsets(new WindowInsets.Builder()
+                .setInsets(WindowInsets.Type.systemBars(), Insets.of(0, 28, 0, 24))
+                .setInsets(WindowInsets.Type.displayCutout(), Insets.of(32, 0, 0, 0))
+                .setInsets(WindowInsets.Type.ime(), Insets.of(0, 0, 0, 260))
+                .build());
+        assertEquals(32, root.getPaddingLeft());
+        assertEquals(28, root.getPaddingTop());
+        assertEquals(260, root.getPaddingBottom());
     }
 
     @Test public void freshInstallCanCreateProfileWithoutAnyExistingTraining() {

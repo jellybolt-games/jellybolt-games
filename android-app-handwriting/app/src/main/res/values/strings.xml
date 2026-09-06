@@ -5,6 +5,8 @@
     <string name="language_toggle">עברית</string>
     <string name="language_description">Change interface language to Hebrew</string>
     <string name="privacy_note">Offline • No account • No ads\nAliases and handwriting stay on this device. No cloud backup. Uninstalling removes saved profiles and examples.</string>
+    <string name="privacy_details_button">Privacy and local data</string>
+    <string name="privacy_details">JellyBolt Games stores only your chosen profile aliases and labeled drawings in this app’s private storage. A child’s real name is not required. Nothing is sent to us: no accounts, internet permission, advertising, analytics, tracking, synchronization, or cloud backup.\n\nExamples are saved only when you choose to save them. You can undo an example or delete a profile. Uninstalling or clearing app data removes all profiles, with no in-app recovery. Android protects the private storage; this app does not add database encryption.\n\nConfirmed output is a draft. Copying it uses the device clipboard; other apps and your keyboard have their own privacy policies. This is an assistive prototype, not a diagnostic or treatment tool. Contact: jellybolt@sharebot.net. Avoid emailing a child’s drawings, full name, or medical information.</string>
     <string name="profile_heading">Child profile</string>
     <string name="no_profile">Choose or add a local profile</string>
     <string name="current_profile">Profile: %1$s</string>

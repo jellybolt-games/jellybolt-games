@@ -8,10 +8,17 @@ Last updated: 2026-09-06
   Teaches from locally labeled finger drawings; confirms one character at a
   time into a number or word. English/Hebrew UI; no ads or network permission.
   See its README for build/install instructions and recognition limitations.
+- Version 0.2.0 targets Android 16/API 36. Non-UI emulator checks exercise
+  4,450 labeled examples. A signed Play bundle and bilingual privacy page are
+  prepared; Play publication remains blocked on Google account verification
+  and completion of the store listing. Nothing has been submitted.
 - `android-app-handwriting/` — אפליקציית Android ראשונית ונפרדת לזיהוי אישי של
   ספרות ואותיות באנגלית ובעברית, כולל אותיות סופיות. לומדת מדוגמאות מתויגות
   במכשיר ופועלת ללא אינטרנט. מאשרים תו אחד בכל פעם ליצירת מספר או מילה.
   הממשק בעברית ובאנגלית, ללא פרסומות או הרשאת רשת. הוראות ומגבלות ב־README.
+- גרסה 0.2.0 מכוונת ל־Android 16/API 36. בדיקות באמולטור ללא הפעלת הממשק
+  בוחנות 4,450 דוגמאות מתויגות. הוכנו חבילה חתומה ועמוד פרטיות דו־לשוני.
+  הפרסום עדיין ממתין לאימות חשבון Google ולהשלמת רישום החנות; דבר לא נשלח.
 
 ## Brand Identity
 - **Name:** JellyBolt Games (JellyBolt⚡)

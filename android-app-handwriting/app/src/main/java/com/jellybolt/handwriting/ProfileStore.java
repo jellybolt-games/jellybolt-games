@@ -30,7 +30,11 @@ public final class ProfileStore extends SQLiteOpenHelper {
     }
 
     public ProfileStore(Context context) {
-        super(context, "personal-handwriting.db", null, 1);
+        this(context, "personal-handwriting.db");
+    }
+
+    ProfileStore(Context context, String databaseName) {
+        super(context, databaseName, null, 1);
     }
 
     @Override public void onConfigure(SQLiteDatabase db) {

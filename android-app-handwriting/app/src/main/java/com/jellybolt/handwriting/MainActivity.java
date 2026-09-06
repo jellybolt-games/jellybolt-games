@@ -11,6 +11,7 @@ import android.content.res.Configuration;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteConstraintException;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -23,6 +24,8 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -169,6 +172,13 @@ public final class MainActivity extends Activity {
         FrameLayout.LayoutParams centered = new FrameLayout.LayoutParams(width,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL);
         frame.addView(content, centered);
+        frame.addOnLayoutChangeListener((view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            int availableWidth = Math.min(right - left, dp(760));
+            if (availableWidth > 0 && centered.width != availableWidth) {
+                centered.width = availableWidth;
+                content.setLayoutParams(centered);
+            }
+        });
 
         TextView title = text(R.string.app_name, 30);
         title.setTypeface(null, Typeface.BOLD);
@@ -189,6 +199,9 @@ public final class MainActivity extends Activity {
         add(profilePanel, deleteProfile);
         profileControls.add(deleteProfile);
         add(profilePanel, text(R.string.privacy_note, 16));
+        add(profilePanel, button(R.string.privacy_details_button, view ->
+                new AlertDialog.Builder(this).setTitle(R.string.privacy_details_button)
+                        .setMessage(R.string.privacy_details).setPositiveButton(R.string.ok, null).show()));
 
         LinearLayout activityPanel = card(content);
         heading(activityPanel, R.string.mode_heading);
@@ -220,6 +233,15 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams drawingSize = new LinearLayout.LayoutParams(drawingSide, drawingSide);
         drawingSize.gravity = Gravity.CENTER_HORIZONTAL;
         inkPanel.addView(drawing, drawingSize);
+        inkPanel.addOnLayoutChangeListener((view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            int side = Math.min(right - left - inkPanel.getPaddingLeft() - inkPanel.getPaddingRight(),
+                    dp(drawingHeight));
+            if (side > 0 && drawingSize.width != side) {
+                drawingSize.width = side;
+                drawingSize.height = side;
+                drawing.setLayoutParams(drawingSize);
+            }
+        });
         drawing.setOnInkChangedListener(this::invalidateDraft);
         drawing.setOnLimitReachedListener(() -> status.setText(R.string.ink_limit));
         add(inkPanel, text(R.string.drawing_help, 16));
@@ -300,12 +322,29 @@ public final class MainActivity extends Activity {
         status.setEllipsize(TextUtils.TruncateAt.END);
         status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         LinearLayout root = column();
+        root.setId(R.id.window_content);
         root.setBackgroundColor(Color.rgb(242, 247, 246));
         root.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
         root.addView(status, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         setContentView(root);
+        if (Build.VERSION.SDK_INT >= 30) {
+            getWindow().setDecorFitsSystemWindows(false);
+            root.setOnApplyWindowInsetsListener((view, insets) -> {
+                Insets safe = insets.getInsets(WindowInsets.Type.systemBars()
+                        | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
+                view.setPadding(safe.left, safe.top, safe.right, safe.bottom);
+                return insets;
+            });
+            root.requestApplyInsets();
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                int lightBars = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                        | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                controller.setSystemBarsAppearance(lightBars, lightBars);
+            }
+        }
     }
 
     private void toggleLanguage() {

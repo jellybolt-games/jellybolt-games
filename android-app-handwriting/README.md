@@ -14,6 +14,9 @@ network permission, or downloaded recognition models.
 Requires Android 8.0 or later. Build the debug APK below and transfer it to the
 device. Open it and allow installation from that source if Android requests it.
 This is a sideloadable prototype, not a published Play Store app.
+The debug APK and a future Play installation use different signing identities.
+Moving between them can require uninstalling, which loses local training;
+there is currently no profile migration/export.
 
 1. Create a local profile using a nickname, not the child's full name.
 2. Select digits, English uppercase, English lowercase, or Hebrew.
@@ -43,6 +46,8 @@ add vowel points, fix spelling, or separate connected letters in a whole word.
 נדרשת גרסת Android 8.0 ומעלה. בונים את קובץ ה־APK לפי ההוראות בהמשך,
 מעבירים אותו למכשיר ופותחים אותו. אם Android מבקש, מאשרים התקנה מהמקור הזה.
 זו גרסה ראשונית להתקנה ישירה, ולא אפליקציה שפורסמה בחנות Google Play.
+לגרסת הפיתוח ולגרסה עתידית מהחנות חתימות שונות. מעבר ביניהן עלול לדרוש
+הסרה שמוחקת את הדוגמאות המקומיות; כרגע אין ייצוא או העברת פרופילים.
 
 1. יוצרים פרופיל מקומי עם כינוי, ללא השם המלא של הילד או הילדה.
 2. בוחרים ספרות, אותיות גדולות באנגלית, אותיות קטנות באנגלית או עברית.
@@ -141,11 +146,11 @@ eviction. The app does not add its own database encryption.
 
 ## Build / בנייה
 
-Use JDK 17 and an Android SDK with platform 34 and build tools. From this
+Use JDK 17 and an Android SDK with platform 36 and build tools 35.0.0. From this
 directory on Windows, set `JAVA_HOME` and `ANDROID_HOME` to their installed
 locations, then run:
 
-לבנייה נדרשים JDK 17 ו־Android SDK עם פלטפורמה 34 וכלי בנייה. בתיקייה זו,
+לבנייה נדרשים JDK 17 ו־Android SDK עם פלטפורמה 36 וכלי בנייה 35.0.0. בתיקייה זו,
 ב־Windows, מגדירים את `JAVA_HOME` ואת `ANDROID_HOME` למיקומים המותקנים ומריצים:
 
 ```powershell
@@ -160,9 +165,65 @@ Install on a connected development device / התקנה על מכשיר פיתו�
 adb install -r .\app\build\outputs\apk\debug\app-debug.apk
 ```
 
-The debug build is for evaluation. A Play release would additionally require
-release signing, a current target-SDK review, store/privacy disclosures, and
-hands-on accessibility and handwriting evaluation with the intended user.
+### Android 16 device checks / בדיקות במכשיר Android 16
 
-גרסת הפיתוח מיועדת להתנסות. פרסום בחנות דורש גם חתימת הפצה, התאמת גרסת היעד
-לדרישות העדכניות, הצהרות פרטיות וחנות, ובחינת נגישות וזיהוי עם המשתמש המיועד.
+With only a disposable test emulator connected, run the non-UI device tests:
+
+כאשר מחובר רק אמולטור זמני לבדיקות, מריצים את הבדיקות שאינן מפעילות ממשק משתמש:
+
+```powershell
+.\gradlew.bat connectedDebugAndroidTest
+```
+
+The test code uses a separate disposable database. **Gradle may uninstall the
+app during test cleanup, which removes its local data. Never run this command
+against a device with a child's saved training.** The tests exercise
+50 samples for each of all 89 labels (4,450 samples), mirrored variants,
+corrections, persistence, and profile isolation. Synthetic examples do not
+establish accuracy on a child's actual handwriting.
+
+קוד הבדיקות משתמש במסד זמני נפרד. **Gradle עשוי להסיר את האפליקציה בניקוי
+לאחר הבדיקות, ובכך למחוק את נתוניה. אין להריץ פקודה זו במכשיר עם דוגמאות
+שמורות של ילד.** הבדיקות בוחנות
+50 דוגמאות לכל אחת מ־89 התוויות, צורות משוקפות, תיקונים, שמירה והפרדת
+פרופילים. דוגמאות סינתטיות אינן מוכיחות דיוק עם כתב יד אמיתי של ילד.
+
+### Signed Play bundle / חבילה חתומה לחנות
+
+Version 0.2.0 targets Android 16/API 36 and handles system-bar, display-cutout,
+and keyboard insets. Release builds require `HANDWRITING_KEYSTORE_FILE`
+and `HANDWRITING_STORE_PASSWORD` in the environment. Retrieve the password
+from the **My Handwriting Android upload key** Bitwarden item; never paste
+it into source files or commit a keystore. The fixed key alias is
+`my-handwriting-upload`.
+
+גרסה 0.2.0 מכוונת ל־Android 16/API 36 ומתאימה את התצוגה לפסי המערכת,
+למגרעות מסך ולמקלדת. לבניית הפצה מגדירים במשתני הסביבה
+`HANDWRITING_KEYSTORE_FILE` ו־`HANDWRITING_STORE_PASSWORD`. הסיסמה נמצאת
+בפריט **My Handwriting Android upload key** ב־Bitwarden; אין להכניס אותה
+לקוד או לשמור מפתח במאגר. כינוי המפתח הוא `my-handwriting-upload`.
+
+```powershell
+.\gradlew.bat bundleRelease
+```
+
+Output: `app\build\outputs\bundle\release\app-release.aab`.
+The GitHub workflow can build this through its manual `signed_release`
+option using the private `HANDWRITING_UPLOAD_KEYSTORE_BASE64` and
+`HANDWRITING_STORE_PASSWORD` Actions secrets.
+
+הקובץ נוצר בנתיב שלמעלה. תהליך GitHub יכול לבנות אותו באמצעות האפשרות
+הידנית `signed_release` ושני הסודות הפרטיים `HANDWRITING_UPLOAD_KEYSTORE_BASE64`
+ו־`HANDWRITING_STORE_PASSWORD`.
+
+**Not yet published.** Google Play account verification, app creation,
+age/content declarations, store graphics, and review remain separate steps.
+The bilingual privacy page is `store-listings\my-handwriting-privacy.html`;
+its presence in source does not mean it has been deployed to a public URL.
+Hands-on accessibility and handwriting evaluation with the intended user
+is still necessary before a broad rollout.
+
+**עדיין לא פורסם בחנות.** אימות החשבון, יצירת האפליקציה, הצהרות גיל ותוכן,
+תמונות החנות ובדיקת Google הם שלבים נפרדים. עמוד הפרטיות הדו־לשוני נמצא
+בקוד בנתיב שלמעלה, אך עדיין לא בהכרח פורסם בכתובת ציבורית. לפני הפצה רחבה
+נדרשת התנסות בנגישות ובזיהוי עם המשתמש המיועד.
