@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="drawing_area" />
+    <item type="id" name="save_example_button" />
+    <item type="id" name="recognize_button" />
+    <item type="id" name="learn_checkbox" />
+    <item type="id" name="confirm_character_button" />
+    <item type="id" name="output_text" />
+    <item type="id" name="status_text" />
+</resources>

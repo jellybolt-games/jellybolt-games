@@ -1,5 +1,17 @@
 # JellyBolt Games — Project Status
-Last updated: 2026-08-29
+Last updated: 2026-09-06
+
+## Personal handwriting / כתב יד אישי
+
+- `android-app-handwriting/` — separate offline Android prototype for per-child
+  recognition of digits, English letters, and Hebrew including final forms.
+  Teaches from locally labeled finger drawings; confirms one character at a
+  time into a number or word. English/Hebrew UI; no ads or network permission.
+  See its README for build/install instructions and recognition limitations.
+- `android-app-handwriting/` — אפליקציית Android ראשונית ונפרדת לזיהוי אישי של
+  ספרות ואותיות באנגלית ובעברית, כולל אותיות סופיות. לומדת מדוגמאות מתויגות
+  במכשיר ופועלת ללא אינטרנט. מאשרים תו אחד בכל פעם ליצירת מספר או מילה.
+  הממשק בעברית ובאנגלית, ללא פרסומות או הרשאת רשת. הוראות ומגבלות ב־README.
 
 ## Brand Identity
 - **Name:** JellyBolt Games (JellyBolt⚡)
