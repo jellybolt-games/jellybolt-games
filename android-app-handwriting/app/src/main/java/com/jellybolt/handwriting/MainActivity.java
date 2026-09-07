@@ -34,6 +34,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -43,15 +44,17 @@ import com.jellybolt.handwriting.core.HandwritingRecognizer;
 import com.jellybolt.handwriting.core.Ink;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public final class MainActivity extends Activity {
+    public static final String EXTRA_TRAINING_ALPHABET = "com.jellybolt.handwriting.TRAINING_ALPHABET";
     private static final String PREFERENCES = "handwriting-ui";
     private static final int MAX_OUTPUT = 4096;
     private static final int INK_COLOR = Color.rgb(30, 64, 72);
@@ -62,9 +65,15 @@ public final class MainActivity extends Activity {
     private static final int[] GROUP_NAMES = {
             R.string.digits, R.string.english_upper, R.string.english_lower, R.string.hebrew
     };
+    private static final int[] GROUP_IDS = {
+            R.id.train_digits, R.id.train_english_upper, R.id.train_english_lower, R.id.train_hebrew
+    };
 
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final List<Button> profileControls = new ArrayList<>();
+    private final Map<String, Button> groupButtons = new LinkedHashMap<>();
+    private final Map<String, Button> characterButtons = new LinkedHashMap<>();
+    private Map<String, Integer> characterCounts = Collections.emptyMap();
     private ProfileStore store;
     private SharedPreferences preferences;
     private List<ProfileStore.Profile> profiles = new ArrayList<>();
@@ -83,10 +92,11 @@ public final class MainActivity extends Activity {
 
     private DrawingView drawing;
     private Button profileButton;
-    private Button groupButton;
     private Button trainingButton;
     private Button writingButton;
-    private Button trainingLabelButton;
+    private TextView trainingTarget;
+    private TextView alphabetSummary;
+    private GridLayout characterGrid;
     private Button saveButton;
     private Button undoExampleButton;
     private Button recognizeButton;
@@ -122,15 +132,21 @@ public final class MainActivity extends Activity {
         preferences = getSharedPreferences(PREFERENCES, MODE_PRIVATE);
         store = new ProfileStore(getApplicationContext());
         profileId = preferences.getLong("profile", -1);
+        String savedGroup = preferences.getString("training-alphabet", Alphabet.DIGITS);
+        if (Alphabet.isGroup(savedGroup)) group = savedGroup;
+        String requestedGroup = getIntent().getStringExtra(EXTRA_TRAINING_ALPHABET);
+        if (state == null && Alphabet.isGroup(requestedGroup)) group = requestedGroup;
+        trainingLabel = savedTrainingLabel(group);
         if (state != null) {
             profileId = state.getLong("profile", profileId);
-            String restoredGroup = state.getString("group", Alphabet.DIGITS);
+            String restoredGroup = state.getString("group", group);
             for (String valid : GROUPS) if (valid.equals(restoredGroup)) group = valid;
             training = state.getBoolean("training", true);
             String restoredLabel = state.getString("trainingLabel", Alphabet.labels(group).get(0));
             trainingLabel = Alphabet.labels(group).contains(restoredLabel)
                     ? restoredLabel : Alphabet.labels(group).get(0);
         }
+        rememberTrainingSelection();
         buildInterface();
         try {
             profiles = store.profiles();
@@ -193,6 +209,30 @@ public final class MainActivity extends Activity {
         languageButton.setContentDescription(getString(R.string.language_description));
         add(content, languageButton);
 
+        LinearLayout alphabetPanel = card(content);
+        heading(alphabetPanel, R.string.training_alphabet_heading);
+        add(alphabetPanel, text(R.string.training_alphabet_help, 16));
+        for (int row = 0; row < 2; row++) {
+            LinearLayout choices = new LinearLayout(this);
+            choices.setOrientation(LinearLayout.HORIZONTAL);
+            for (int column = 0; column < 2; column++) {
+                int index = row * 2 + column;
+                String choice = GROUPS[index];
+                Button option = button(GROUP_NAMES[index], view -> changeGroup(choice));
+                option.setId(GROUP_IDS[index]);
+                option.setTextSize(16);
+                option.setMinWidth(0);
+                option.setMinimumWidth(0);
+                groupButtons.put(choice, option);
+                choices.addView(option, new LinearLayout.LayoutParams(0,
+                        ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            }
+            add(alphabetPanel, choices);
+        }
+        alphabetSummary = text(R.string.training_alphabet_help, 18);
+        alphabetSummary.setId(R.id.training_alphabet_summary);
+        add(alphabetPanel, alphabetSummary);
+
         LinearLayout profilePanel = card(content);
         heading(profilePanel, R.string.profile_heading);
         profileButton = button(R.string.no_profile, view -> chooseProfile());
@@ -223,22 +263,39 @@ public final class MainActivity extends Activity {
         writingButton = button(R.string.writing_mode, view -> changeMode(false));
         add(activityPanel, trainingButton);
         add(activityPanel, writingButton);
-        heading(activityPanel, R.string.alphabet_heading);
-        groupButton = button(groupName(), view -> chooseGroup());
-        add(activityPanel, groupButton);
         instructions = text(R.string.training_instructions, 18);
         add(activityPanel, instructions);
 
         trainingPanel = card(content);
-        trainingLabelButton = button(R.string.choose_training_label, view -> chooseTrainingLabel());
-        add(trainingPanel, trainingLabelButton);
+        heading(trainingPanel, R.string.choose_training_label);
+        add(trainingPanel, text(R.string.character_grid_help, 16));
+        characterGrid = new GridLayout(this);
+        characterGrid.setId(R.id.training_character_grid);
+        characterGrid.setColumnCount(4);
+        characterGrid.setSaveEnabled(false);
+        add(trainingPanel, characterGrid);
+        buildCharacterGrid();
+        characterGrid.addOnLayoutChangeListener((view, left, top, right, bottom,
+                                                oldLeft, oldTop, oldRight, oldBottom) -> {
+            int columns = Math.max(1, Math.min(8, (right - left) / dp(56)));
+            if (columns != characterGrid.getColumnCount()) {
+                characterGrid.removeAllViews();
+                characterGrid.setColumnCount(columns);
+                buildCharacterGrid();
+            }
+        });
         sampleCount = text(R.string.count_loading, 18);
+        sampleCount.setId(R.id.training_sample_count);
         sampleCount.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         add(trainingPanel, sampleCount);
         add(trainingPanel, text(R.string.training_goal, 16));
 
         LinearLayout inkPanel = card(content);
         heading(inkPanel, R.string.drawing_heading);
+        trainingTarget = text(R.string.training_label, 28);
+        trainingTarget.setId(R.id.training_target);
+        trainingTarget.setTypeface(null, Typeface.BOLD);
+        add(inkPanel, trainingTarget);
         drawing = new DrawingView(this);
         drawing.setId(R.id.drawing_area);
         int availableHeight = getResources().getConfiguration().screenHeightDp;
@@ -415,43 +472,89 @@ public final class MainActivity extends Activity {
         trainingButton.setSelected(training);
         writingButton.setSelected(!training);
         instructions.setText(training ? R.string.training_instructions : R.string.writing_instructions);
-        groupButton.setText(groupName());
-        trainingLabelButton.setText(getString(R.string.training_label, isolated(trainingLabel)));
+        trainingTarget.setVisibility(training ? View.VISIBLE : View.GONE);
+        updateTrainingLabels();
         updateProfileControls();
     }
 
-    private void chooseGroup() {
-        String[] names = new String[GROUPS.length];
-        int selected = 0;
-        for (int i = 0; i < names.length; i++) {
-            names[i] = getString(GROUP_NAMES[i]);
-            if (GROUPS[i].equals(group)) selected = i;
-        }
-        new AlertDialog.Builder(this).setTitle(R.string.alphabet_heading)
-                .setSingleChoiceItems(names, selected, (dialog, which) -> {
-                    dialog.dismiss();
-                    if (group.equals(GROUPS[which])) return;
-                    group = GROUPS[which];
-                    trainingLabel = Alphabet.labels(group).get(0);
-                    drawing.clear();
-                    updateMode();
-                    refreshCount();
-                    status.setText(R.string.group_changed);
-                }).setNegativeButton(R.string.cancel, null).show();
+    private void changeGroup(String nextGroup) {
+        if (!Alphabet.isGroup(nextGroup)) throw new IllegalArgumentException("Invalid training alphabet");
+        if (group.equals(nextGroup)) return;
+        group = nextGroup;
+        trainingLabel = savedTrainingLabel(group);
+        rememberTrainingSelection();
+        characterCounts = Collections.emptyMap();
+        drawing.clear();
+        buildCharacterGrid();
+        updateMode();
+        refreshCount();
+        status.setText(R.string.group_changed);
     }
 
-    private void chooseTrainingLabel() {
+    private String savedTrainingLabel(String alphabet) {
+        List<String> labels = Alphabet.labels(alphabet);
+        String saved = preferences.getString("training-label-" + alphabet, labels.get(0));
+        return labels.contains(saved) ? saved : labels.get(0);
+    }
+
+    private void rememberTrainingSelection() {
+        preferences.edit().putString("training-alphabet", group)
+                .putString("training-label-" + group, trainingLabel).apply();
+    }
+
+    private void buildCharacterGrid() {
+        characterGrid.removeAllViews();
+        characterButtons.clear();
+        characterGrid.setLayoutDirection(Alphabet.HEBREW.equals(group)
+                ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
+        int columns = characterGrid.getColumnCount();
         List<String> labels = Alphabet.labels(group);
-        new AlertDialog.Builder(this).setTitle(R.string.choose_training_label)
-                .setSingleChoiceItems(labels.toArray(new String[0]), labels.indexOf(trainingLabel),
-                        (dialog, which) -> {
-                            dialog.dismiss();
-                            if (trainingLabel.equals(labels.get(which))) return;
-                            trainingLabel = labels.get(which);
-                            invalidateDraft();
-                            trainingLabelButton.setText(getString(R.string.training_label, isolated(trainingLabel)));
-                            refreshCount();
-                        }).setNegativeButton(R.string.cancel, null).show();
+        for (int i = 0; i < labels.size(); i++) {
+            String label = labels.get(i);
+            Button option = button(label, view -> {
+                if (trainingLabel.equals(label)) return;
+                trainingLabel = label;
+                rememberTrainingSelection();
+                drawing.clear();
+                updateTrainingLabels();
+                refreshCount();
+                status.setText(getString(R.string.training_character_changed, isolated(label)));
+            });
+            option.setTag(label);
+            option.setTextSize(22);
+            option.setPadding(dp(2), dp(2), dp(2), dp(2));
+            option.setMinWidth(0);
+            option.setMinimumWidth(0);
+            option.setSaveEnabled(false);
+            GridLayout.LayoutParams cell = new GridLayout.LayoutParams(
+                    GridLayout.spec(i / columns), GridLayout.spec(i % columns, 1f));
+            cell.width = 0;
+            cell.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            characterGrid.addView(option, cell);
+            characterButtons.put(label, option);
+        }
+        updateTrainingLabels();
+    }
+
+    private void updateTrainingLabels() {
+        for (Map.Entry<String, Button> entry : groupButtons.entrySet()) {
+            entry.getValue().setSelected(group.equals(entry.getKey()));
+        }
+        if (alphabetSummary != null) {
+            alphabetSummary.setText(getString(R.string.training_alphabet_selected,
+                    getString(groupName()), Alphabet.labels(group).size()));
+        }
+        if (trainingTarget != null) {
+            trainingTarget.setText(getString(R.string.training_label, isolated(trainingLabel)));
+        }
+        for (Map.Entry<String, Button> entry : characterButtons.entrySet()) {
+            String label = entry.getKey();
+            int count = characterCounts.getOrDefault(label, 0);
+            entry.getValue().setText(label + "\n" + count);
+            entry.getValue().setContentDescription(getString(
+                    R.string.training_character_count, label, count));
+            entry.getValue().setSelected(trainingLabel.equals(label));
+        }
     }
 
     private void chooseManualCharacter() {
@@ -611,6 +714,8 @@ public final class MainActivity extends Activity {
         final String label = trainingLabel;
         final long request = ++countRequest;
         if (countTask != null) countTask.cancel(false);
+        characterCounts = Collections.emptyMap();
+        updateTrainingLabels();
         if (profileId == -1) {
             sampleCount.setText(R.string.profile_required);
             return;
@@ -619,19 +724,15 @@ public final class MainActivity extends Activity {
         countTask = worker.submit(() -> {
             if (destroyed) return;
             try {
-                List<HandwritingRecognizer.Example> examples = store.examples(requestedProfile, requestedGroup);
-                int selectedCount = 0;
-                Set<String> trained = new HashSet<>();
-                for (HandwritingRecognizer.Example example : examples) {
-                    trained.add(example.label);
-                    if (label.equals(example.label)) selectedCount++;
-                }
-                final int count = selectedCount;
-                final int trainedCount = trained.size();
+                Map<String, Integer> counts = store.exampleCounts(requestedProfile, requestedGroup);
+                final int count = counts.getOrDefault(label, 0);
+                final int trainedCount = counts.size();
                 runOnUiThread(() -> {
                     if (destroyed || request != countRequest || requestedProfile != profileId
                             || !requestedGroup.equals(group)) return;
                     sampleCount.setText(getString(R.string.sample_count, isolated(label), count, trainedCount));
+                    characterCounts = counts;
+                    updateTrainingLabels();
                 });
             } catch (IllegalArgumentException | IllegalStateException | SQLiteException error) {
                 runOnUiThread(() -> {

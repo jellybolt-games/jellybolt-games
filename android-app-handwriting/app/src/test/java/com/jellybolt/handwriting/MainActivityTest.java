@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.GridLayout;
 
 import com.jellybolt.handwriting.core.Alphabet;
 import com.jellybolt.handwriting.core.Ink;
@@ -253,6 +254,123 @@ public class MainActivityTest {
     private void chooseManual(int index) {
         click(R.string.manual_correction);
         selectDialogItem(index);
+    }
+
+    @Test public void everyHebrewEnglishAndDigitLabelCanBeTaughtFromVisibleControls() throws Exception {
+        launch(null);
+        String[] alphabets = {Alphabet.HEBREW, Alphabet.ENGLISH_UPPER,
+                Alphabet.ENGLISH_LOWER, Alphabet.DIGITS};
+        int[] controls = {R.id.train_hebrew, R.id.train_english_upper,
+                R.id.train_english_lower, R.id.train_digits};
+        int total = 0;
+        for (int i = 0; i < alphabets.length; i++) {
+            activity.findViewById(controls[i]).performClick();
+            assertTrue(activity.findViewById(controls[i]).isSelected());
+            for (String label : Alphabet.labels(alphabets[i])) {
+                selectTrainingCharacter(label);
+                drawing().setInk(ink);
+                activity.findViewById(R.id.save_example_button).performClick();
+                assertTrue(drawing().getInk().isEmpty());
+                total++;
+            }
+            final String alphabet = alphabets[i];
+            await(() -> store.exampleCounts(profileId, alphabet).size() == Alphabet.labels(alphabet).size());
+            for (String label : Alphabet.labels(alphabet)) {
+                assertEquals(Integer.valueOf(1), store.exampleCounts(profileId, alphabet).get(label));
+            }
+        }
+        assertEquals(89, total);
+    }
+
+    @Test public void letterTrainingSelectionSurvivesColdReopenAndInterfaceLanguageChange() {
+        launch(null);
+        activity.findViewById(R.id.train_hebrew).performClick();
+        selectTrainingCharacter("\u05e3");
+        drawing().setInk(ink);
+        activity.findViewById(R.id.save_example_button).performClick();
+        controller.pause().stop().destroy();
+        controller = null;
+        context.getSharedPreferences("handwriting-ui", Context.MODE_PRIVATE).edit()
+                .putString("language", "he").commit();
+        launch(null);
+        assertTrue(activity.findViewById(R.id.train_hebrew).isSelected());
+        assertTrue(trainingCharacter("\u05e3").isSelected());
+        assertEquals(1, store.examples(profileId, Alphabet.HEBREW).size());
+        activity.findViewById(R.id.train_english_lower).performClick();
+        selectTrainingCharacter("z");
+        activity.findViewById(R.id.train_hebrew).performClick();
+        assertTrue(trainingCharacter("\u05e3").isSelected());
+        activity.findViewById(R.id.train_english_lower).performClick();
+        assertTrue(trainingCharacter("z").isSelected());
+    }
+
+    @Test public void changingTrainingTargetClearsInkInsteadOfMislabelingIt() {
+        launch(null);
+        drawing().setInk(ink);
+        activity.findViewById(R.id.train_english_upper).performClick();
+        assertTrue(drawing().getInk().isEmpty());
+        drawing().setInk(ink);
+        selectTrainingCharacter("B");
+        assertTrue(drawing().getInk().isEmpty());
+        assertTrue(store.examples(profileId, Alphabet.ENGLISH_UPPER).isEmpty());
+        assertTrue(((TextView) activity.findViewById(R.id.training_target)).getText().toString().contains("B"));
+    }
+
+    @Test public void keyboardTrainingIntentOpensItsAlphabetAndRestoresSafely() {
+        context.getSharedPreferences("handwriting-ui", Context.MODE_PRIVATE).edit()
+                .putString("training-alphabet", Alphabet.DIGITS).commit();
+        Intent intent = new Intent(context, MainActivity.class)
+                .putExtra(MainActivity.EXTRA_TRAINING_ALPHABET, Alphabet.HEBREW);
+        controller = Robolectric.buildActivity(MainActivity.class, intent).setup();
+        activity = controller.get();
+        assertTrue(activity.findViewById(R.id.train_hebrew).isSelected());
+        assertEquals(27, ((GridLayout) activity.findViewById(R.id.training_character_grid)).getChildCount());
+        activity.findViewById(R.id.train_english_upper).performClick();
+        selectTrainingCharacter("Z");
+        Bundle state = new Bundle();
+        controller.saveInstanceState(state).pause().stop().destroy();
+        controller = Robolectric.buildActivity(MainActivity.class, intent).create(state).start().resume().visible();
+        activity = controller.get();
+        assertTrue(activity.findViewById(R.id.train_english_upper).isSelected());
+        assertTrue(trainingCharacter("Z").isSelected());
+    }
+
+    @Test public void trainedUnusualEnglishAndHebrewShapesAreRecognizedThroughTheUi() throws Exception {
+        launch(null);
+        int[] groups = {R.id.train_english_upper, R.id.train_english_lower, R.id.train_hebrew};
+        String[][] labels = {{"A", "B"}, {"a", "b"}, {"\u05d0", "\u05da"}};
+        Ink alternative = new Ink(Collections.singletonList(Arrays.asList(
+                new Ink.Point(500, 100), new Ink.Point(500, 900))));
+        for (int i = 0; i < groups.length; i++) {
+            click(R.string.training_mode);
+            activity.findViewById(groups[i]).performClick();
+            for (int label = 0; label < 2; label++) {
+                selectTrainingCharacter(labels[i][label]);
+                drawing().setInk(label == 0 ? ink : alternative);
+                activity.findViewById(R.id.save_example_button).performClick();
+            }
+            click(R.string.writing_mode);
+            drawing().setInk(ink);
+            activity.findViewById(R.id.recognize_button).performClick();
+            await(() -> candidate() != null);
+            assertTrue(candidate().getText().toString().contains(labels[i][0]));
+            candidate().performClick();
+            activity.findViewById(R.id.confirm_character_button).performClick();
+        }
+        assertEquals("Aa\u05d0", output());
+    }
+
+    private void selectTrainingCharacter(String label) {
+        trainingCharacter(label).performClick();
+    }
+
+    private Button trainingCharacter(String label) {
+        ViewGroup grid = activity.findViewById(R.id.training_character_grid);
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            View child = grid.getChildAt(i);
+            if (label.equals(child.getTag())) return (Button) child;
+        }
+        throw new AssertionError("Missing training character: " + label);
     }
 
     private void selectDialogItem(int index) {

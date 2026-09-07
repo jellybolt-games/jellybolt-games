@@ -12,6 +12,11 @@ public final class Alphabet {
 
     private Alphabet() {}
 
+    public static boolean isGroup(String group) {
+        return DIGITS.equals(group) || ENGLISH_UPPER.equals(group)
+                || ENGLISH_LOWER.equals(group) || HEBREW.equals(group);
+    }
+
     public static List<String> labels(String group) {
         String characters;
         switch (group) {

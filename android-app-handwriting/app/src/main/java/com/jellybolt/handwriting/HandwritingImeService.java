@@ -785,10 +785,14 @@ public class HandwritingImeService extends InputMethodService {
     }
 
     private void openTraining() {
+        String trainingAlphabet = handwriting ? group : KeyboardEditor.isNumeric(editor)
+                ? Alphabet.DIGITS : hebrewTyping ? Alphabet.HEBREW
+                : shift ? Alphabet.ENGLISH_UPPER : Alphabet.ENGLISH_LOWER;
         invalidateDraft(true);
         showDefaultStatus();
         try {
-            startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    .putExtra(MainActivity.EXTRA_TRAINING_ALPHABET, trainingAlphabet));
             requestHideSelf(0);
         } catch (ActivityNotFoundException | SecurityException exception) {
             showStatus(R.string.ime_training_error);

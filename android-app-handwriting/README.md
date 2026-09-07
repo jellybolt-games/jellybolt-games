@@ -25,8 +25,11 @@ Moving between them can require uninstalling, which loses local training;
 there is currently no profile migration/export.
 
 1. Create a local profile using a nickname, not the child's full name.
-2. Select digits, English uppercase, English lowercase, or Hebrew.
-3. In teaching mode, an adult chooses the intended character. The child draws
+2. At the top, use **Train letters or digits** to select **Hebrew**, **English
+   A–Z**, **English a–z**, or **Digits 0–9**. This is separate from changing
+   the interface language.
+3. In teaching mode, an adult taps the intended character in the visible grid.
+   Its saved-example count appears underneath. The child draws
    the complete character, including every pen lift, then saves the example.
 4. Start with a few characters and collect varied examples over short sessions.
    Twenty to fifty examples per character is a starting goal, not an accuracy
@@ -51,6 +54,9 @@ restricted to the selected alphabet to reduce ambiguity such as `0` versus `O`.
 Hebrew output follows logical typing order and is displayed using Android's
 bidirectional text handling. The app does not automatically select final forms,
 add vowel points, fix spelling, or separate connected letters in a whole word.
+The app remembers the selected alphabet and the last character for each
+alphabet after closing. Keyboard **Train** opens the currently selected
+handwriting alphabet (or typing language), rather than resetting to digits.
 
 ## התקנה ושימוש
 
@@ -63,8 +69,10 @@ add vowel points, fix spelling, or separate connected letters in a whole word.
 הסרה שמוחקת את הדוגמאות המקומיות; כרגע אין ייצוא או העברת פרופילים.
 
 1. יוצרים פרופיל מקומי עם כינוי, ללא השם המלא של הילד או הילדה.
-2. בוחרים ספרות, אותיות גדולות באנגלית, אותיות קטנות באנגלית או עברית.
-3. במצב לימוד, מבוגר בוחר את התו הרצוי. מציירים את כל התו עם האצבע, כולל
+2. בראש המסך, באזור **לימוד אותיות או ספרות**, בוחרים **עברית**, **English
+   A–Z**, **English a–z** או **ספרות 0–9**. הבחירה נפרדת משפת הממשק.
+3. במצב לימוד, מבוגר לוחץ על התו הרצוי בטבלה הגלויה. מתחת לתו מופיע מספר
+   הדוגמאות השמורות. מציירים את כל התו עם האצבע, כולל
    כל הקווים הנפרדים, ושומרים את הדוגמה.
 4. מתחילים ממספר קטן של תווים ואוספים דוגמאות מגוונות במפגשים קצרים.
    יעד התחלתי של 20–50 דוגמאות לתו אינו הבטחת דיוק ואינו תרגיל שחייבים להשלים
@@ -85,6 +93,9 @@ add vowel points, fix spelling, or separate connected letters in a whole word.
 בעברית, כולל ך ם ן ף ץ. הזיהוי מוגבל לקבוצת התווים שנבחרה. סדר הטקסט
 בעברית הוא סדר ההקלדה הלוגי, עם תצוגה דו־כיוונית של Android. אין בחירה
 אוטומטית באותיות סופיות, ניקוד, תיקון איות או הפרדה של אותיות מחוברות במילה שלמה.
+האפליקציה זוכרת את קבוצת התווים ואת התו האחרון בכל קבוצה גם לאחר סגירה.
+כפתור **לימוד** במקלדת פותח את קבוצת כתב היד הנבחרת או את שפת ההקלדה,
+במקום לחזור אוטומטית לספרות.
 
 ## Optional Android keyboard (0.3.0+) / מקלדת Android אופציונלית
 

@@ -104,6 +104,21 @@ public class ProfileStoreTest {
         assertEquals(200, store.examples(id, Alphabet.DIGITS).size());
     }
 
+    @Test public void characterCountsAreIsolatedByProfileAndAlphabetAndReflectUndo() {
+        long first = store.createProfile("First").id;
+        long second = store.createProfile("Second").id;
+        store.addExample(first, Alphabet.HEBREW, "\u05da", ink);
+        store.addExample(first, Alphabet.HEBREW, "\u05da", ink);
+        store.addExample(first, Alphabet.ENGLISH_UPPER, "A", ink);
+        store.addExample(second, Alphabet.HEBREW, "\u05da", ink);
+        assertEquals(Integer.valueOf(2), store.exampleCounts(first, Alphabet.HEBREW).get("\u05da"));
+        assertEquals(1, store.exampleCounts(first, Alphabet.HEBREW).size());
+        assertEquals(Integer.valueOf(1), store.exampleCounts(second, Alphabet.HEBREW).get("\u05da"));
+        assertTrue(store.exampleCounts(first, Alphabet.DIGITS).isEmpty());
+        store.deleteLastExample(first, Alphabet.HEBREW, "\u05da");
+        assertEquals(Integer.valueOf(1), store.exampleCounts(first, Alphabet.HEBREW).get("\u05da"));
+    }
+
     @Test public void aliasesAreTrimmedUniqueAndBounded() {
         assertEquals("Child", store.createProfile("  Child  ").name);
         assertThrows(SQLiteConstraintException.class, () -> store.createProfile("Child"));

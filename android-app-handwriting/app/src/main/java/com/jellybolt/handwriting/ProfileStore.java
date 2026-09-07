@@ -12,6 +12,8 @@ import com.jellybolt.handwriting.core.Ink;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public final class ProfileStore extends SQLiteOpenHelper {
     public static final int MAX_EXAMPLES_PER_LABEL = 200;
@@ -104,6 +106,17 @@ public final class ProfileStore extends SQLiteOpenHelper {
             }
         }
         return result;
+    }
+
+    public Map<String, Integer> exampleCounts(long profileId, String group) {
+        Alphabet.labels(group);
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        try (Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT label,count(*) FROM examples WHERE profile_id=? AND alphabet=? GROUP BY label",
+                new String[]{Long.toString(profileId), group})) {
+            while (cursor.moveToNext()) counts.put(cursor.getString(0), cursor.getInt(1));
+        }
+        return counts;
     }
 
     public void addExample(long profileId, String group, String label, Ink ink) {

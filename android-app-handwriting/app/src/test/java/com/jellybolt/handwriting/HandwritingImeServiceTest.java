@@ -546,6 +546,37 @@ public class HandwritingImeServiceTest {
         await(() -> root.findViewById(R.id.ime_profile).isEnabled());
     }
 
+    @Test public void trainButtonCarriesTypingLanguageInsteadOfAlwaysOpeningDigits() {
+        launch(false, textEditor());
+        click(R.id.ime_training);
+        assertEquals(Alphabet.ENGLISH_LOWER, shadowOf(service).getNextStartedActivity()
+                .getStringExtra(MainActivity.EXTRA_TRAINING_ALPHABET));
+        click(R.id.ime_shift);
+        click(R.id.ime_training);
+        assertEquals(Alphabet.ENGLISH_UPPER, shadowOf(service).getNextStartedActivity()
+                .getStringExtra(MainActivity.EXTRA_TRAINING_ALPHABET));
+        click(R.id.ime_typing_language);
+        click(R.id.ime_training);
+        assertEquals(Alphabet.HEBREW, shadowOf(service).getNextStartedActivity()
+                .getStringExtra(MainActivity.EXTRA_TRAINING_ALPHABET));
+        service.onStartInput(editor(InputType.TYPE_CLASS_NUMBER, EditorInfo.IME_ACTION_DONE), false);
+        click(R.id.ime_training);
+        assertEquals(Alphabet.DIGITS, shadowOf(service).getNextStartedActivity()
+                .getStringExtra(MainActivity.EXTRA_TRAINING_ALPHABET));
+    }
+
+    @Test public void trainButtonCarriesSelectedHandwritingAlphabet() throws Exception {
+        createProfile();
+        launch(true, textEditor());
+        awaitProfiles();
+        ((Spinner) root.findViewById(R.id.ime_alphabet)).setSelection(3);
+        layoutKeyboard();
+        shadowOf(Looper.getMainLooper()).idle();
+        click(R.id.ime_training);
+        assertEquals(Alphabet.HEBREW, shadowOf(service).getNextStartedActivity()
+                .getStringExtra(MainActivity.EXTRA_TRAINING_ALPHABET));
+    }
+
     private void await(BooleanSupplier condition) throws Exception {
         long deadline = System.nanoTime() + 10_000_000_000L;
         while (System.nanoTime() < deadline) {

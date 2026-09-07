@@ -10,4 +10,12 @@
     <item type="id" name="window_content" />
     <item type="id" name="keyboard_enable_button" />
     <item type="id" name="keyboard_choose_button" />
+    <item type="id" name="train_digits" />
+    <item type="id" name="train_english_upper" />
+    <item type="id" name="train_english_lower" />
+    <item type="id" name="train_hebrew" />
+    <item type="id" name="training_alphabet_summary" />
+    <item type="id" name="training_character_grid" />
+    <item type="id" name="training_target" />
+    <item type="id" name="training_sample_count" />
 </resources>
