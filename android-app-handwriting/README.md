@@ -13,7 +13,11 @@ network permission, or downloaded recognition models.
 
 Requires Android 8.0 or later. Build the debug APK below and transfer it to the
 device. Open it and allow installation from that source if Android requests it.
-This is a sideloadable prototype, not a published Play Store app.
+This is a sideloadable prototype. Version 0.2.0 is also available through
+[Google Play internal testing](https://play.google.com/apps/internaltest/4700966795480494872),
+not public production. The existing JellyBolt Beta Testers list (2 members)
+is enabled; additional Google accounts must be enrolled through the app's
+**Internal testing > Testers** tab before they can use the link.
 The debug APK and a future Play installation use different signing identities.
 Moving between them can require uninstalling, which loses local training;
 there is currently no profile migration/export.
@@ -45,7 +49,9 @@ add vowel points, fix spelling, or separate connected letters in a whole word.
 
 נדרשת גרסת Android 8.0 ומעלה. בונים את קובץ ה־APK לפי ההוראות בהמשך,
 מעבירים אותו למכשיר ופותחים אותו. אם Android מבקש, מאשרים התקנה מהמקור הזה.
-זו גרסה ראשונית להתקנה ישירה, ולא אפליקציה שפורסמה בחנות Google Play.
+זו גרסה ראשונית להתקנה ישירה. גרסה 0.2.0 זמינה גם בבדיקה פנימית ב־Google Play
+בקישור שלמעלה, ולא בהפצה ציבורית. רשימת JellyBolt Beta Testers הקיימת
+מופעלת (2 חברים); יש להוסיף חשבונות Google נוספים בלשונית Testers לפני השימוש בקישור.
 לגרסת הפיתוח ולגרסה עתידית מהחנות חתימות שונות. מעבר ביניהן עלול לדרוש
 הסרה שמוחקת את הדוגמאות המקומיות; כרגע אין ייצוא או העברת פרופילים.
 
@@ -216,14 +222,20 @@ option using the private `HANDWRITING_UPLOAD_KEYSTORE_BASE64` and
 הידנית `signed_release` ושני הסודות הפרטיים `HANDWRITING_UPLOAD_KEYSTORE_BASE64`
 ו־`HANDWRITING_STORE_PASSWORD`.
 
-**Not yet published.** Google Play account verification, app creation,
-age/content declarations, store graphics, and review remain separate steps.
+**Internal testing is active as of September 7, 2026.** Google Play app ID:
+`4973961227397186581`; internal track: `4700966795480494872`; version code: `2`.
+Play Console reports "Available to internal testers." Testers may initially
+see `com.jellybolt.handwriting (unreviewed)` as the temporary app name.
+Public production, age/content declarations, store graphics, and store review
+remain separate steps.
 The bilingual privacy page is `store-listings\my-handwriting-privacy.html`;
 its presence in source does not mean it has been deployed to a public URL.
 Hands-on accessibility and handwriting evaluation with the intended user
 is still necessary before a broad rollout.
 
-**עדיין לא פורסם בחנות.** אימות החשבון, יצירת האפליקציה, הצהרות גיל ותוכן,
-תמונות החנות ובדיקת Google הם שלבים נפרדים. עמוד הפרטיות הדו־לשוני נמצא
+**הבדיקה הפנימית פעילה מ־7 בספטמבר 2026.** מזהי האפליקציה והמסלול מופיעים
+למעלה; Google מציגה את הגרסה כזמינה לבודקים פנימיים. בתחילה עשוי להופיע
+השם הזמני `com.jellybolt.handwriting (unreviewed)`. הפצה ציבורית, הצהרות גיל
+ותוכן, תמונות החנות ובדיקת Google הם שלבים נפרדים. עמוד הפרטיות הדו־לשוני נמצא
 בקוד בנתיב שלמעלה, אך עדיין לא בהכרח פורסם בכתובת ציבורית. לפני הפצה רחבה
 נדרשת התנסות בנגישות ובזיהוי עם המשתמש המיועד.

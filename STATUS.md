@@ -1,5 +1,5 @@
 # JellyBolt Games — Project Status
-Last updated: 2026-09-06
+Last updated: 2026-09-07
 
 ## Personal handwriting / כתב יד אישי
 
@@ -9,16 +9,18 @@ Last updated: 2026-09-06
   time into a number or word. English/Hebrew UI; no ads or network permission.
   See its README for build/install instructions and recognition limitations.
 - Version 0.2.0 targets Android 16/API 36. Non-UI emulator checks exercise
-  4,450 labeled examples. A signed Play bundle and bilingual privacy page are
-  prepared; Play publication remains blocked on Google account verification
-  and completion of the store listing. Nothing has been submitted.
+  4,450 labeled examples. Google Play internal testing is active as of
+  September 7, 2026 (version code 2); the existing JellyBolt Beta Testers list
+  is enabled (2 members). Join: https://play.google.com/apps/internaltest/4700966795480494872
+  Additional testers must be enrolled first. This is not a public production release.
 - `android-app-handwriting/` — אפליקציית Android ראשונית ונפרדת לזיהוי אישי של
   ספרות ואותיות באנגלית ובעברית, כולל אותיות סופיות. לומדת מדוגמאות מתויגות
   במכשיר ופועלת ללא אינטרנט. מאשרים תו אחד בכל פעם ליצירת מספר או מילה.
   הממשק בעברית ובאנגלית, ללא פרסומות או הרשאת רשת. הוראות ומגבלות ב־README.
 - גרסה 0.2.0 מכוונת ל־Android 16/API 36. בדיקות באמולטור ללא הפעלת הממשק
-  בוחנות 4,450 דוגמאות מתויגות. הוכנו חבילה חתומה ועמוד פרטיות דו־לשוני.
-  הפרסום עדיין ממתין לאימות חשבון Google ולהשלמת רישום החנות; דבר לא נשלח.
+  בוחנות 4,450 דוגמאות מתויגות. הבדיקה הפנימית ב־Google Play פעילה מ־7
+  בספטמבר 2026, עם קוד גרסה 2 ורשימת JellyBolt Beta Testers הקיימת (2 חברים).
+  קישור ההצטרפות מופיע למעלה; יש להוסיף בודקים נוספים מראש. זו אינה הפצה ציבורית.
 
 ## Brand Identity
 - **Name:** JellyBolt Games (JellyBolt⚡)
