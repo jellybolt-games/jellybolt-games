@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="ime_root" type="id" />
+    <item name="ime_scroll" type="id" />
+    <item name="ime_mode" type="id" />
+    <item name="ime_typing_language" type="id" />
+    <item name="ime_symbols" type="id" />
+    <item name="ime_training" type="id" />
+    <item name="ime_key_rows" type="id" />
+    <item name="ime_shift" type="id" />
+    <item name="ime_profile" type="id" />
+    <item name="ime_alphabet" type="id" />
+    <item name="ime_drawing" type="id" />
+    <item name="ime_undo" type="id" />
+    <item name="ime_clear" type="id" />
+    <item name="ime_recognize" type="id" />
+    <item name="ime_manual" type="id" />
+    <item name="ime_manual_panel" type="id" />
+    <item name="ime_candidates" type="id" />
+    <item name="ime_selected" type="id" />
+    <item name="ime_confirm" type="id" />
+    <item name="ime_learn" type="id" />
+    <item name="ime_picker" type="id" />
+    <item name="ime_space" type="id" />
+    <item name="ime_backspace" type="id" />
+    <item name="ime_enter" type="id" />
+    <item name="ime_status" type="id" />
+    <item type="id" name="ime_symbol_page" />
+</resources>

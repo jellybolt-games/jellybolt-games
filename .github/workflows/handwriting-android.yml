@@ -33,7 +33,7 @@ jobs:
         run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
       - name: Build and exercise offline app
         working-directory: android-app-handwriting
-        run: bash ./gradlew testDebugUnitTest assembleDebug lintDebug --console=plain
+        run: bash ./gradlew testDebugUnitTest assembleDebug assembleDebugAndroidTest lintDebug --console=plain
       - name: Restore upload key for requested release
         if: github.event_name == 'workflow_dispatch' && inputs.signed_release
         env:

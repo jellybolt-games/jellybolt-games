@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.content.res.XmlResourceParser;
 
 import org.junit.Test;
@@ -49,5 +50,36 @@ public class OfflineManifestTest {
                 assertTrue(section + ":" + domain, exclusions.contains(section + ":" + domain));
             }
         }
+    }
+
+    @Test public void keyboardServiceCanOnlyBeBoundByAndroidAndIsNotDefault() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(),
+                PackageManager.GET_SERVICES | PackageManager.GET_META_DATA);
+        ServiceInfo keyboard = null;
+        for (ServiceInfo service : info.services) {
+            if (service.name.equals("com.jellybolt.handwriting.HandwritingImeService")) keyboard = service;
+        }
+        assertNotNull(keyboard);
+        assertTrue(keyboard.exported);
+        assertEquals("android.permission.BIND_INPUT_METHOD", keyboard.permission);
+        assertEquals(R.xml.input_method, keyboard.metaData.getInt("android.view.im"));
+        boolean sawInputMethod = false;
+        boolean sawAsciiKeyboard = false;
+        try (XmlResourceParser parser = context.getResources().getXml(R.xml.input_method)) {
+            while (parser.next() != XmlPullParser.END_DOCUMENT) {
+                if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+                String android = "http://schemas.android.com/apk/res/android";
+                if (parser.getName().equals("input-method")) {
+                    sawInputMethod = true;
+                    assertNull(parser.getAttributeValue(android, "isDefault"));
+                }
+                if (parser.getName().equals("subtype")) {
+                    sawAsciiKeyboard = parser.getAttributeBooleanValue(android, "isAsciiCapable", false);
+                }
+            }
+        }
+        assertTrue(sawInputMethod);
+        assertTrue(sawAsciiKeyboard);
     }
 }

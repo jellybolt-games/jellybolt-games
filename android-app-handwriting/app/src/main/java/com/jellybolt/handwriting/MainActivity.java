@@ -5,6 +5,8 @@ import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
@@ -16,6 +18,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.BidiFormatter;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -26,6 +29,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -203,6 +207,16 @@ public final class MainActivity extends Activity {
                 new AlertDialog.Builder(this).setTitle(R.string.privacy_details_button)
                         .setMessage(R.string.privacy_details).setPositiveButton(R.string.ok, null).show()));
 
+        LinearLayout keyboardPanel = card(content);
+        heading(keyboardPanel, R.string.keyboard_heading);
+        add(keyboardPanel, text(R.string.keyboard_help, 16));
+        Button enableKeyboard = button(R.string.keyboard_enable, view -> explainKeyboardSetup());
+        enableKeyboard.setId(R.id.keyboard_enable_button);
+        add(keyboardPanel, enableKeyboard);
+        Button chooseKeyboard = button(R.string.keyboard_choose, view -> chooseKeyboard());
+        chooseKeyboard.setId(R.id.keyboard_choose_button);
+        add(keyboardPanel, chooseKeyboard);
+
         LinearLayout activityPanel = card(content);
         heading(activityPanel, R.string.mode_heading);
         trainingButton = button(R.string.training_mode, view -> changeMode(true));
@@ -351,6 +365,35 @@ public final class MainActivity extends Activity {
         String current = getResources().getConfiguration().getLocales().get(0).getLanguage();
         preferences.edit().putString("language", ("he".equals(current) || "iw".equals(current)) ? "en" : "he").apply();
         recreate();
+    }
+
+    private void explainKeyboardSetup() {
+        new AlertDialog.Builder(this).setTitle(R.string.keyboard_heading)
+                .setMessage(R.string.keyboard_permission_help)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.keyboard_open_settings, (dialog, which) -> {
+                    try {
+                        startActivity(new Intent(Settings.ACTION_INPUT_METHOD_SETTINGS));
+                    } catch (ActivityNotFoundException error) {
+                        status.setText(R.string.keyboard_settings_unavailable);
+                        new AlertDialog.Builder(this).setTitle(R.string.error_title)
+                                .setMessage(R.string.keyboard_settings_unavailable)
+                                .setPositiveButton(R.string.ok, null).show();
+                    }
+                }).show();
+    }
+
+    private void chooseKeyboard() {
+        InputMethodManager manager = getSystemService(InputMethodManager.class);
+        if (manager == null) {
+            status.setText(R.string.keyboard_settings_unavailable);
+            return;
+        }
+        try {
+            manager.showInputMethodPicker();
+        } catch (IllegalStateException | SecurityException error) {
+            status.setText(R.string.keyboard_settings_unavailable);
+        }
     }
 
     private void changeMode(boolean nextTraining) {

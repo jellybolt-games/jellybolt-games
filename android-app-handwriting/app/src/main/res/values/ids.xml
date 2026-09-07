@@ -8,4 +8,6 @@
     <item type="id" name="output_text" />
     <item type="id" name="status_text" />
     <item type="id" name="window_content" />
+    <item type="id" name="keyboard_enable_button" />
+    <item type="id" name="keyboard_choose_button" />
 </resources>

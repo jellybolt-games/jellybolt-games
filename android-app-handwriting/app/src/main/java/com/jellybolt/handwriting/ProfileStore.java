@@ -35,6 +35,7 @@ public final class ProfileStore extends SQLiteOpenHelper {
 
     ProfileStore(Context context, String databaseName) {
         super(context, databaseName, null, 1);
+        setWriteAheadLoggingEnabled(true);
     }
 
     @Override public void onConfigure(SQLiteDatabase db) {

@@ -3,20 +3,22 @@
 An offline Android prototype that learns a child's own handwriting from labeled
 examples, rather than asking the child to conform to a standard alphabet.
 The app has English and Hebrew interfaces and no ads, accounts, analytics,
-network permission, or downloaded recognition models.
+network permission, or downloaded recognition models. Version 0.3.0 adds an
+optional system keyboard; the standalone teaching and practice screens remain.
 
 אפליקציית Android ראשונית שפועלת ללא אינטרנט ולומדת מדוגמאות מתויגות של כתב היד
 האישי של הילד או הילדה. הממשק זמין בעברית ובאנגלית, ללא פרסומות, חשבונות,
-מעקב, הרשאת רשת או הורדה של מודל זיהוי.
+מעקב, הרשאת רשת או הורדה של מודל זיהוי. גרסה 0.3.0 מוסיפה מקלדת מערכת
+אופציונלית, לצד מסכי הלימוד והתרגול הקיימים.
 
 ## Install and use
 
 Requires Android 8.0 or later. Build the debug APK below and transfer it to the
 device. Open it and allow installation from that source if Android requests it.
-This is a sideloadable prototype. Version 0.2.0 is also available through
+This is a sideloadable prototype. Version 0.3.0 is also available through
 [Google Play internal testing](https://play.google.com/apps/internaltest/4700966795480494872),
-not public production. The existing JellyBolt Beta Testers list (2 members)
-is enabled; additional Google accounts must be enrolled through the app's
+not public production. Tester access uses the enabled JellyBolt Beta Testers
+and My Handwriting Testers lists; additional Google accounts must be enrolled through the app's
 **Internal testing > Testers** tab before they can use the link.
 The debug APK and a future Play installation use different signing identities.
 Moving between them can require uninstalling, which loses local training;
@@ -49,9 +51,9 @@ add vowel points, fix spelling, or separate connected letters in a whole word.
 
 נדרשת גרסת Android 8.0 ומעלה. בונים את קובץ ה־APK לפי ההוראות בהמשך,
 מעבירים אותו למכשיר ופותחים אותו. אם Android מבקש, מאשרים התקנה מהמקור הזה.
-זו גרסה ראשונית להתקנה ישירה. גרסה 0.2.0 זמינה גם בבדיקה פנימית ב־Google Play
-בקישור שלמעלה, ולא בהפצה ציבורית. רשימת JellyBolt Beta Testers הקיימת
-מופעלת (2 חברים); יש להוסיף חשבונות Google נוספים בלשונית Testers לפני השימוש בקישור.
+זו גרסה ראשונית להתקנה ישירה. גרסה 0.3.0 זמינה גם בבדיקה פנימית ב־Google Play
+בקישור שלמעלה, ולא בהפצה ציבורית. הגישה ניתנת דרך הרשימות JellyBolt Beta Testers
+ו־My Handwriting Testers; יש להוסיף חשבונות Google נוספים בלשונית Testers לפני השימוש בקישור.
 לגרסת הפיתוח ולגרסה עתידית מהחנות חתימות שונות. מעבר ביניהן עלול לדרוש
 הסרה שמוחקת את הדוגמאות המקומיות; כרגע אין ייצוא או העברת פרופילים.
 
@@ -73,6 +75,60 @@ add vowel points, fix spelling, or separate connected letters in a whole word.
 בעברית, כולל ך ם ן ף ץ. הזיהוי מוגבל לקבוצת התווים שנבחרה. סדר הטקסט
 בעברית הוא סדר ההקלדה הלוגי, עם תצוגה דו־כיוונית של Android. אין בחירה
 אוטומטית באותיות סופיות, ניקוד, תיקון איות או הפרדה של אותיות מחוברות במילה שלמה.
+
+## Optional Android keyboard (0.3.0+) / מקלדת Android אופציונלית
+
+This is a real Android input method, not a text box pretending to be a keyboard.
+It can insert text into other apps that support Android's standard input
+connection. It provides basic English/Hebrew keys, numbers and symbols,
+backspace, space, editor actions, and a personal-handwriting mode. It is not
+a full Gboard/Samsung Keyboard replacement: there is no voice input, swipe
+typing, word prediction, autocorrect, emoji browser, or cloud personalization.
+
+1. Update the existing app through the same installation channel. Updating
+   from Play to Play preserves the existing training database.
+2. In the app, choose **Enable keyboard in Android settings**. Read Android's
+   keyboard warning and enable **My Handwriting** only if you consent.
+3. Choose **Choose a keyboard**, or use Android's keyboard switcher while a
+   text field is focused. Keep your previous keyboard enabled as a fallback.
+4. Use ordinary keys, or switch to handwriting. Select the appropriate local
+   profile and alphabet, draw a complete character, recognize it, and confirm
+   the intended result before insertion. Use the app to collect more samples.
+5. To disable the keyboard, return to Android's on-screen keyboard settings.
+   The app never changes the default keyboard or enables itself.
+
+Keyboard drafts and suggestions are cleared when the editor changes or the
+keyboard is dismissed. Ordinary keystrokes, editor contents, and password
+text are not recorded or uploaded. Backspace may read the current selection
+or up to two immediately preceding UTF-16 code units solely to delete safely;
+this context is not retained. Android-marked password fields and
+`IME_FLAG_NO_PERSONALIZED_LEARNING` prevent adding examples. Existing saved
+examples can still support recognition. Correction learning is always opt-in
+and resets between editors; input already delivered to another app is subject
+to that app's privacy policy.
+
+זו מקלדת מערכת אמיתית, המסוגלת להזין טקסט באפליקציות שתומכות במנגנון הקלט
+הרגיל של Android. היא כוללת מקשים בסיסיים באנגלית ובעברית, ספרות וסימנים,
+מחיקה, רווח, פעולות של שדה העריכה ומצב כתב יד אישי. היא אינה מחליפה את כל
+יכולות Gboard או מקלדת Samsung: אין הקלדה קולית או בהחלקה, חיזוי מילים,
+תיקון אוטומטי, דפדפן אימוג׳י או התאמה בענן.
+
+1. מעדכנים דרך אותו מקור התקנה. עדכון מחנות Play דרך Play שומר על הדוגמאות.
+2. באפליקציה בוחרים **הפעלת המקלדת בהגדרות Android**, קוראים את אזהרת
+   המקלדת של Android ומפעילים את **My Handwriting** רק בהסכמה.
+3. בוחרים **בחירת מקלדת**, או משתמשים במחליף המקלדות של Android בזמן עריכה.
+   משאירים את המקלדת הקודמת זמינה לחזרה.
+4. משתמשים במקשים או עוברים לכתב יד. בוחרים פרופיל וקבוצת תווים, מציירים
+   תו שלם ומאשרים את התוצאה לפני ההזנה. דוגמאות נוספות מלמדים באפליקציה.
+5. לביטול חוזרים להגדרות המקלדות של Android. האפליקציה אינה מפעילה את
+   עצמה ואינה משנה את מקלדת ברירת המחדל.
+
+הטיוטה וההצעות מתנקות בהחלפת שדה או בסגירת המקלדת. הקשות רגילות, תוכן שדות
+וטקסט של סיסמאות אינם נשמרים או מועלים. לצורך מחיקה בטוחה בלבד, מקש המחיקה
+עשוי לקרוא את הבחירה הנוכחית או עד שתי יחידות UTF-16 לפני הסמן; ההקשר אינו
+נשמר. שדות שסומנו כסיסמה ב־Android ובקשות להזנה פרטית חוסמים הוספת דוגמאות.
+דוגמאות שכבר נשמרו עדיין יכולות לסייע בזיהוי. למידה מתיקונים דורשת בחירה
+מפורשת ומתאפסת בין שדות. טקסט שהוזן לאפליקציה אחרת כפוף למדיניות שלה.
 
 ## Recognition and limitations / זיהוי ומגבלות
 
@@ -186,24 +242,40 @@ app during test cleanup, which removes its local data. Never run this command
 against a device with a child's saved training.** The tests exercise
 50 samples for each of all 89 labels (4,450 samples), mirrored variants,
 corrections, persistence, and profile isolation. Synthetic examples do not
-establish accuracy on a child's actual handwriting.
+establish accuracy on a child's actual handwriting. Keyboard checks also cover
+Android input-method registration, editor actions, Unicode deletion, and
+private-field learning rules, without enabling or selecting the keyboard.
 
 קוד הבדיקות משתמש במסד זמני נפרד. **Gradle עשוי להסיר את האפליקציה בניקוי
 לאחר הבדיקות, ובכך למחוק את נתוניה. אין להריץ פקודה זו במכשיר עם דוגמאות
 שמורות של ילד.** הבדיקות בוחנות
 50 דוגמאות לכל אחת מ־89 התוויות, צורות משוקפות, תיקונים, שמירה והפרדת
 פרופילים. דוגמאות סינתטיות אינן מוכיחות דיוק עם כתב יד אמיתי של ילד.
+בדיקות המקלדת כוללות גם רישום כשיטת קלט, פעולות עריכה, מחיקת Unicode
+וכללי למידה בשדות פרטיים, בלי להפעיל או לבחור את המקלדת.
+
+For the dedicated development emulator, it is also possible to install the
+two debug APKs with `adb install -r`, run `adb shell am instrument -w
+com.jellybolt.handwriting.test/androidx.test.runner.AndroidJUnitRunner`,
+and leave the main app installed. This avoids Gradle's uninstall cleanup.
+Select the emulator explicitly with `adb -s SERIAL`; never target an
+unidentified personal device.
+
+באמולטור הפיתוח הייעודי אפשר גם להתקין את שני קובצי הפיתוח עם
+`adb install -r`, להריץ את פקודת הבדיקות שלמעלה ולהשאיר את האפליקציה הראשית
+מותקנת. כך נמנע ניקוי ההסרה של Gradle. יש לבחור את האמולטור במפורש עם
+`adb -s SERIAL`, ולא לכוון למכשיר אישי שלא זוהה.
 
 ### Signed Play bundle / חבילה חתומה לחנות
 
-Version 0.2.0 targets Android 16/API 36 and handles system-bar, display-cutout,
+The app targets Android 16/API 36 and handles system-bar, display-cutout,
 and keyboard insets. Release builds require `HANDWRITING_KEYSTORE_FILE`
 and `HANDWRITING_STORE_PASSWORD` in the environment. Retrieve the password
 from the **My Handwriting Android upload key** Bitwarden item; never paste
 it into source files or commit a keystore. The fixed key alias is
 `my-handwriting-upload`.
 
-גרסה 0.2.0 מכוונת ל־Android 16/API 36 ומתאימה את התצוגה לפסי המערכת,
+האפליקציה מכוונת ל־Android 16/API 36 ומתאימה את התצוגה לפסי המערכת,
 למגרעות מסך ולמקלדת. לבניית הפצה מגדירים במשתני הסביבה
 `HANDWRITING_KEYSTORE_FILE` ו־`HANDWRITING_STORE_PASSWORD`. הסיסמה נמצאת
 בפריט **My Handwriting Android upload key** ב־Bitwarden; אין להכניס אותה
@@ -223,7 +295,8 @@ option using the private `HANDWRITING_UPLOAD_KEYSTORE_BASE64` and
 ו־`HANDWRITING_STORE_PASSWORD`.
 
 **Internal testing is active as of September 7, 2026.** Google Play app ID:
-`4973961227397186581`; internal track: `4700966795480494872`; version code: `2`.
+`4973961227397186581`; internal track: `4700966795480494872`; version code: `3`.
+The latest release is **0.3.0 - Optional keyboard**.
 Play Console reports "Available to internal testers." Testers may initially
 see `com.jellybolt.handwriting (unreviewed)` as the temporary app name.
 Public production, age/content declarations, store graphics, and store review
@@ -234,7 +307,7 @@ Hands-on accessibility and handwriting evaluation with the intended user
 is still necessary before a broad rollout.
 
 **הבדיקה הפנימית פעילה מ־7 בספטמבר 2026.** מזהי האפליקציה והמסלול מופיעים
-למעלה; Google מציגה את הגרסה כזמינה לבודקים פנימיים. בתחילה עשוי להופיע
+למעלה; הגרסה האחרונה היא **0.3.0 - Optional keyboard**, והיא זמינה לבודקים פנימיים. בתחילה עשוי להופיע
 השם הזמני `com.jellybolt.handwriting (unreviewed)`. הפצה ציבורית, הצהרות גיל
 ותוכן, תמונות החנות ובדיקת Google הם שלבים נפרדים. עמוד הפרטיות הדו־לשוני נמצא
 בקוד בנתיב שלמעלה, אך עדיין לא בהכרח פורסם בכתובת ציבורית. לפני הפצה רחבה

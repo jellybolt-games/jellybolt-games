@@ -2,8 +2,10 @@ package com.jellybolt.handwriting;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Looper;
+import android.provider.Settings;
 import android.graphics.Insets;
 import android.view.View;
 import android.view.ViewGroup;
@@ -77,6 +79,24 @@ public class MainActivityTest {
         assertEquals(32, root.getPaddingLeft());
         assertEquals(28, root.getPaddingTop());
         assertEquals(260, root.getPaddingBottom());
+    }
+
+    @Test public void keyboardEnableExplainsPrivacyAndRequiresSystemConfirmation() {
+        launch(null);
+        String previous = Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.DEFAULT_INPUT_METHOD);
+        activity.findViewById(R.id.keyboard_enable_button).performClick();
+        shadowOf(Looper.getMainLooper()).idle();
+        assertNull(shadowOf(activity).getNextStartedActivity());
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertTrue(dialog.isShowing());
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        shadowOf(Looper.getMainLooper()).idle();
+        Intent intent = shadowOf(activity).getNextStartedActivity();
+        assertNotNull(intent);
+        assertEquals(Settings.ACTION_INPUT_METHOD_SETTINGS, intent.getAction());
+        assertEquals(previous, Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.DEFAULT_INPUT_METHOD));
     }
 
     @Test public void freshInstallCanCreateProfileWithoutAnyExistingTraining() {

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_heading">Optional system keyboard</string>
+    <string name="keyboard_help">Use the same handwriting profiles inside other apps, alongside English, Hebrew and number keys. First enable the keyboard in Android settings, then choose it when typing. Keep your existing keyboard enabled so you can switch back.</string>
+    <string name="keyboard_enable">Enable keyboard in Android settings</string>
+    <string name="keyboard_choose">Choose a keyboard</string>
+    <string name="keyboard_open_settings">Open keyboard settings</string>
+    <string name="keyboard_permission_help">Android will show its standard warning that keyboards can access what you enter. Enable My Handwriting only if you are comfortable using it for input in other apps.\n\nThis keyboard works offline and does not record or upload typed text. It inserts your chosen input into the current app, which has its own privacy policy. Handwriting examples are saved only when you explicitly choose learning. Android-marked password fields and private-input requests disable learning.\n\nYou remain in control: this app will not enable itself or change your default keyboard.</string>
+    <string name="keyboard_settings_unavailable">Keyboard settings are unavailable from this screen. Open Android Settings and look for Languages and input or On-screen keyboard.</string>
+</resources>
