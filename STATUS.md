@@ -8,11 +8,14 @@ Last updated: 2026-09-07
   Teaches from locally labeled finger drawings; confirms one character at a
   time into a number or word. English/Hebrew UI; no ads or network permission.
   See its README for build/install instructions and recognition limitations.
-- Version 0.3.1 targets Android 16/API 36 and includes an optional system keyboard:
+- Version 0.4.0 targets Android 16/API 36 and includes an optional system keyboard:
   English/Hebrew typing, symbols, shared handwriting profiles, and private-field
   learning protection. It remains disabled until the user enables it in Android.
   Drawing pads now explain unavailable states and retain drag gestures rather than scrolling the page.
-  Google Play internal testing is active as of September 7, 2026 (version code 4);
+  Visible alphabet choices and an 89-character grid expose Hebrew, English upper/lowercase
+  and digit training with saved-example counts. Training selections persist, and the
+  keyboard's Train button opens the appropriate alphabet.
+  Google Play internal testing is active as of September 7, 2026 (version code 5);
   JellyBolt Beta Testers and My Handwriting Testers are enabled.
   Join: https://play.google.com/apps/internaltest/4700966795480494872
   Additional testers must be enrolled first. This is not a public production release.
@@ -20,10 +23,12 @@ Last updated: 2026-09-07
   ספרות ואותיות באנגלית ובעברית, כולל אותיות סופיות. לומדת מדוגמאות מתויגות
   במכשיר ופועלת ללא אינטרנט. מאשרים תו אחד בכל פעם ליצירת מספר או מילה.
   הממשק בעברית ובאנגלית, ללא פרסומות או הרשאת רשת. הוראות ומגבלות ב־README.
-- גרסה 0.3.1 מכוונת ל־Android 16/API 36 וכוללת מקלדת מערכת אופציונלית:
+- גרסה 0.4.0 מכוונת ל־Android 16/API 36 וכוללת מקלדת מערכת אופציונלית:
   הקלדה באנגלית ובעברית, סימנים, פרופילי כתב יד משותפים והגנה על שדות פרטיים.
   המקלדת כבויה עד להפעלה מפורשת ב־Android. הבדיקה הפנימית ב־Google Play פעילה
-  מ־7 בספטמבר 2026, עם קוד גרסה 4 והרשימות JellyBolt Beta Testers ו־My Handwriting Testers.
+  מ־7 בספטמבר 2026, עם קוד גרסה 5 והרשימות JellyBolt Beta Testers ו־My Handwriting Testers.
+  בחירה גלויה וטבלה של 89 תווים מאפשרות לימוד עברית, אותיות גדולות וקטנות באנגלית
+  וספרות עם מספר הדוגמאות לכל תו. הבחירה נשמרת, וכפתור הלימוד במקלדת פותח את הקבוצה המתאימה.
   אזור הציור מסביר כעת מתי אינו זמין ושומר על תנועת הציור במקום לגלול את הדף.
   קישור ההצטרפות מופיע למעלה; יש להוסיף בודקים נוספים מראש. זו אינה הפצה ציבורית.
 
