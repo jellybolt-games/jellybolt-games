@@ -335,6 +335,24 @@ public class MainActivityTest {
         assertTrue(trainingCharacter("Z").isSelected());
     }
 
+    @Test public void keyboardCanReturnAnExistingActivityToTheRequestedLetterTraining() {
+        launch(null);
+        click(R.string.writing_mode);
+        drawing().setInk(ink);
+        activity.onNewIntent(new Intent(context, MainActivity.class)
+                .putExtra(MainActivity.EXTRA_TRAINING_ALPHABET, Alphabet.HEBREW));
+        assertTrue(activity.findViewById(R.id.train_hebrew).isSelected());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.training_character_grid).getVisibility());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.save_example_button).getVisibility());
+        assertTrue(drawing().getInk().isEmpty());
+        selectTrainingCharacter("\u05da");
+        click(R.string.writing_mode);
+        activity.onNewIntent(new Intent(context, MainActivity.class)
+                .putExtra(MainActivity.EXTRA_TRAINING_ALPHABET, Alphabet.HEBREW));
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.save_example_button).getVisibility());
+        assertTrue(trainingCharacter("\u05da").isSelected());
+    }
+
     @Test public void trainedUnusualEnglishAndHebrewShapesAreRecognizedThroughTheUi() throws Exception {
         launch(null);
         int[] groups = {R.id.train_english_upper, R.id.train_english_lower, R.id.train_hebrew};

@@ -2,7 +2,8 @@
 <resources>
     <string name="training_alphabet_heading">לימוד אותיות או ספרות</string>
     <string name="training_alphabet_help">בוחרים מה ללמד: עברית, אותיות באנגלית או ספרות. הבחירה נפרדת משפת הממשק.</string>
-    <string name="training_alphabet_selected">%1$s · %2$d תווים</string>
+    <string name="training_alphabet_selected">%1$s · מספר תווים: %2$d</string>
+    <string name="training_character_tile">%1$s\n%2$d</string>
     <string name="character_grid_help">לוחצים על התו שרוצים ללמד. המספר שמתחתיו מציג דוגמאות שמורות לפרופיל הנבחר. החלפת התו מנקה ציור שטרם נשמר.</string>
     <string name="training_character_count">לימוד %1$s. דוגמאות שמורות: %2$d</string>
     <string name="training_character_changed">כעת מלמדים ״%1$s״. יש לצייר דוגמה חדשה.</string>

@@ -177,6 +177,21 @@ public final class MainActivity extends Activity {
         refreshCount();
     }
 
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String requestedGroup = intent.getStringExtra(EXTRA_TRAINING_ALPHABET);
+        if (!Alphabet.isGroup(requestedGroup)) return;
+        training = true;
+        if (!group.equals(requestedGroup)) {
+            changeGroup(requestedGroup);
+        } else {
+            drawing.clear();
+            updateMode();
+            refreshCount();
+        }
+    }
+
     private void buildInterface() {
         getWindow().setStatusBarColor(ACCENT);
         getWindow().setNavigationBarColor(Color.rgb(242, 247, 246));
@@ -550,7 +565,7 @@ public final class MainActivity extends Activity {
         for (Map.Entry<String, Button> entry : characterButtons.entrySet()) {
             String label = entry.getKey();
             int count = characterCounts.getOrDefault(label, 0);
-            entry.getValue().setText(label + "\n" + count);
+            entry.getValue().setText(getString(R.string.training_character_tile, label, count));
             entry.getValue().setContentDescription(getString(
                     R.string.training_character_count, label, count));
             entry.getValue().setSelected(trainingLabel.equals(label));

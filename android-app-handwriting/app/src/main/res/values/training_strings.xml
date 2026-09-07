@@ -2,7 +2,8 @@
 <resources>
     <string name="training_alphabet_heading">Train letters or digits</string>
     <string name="training_alphabet_help">Choose what to teach: Hebrew, English letters or digits. This choice is independent of the interface language.</string>
-    <string name="training_alphabet_selected">%1$s · %2$d characters</string>
+    <string name="training_alphabet_selected">%1$s · Characters: %2$d</string>
+    <string name="training_character_tile">%1$s\n%2$d</string>
     <string name="character_grid_help">Tap the character to teach. The number under it shows saved examples for the selected profile. Changing the character clears unfinished ink.</string>
     <string name="training_character_count">Teach %1$s. Saved examples: %2$d</string>
     <string name="training_character_changed">Now teaching “%1$s”. Draw a new example.</string>
