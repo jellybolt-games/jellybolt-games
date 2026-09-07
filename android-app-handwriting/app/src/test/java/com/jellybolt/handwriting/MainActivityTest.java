@@ -114,6 +114,22 @@ public class MainActivityTest {
         assertTrue(drawing().isEnabled());
     }
 
+    @Test public void missingProfileProducesDrawingGuidanceInsteadOfIgnoringTheGesture() {
+        store.deleteProfile(profileId);
+        launch(null);
+        assertFalse(drawing().isEnabled());
+        android.view.MotionEvent event = android.view.MotionEvent.obtain(
+                0, 0, android.view.MotionEvent.ACTION_DOWN, 20, 20, 0);
+        try {
+            assertTrue(drawing().onTouchEvent(event));
+        } finally {
+            event.recycle();
+        }
+        assertEquals(activity.getString(R.string.profile_required),
+                ((TextView) activity.findViewById(R.id.status_text)).getText().toString());
+        assertTrue(drawing().getInk().isEmpty());
+    }
+
     @Test public void manualConfirmationDoesNotTrainWithoutConsent() {
         launch(null);
         click(R.string.writing_mode);

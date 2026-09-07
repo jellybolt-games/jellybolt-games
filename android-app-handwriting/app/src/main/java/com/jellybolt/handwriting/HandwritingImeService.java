@@ -427,6 +427,8 @@ public class HandwritingImeService extends InputMethodService {
             invalidateDraft(false);
             showStatus(R.string.ime_ink_limit);
         });
+        drawing.setOnDrawingBlockedListener(() -> showStatus(
+                loadingProfiles ? R.string.ime_loading_profiles : R.string.ime_input_failed));
         LinearLayout controls = row(false);
         content.addView(controls);
         addKey(controls, button(R.id.ime_undo, text(R.string.ime_undo), view -> drawing.undoStroke()), 1);
@@ -752,7 +754,10 @@ public class HandwritingImeService extends InputMethodService {
 
     private void updateHandwritingControls() {
         boolean completeInk = drawing != null && !drawing.isDrawing() && !drawing.getInk().isEmpty();
-        if (drawing != null) drawing.setEnabled(editing && !loadingProfiles);
+        if (drawing != null) {
+            drawing.setDisabledHint(loadingProfiles ? R.string.drawing_loading_hint : R.string.drawing_editor_hint);
+            drawing.setEnabled(editing && !loadingProfiles);
+        }
         if (recognize != null) recognize.setEnabled(editing && !recognizing && !loadingProfiles
                 && profileId >= 0 && completeInk);
         if (confirm != null) confirm.setEnabled(editing && selectedLabel != null

@@ -15,7 +15,7 @@ optional system keyboard; the standalone teaching and practice screens remain.
 
 Requires Android 8.0 or later. Build the debug APK below and transfer it to the
 device. Open it and allow installation from that source if Android requests it.
-This is a sideloadable prototype. Version 0.3.0 is also available through
+This is a sideloadable prototype. Version 0.3.1 is also available through
 [Google Play internal testing](https://play.google.com/apps/internaltest/4700966795480494872),
 not public production. Tester access uses the enabled JellyBolt Beta Testers
 and My Handwriting Testers lists; additional Google accounts must be enrolled through the app's
@@ -40,6 +40,11 @@ there is currently no profile migration/export.
 7. Copy the resulting text when finished. Use separate profiles for different
    children; profiles and examples remain available after reopening the app.
 
+If the drawing pad says **Choose a profile**, add or select a profile first.
+A drag that starts on the pad stays there, even while drawing is unavailable.
+Scroll outside the pad. In an emulator, hold the left mouse button while
+moving to draw; mouse-wheel or two-finger trackpad scrolling is not handwriting.
+
 The four alphabets contain 89 labels in total: 10 digits, 26 uppercase letters,
 26 lowercase letters, and 27 Hebrew forms including ך ם ן ף ץ. Recognition is
 restricted to the selected alphabet to reduce ambiguity such as `0` versus `O`.
@@ -51,7 +56,7 @@ add vowel points, fix spelling, or separate connected letters in a whole word.
 
 נדרשת גרסת Android 8.0 ומעלה. בונים את קובץ ה־APK לפי ההוראות בהמשך,
 מעבירים אותו למכשיר ופותחים אותו. אם Android מבקש, מאשרים התקנה מהמקור הזה.
-זו גרסה ראשונית להתקנה ישירה. גרסה 0.3.0 זמינה גם בבדיקה פנימית ב־Google Play
+זו גרסה ראשונית להתקנה ישירה. גרסה 0.3.1 זמינה גם בבדיקה פנימית ב־Google Play
 בקישור שלמעלה, ולא בהפצה ציבורית. הגישה ניתנת דרך הרשימות JellyBolt Beta Testers
 ו־My Handwriting Testers; יש להוסיף חשבונות Google נוספים בלשונית Testers לפני השימוש בקישור.
 לגרסת הפיתוח ולגרסה עתידית מהחנות חתימות שונות. מעבר ביניהן עלול לדרוש
@@ -70,6 +75,11 @@ add vowel points, fix spelling, or separate connected letters in a whole word.
    כדי שלא ללמד את המערכת משמעות שגויה.
 7. מעתיקים את הטקסט בסיום. לכל ילד משתמשים בפרופיל נפרד. הפרופילים
    והדוגמאות נשמרים במכשיר וזמינים גם בפתיחה הבאה.
+
+אם אזור הציור מציג **יש לבחור פרופיל**, מוסיפים או בוחרים פרופיל תחילה.
+גרירה שמתחילה באזור הציור נשארת בו גם כשהציור אינו זמין; גוללים מחוץ לאזור.
+באמולטור מציירים תוך לחיצה על כפתור העכבר השמאלי. גלגל העכבר או גלילה
+בשתי אצבעות על משטח המגע אינם ציור.
 
 יש 89 תוויות: 10 ספרות, 26 אותיות גדולות באנגלית, 26 אותיות קטנות ו־27 צורות
 בעברית, כולל ך ם ן ף ץ. הזיהוי מוגבל לקבוצת התווים שנבחרה. סדר הטקסט
@@ -295,8 +305,8 @@ option using the private `HANDWRITING_UPLOAD_KEYSTORE_BASE64` and
 ו־`HANDWRITING_STORE_PASSWORD`.
 
 **Internal testing is active as of September 7, 2026.** Google Play app ID:
-`4973961227397186581`; internal track: `4700966795480494872`; version code: `3`.
-The latest release is **0.3.0 - Optional keyboard**.
+`4973961227397186581`; internal track: `4700966795480494872`; version code: `4`.
+The latest release is **0.3.1 - Drawing gesture fix**.
 Play Console reports "Available to internal testers." Testers may initially
 see `com.jellybolt.handwriting (unreviewed)` as the temporary app name.
 Public production, age/content declarations, store graphics, and store review
@@ -307,7 +317,7 @@ Hands-on accessibility and handwriting evaluation with the intended user
 is still necessary before a broad rollout.
 
 **הבדיקה הפנימית פעילה מ־7 בספטמבר 2026.** מזהי האפליקציה והמסלול מופיעים
-למעלה; הגרסה האחרונה היא **0.3.0 - Optional keyboard**, והיא זמינה לבודקים פנימיים. בתחילה עשוי להופיע
+למעלה; הגרסה האחרונה היא **0.3.1 - Drawing gesture fix**, והיא זמינה לבודקים פנימיים. בתחילה עשוי להופיע
 השם הזמני `com.jellybolt.handwriting (unreviewed)`. הפצה ציבורית, הצהרות גיל
 ותוכן, תמונות החנות ובדיקת Google הם שלבים נפרדים. עמוד הפרטיות הדו־לשוני נמצא
 בקוד בנתיב שלמעלה, אך עדיין לא בהכרח פורסם בכתובת ציבורית. לפני הפצה רחבה

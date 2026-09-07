@@ -257,6 +257,7 @@ public final class MainActivity extends Activity {
             }
         });
         drawing.setOnInkChangedListener(this::invalidateDraft);
+        drawing.setOnDrawingBlockedListener(() -> status.setText(R.string.profile_required));
         drawing.setOnLimitReachedListener(() -> status.setText(R.string.ink_limit));
         add(inkPanel, text(R.string.drawing_help, 16));
         add(inkPanel, button(R.string.undo_stroke, view -> drawing.undoStroke()));

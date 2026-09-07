@@ -51,6 +51,9 @@
     <string name="no_sample">There is no saved example for “%1$s” to undo.</string>
     <string name="drawing_heading">One-character drawing area</string>
     <string name="draw_here">Draw here</string>
+    <string name="drawing_profile_hint">Choose a profile</string>
+    <string name="drawing_loading_hint">Loading profile…</string>
+    <string name="drawing_editor_hint">Select a text field</string>
     <string name="drawing_description">Draw one character with a finger or stylus. Lift between strokes. Nothing is submitted until you choose Recognize or Save labeled example.</string>
     <string name="drawing_help">Lift your finger between strokes. Take as long as you need. Undo removes one complete stroke.</string>
     <string name="undo_stroke">Undo stroke</string>

@@ -7,6 +7,9 @@ import android.text.InputType;
 import android.text.Selection;
 import android.text.SpannableStringBuilder;
 import android.view.View;
+import android.view.MotionEvent;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodInfo;
@@ -89,6 +92,53 @@ public class KeyboardDeviceTest {
             assertTrue(KeyboardEditor.enter(connection, info));
             assertEquals("\n", connection.text.toString());
         });
+    }
+
+    @Test public void drawingGesturesDoNotScrollEvenWhenAProfileIsMissing() throws Exception {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        onMain(() -> {
+            ScrollView page = new ScrollView(context);
+            LinearLayout content = new LinearLayout(context);
+            content.setOrientation(LinearLayout.VERTICAL);
+            content.addView(new View(context), new LinearLayout.LayoutParams(-1, 300));
+            DrawingView drawing = new DrawingView(context);
+            content.addView(drawing, new LinearLayout.LayoutParams(-1, 240));
+            content.addView(new View(context), new LinearLayout.LayoutParams(-1, 900));
+            page.addView(content);
+            page.measure(View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY));
+            page.layout(0, 0, 400, 400);
+            page.scrollTo(0, 250);
+            drawing.setEnabled(false);
+            int[] blocked = {0};
+            drawing.setOnDrawingBlockedListener(() -> blocked[0]++);
+            touchDrag(page, 230, 100);
+            assertEquals(250, page.getScrollY());
+            assertEquals(1, blocked[0]);
+            assertTrue(drawing.getInk().isEmpty());
+            drawing.setEnabled(true);
+            touchDrag(page, 230, 100);
+            assertEquals(250, page.getScrollY());
+            assertEquals(1, drawing.getInk().strokes.size());
+            touchDrag(page, 350, 160);
+            assertTrue(page.getScrollY() > 250);
+        });
+    }
+
+    private static void touchDrag(ScrollView page, float startY, float endY) {
+        int[] actions = {MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE,
+                MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP};
+        float[] positions = {startY, (startY + endY) / 2, endY, endY};
+        long start = android.os.SystemClock.uptimeMillis();
+        for (int i = 0; i < actions.length; i++) {
+            MotionEvent event = MotionEvent.obtain(start, start + i * 16,
+                    actions[i], 100, positions[i], 0);
+            try {
+                assertTrue(page.dispatchTouchEvent(event));
+            } finally {
+                event.recycle();
+            }
+        }
     }
 
     private static void onMain(Runnable operation) throws Exception {

@@ -51,6 +51,9 @@
     <string name="no_sample">אין דוגמה שמורה של ״%1$s״ שאפשר לבטל.</string>
     <string name="drawing_heading">אזור ציור לתו אחד</string>
     <string name="draw_here">מציירים כאן</string>
+    <string name="drawing_profile_hint">יש לבחור פרופיל</string>
+    <string name="drawing_loading_hint">הפרופיל נטען…</string>
+    <string name="drawing_editor_hint">יש לבחור שדה טקסט</string>
     <string name="drawing_description">מציירים תו אחד באצבע או בעט מגע. אפשר להרים את האצבע בין קווים. דבר לא נשלח עד לבחירה בזיהוי או בשמירת דוגמה מתויגת.</string>
     <string name="drawing_help">אפשר להרים את האצבע בין קווים ולקחת את כל הזמן שצריך. ביטול קו מסיר קו שלם אחד.</string>
     <string name="undo_stroke">ביטול קו</string>

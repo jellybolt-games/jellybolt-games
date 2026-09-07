@@ -9,6 +9,7 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.jellybolt.handwriting.core.Ink;
 
@@ -27,6 +28,8 @@ public final class DrawingView extends View {
     private int pointCount;
     private Runnable onInkChanged;
     private Runnable onLimitReached;
+    private Runnable onDrawingBlocked;
+    private int disabledHint = R.string.drawing_profile_hint;
 
     public DrawingView(Context context) {
         this(context, null);
@@ -56,6 +59,16 @@ public final class DrawingView extends View {
 
     public void setOnLimitReachedListener(Runnable listener) {
         onLimitReached = listener;
+    }
+
+    public void setOnDrawingBlockedListener(Runnable listener) {
+        onDrawingBlocked = listener;
+    }
+
+    public void setDisabledHint(int resource) {
+        if (disabledHint == resource) return;
+        disabledHint = resource;
+        invalidate();
     }
 
     public boolean isDrawing() {
@@ -99,16 +112,22 @@ public final class DrawingView extends View {
         super.onDraw(canvas);
         bounds.set(dp(1), dp(1), getWidth() - dp(1), getHeight() - dp(1));
         surfacePaint.setStyle(Paint.Style.FILL);
-        surfacePaint.setColor(Color.WHITE);
+        surfacePaint.setColor(isEnabled() ? Color.WHITE : Color.rgb(239, 243, 243));
         canvas.drawRoundRect(bounds, dp(16), dp(16), surfacePaint);
         surfacePaint.setStyle(Paint.Style.STROKE);
         surfacePaint.setStrokeWidth(dp(2));
         surfacePaint.setColor(Color.rgb(112, 146, 151));
         canvas.drawRoundRect(bounds, dp(16), dp(16), surfacePaint);
         if (strokes.isEmpty() && current == null) {
-            canvas.drawText(getResources().getString(R.string.draw_here),
+            String hint = getResources().getString(isEnabled() ? R.string.draw_here : disabledHint);
+            float originalSize = hintPaint.getTextSize();
+            float measured = hintPaint.measureText(hint);
+            float available = Math.max(1, getWidth() - dp(24));
+            if (measured > available) hintPaint.setTextSize(originalSize * available / measured);
+            canvas.drawText(hint,
                     getWidth() / 2f, getHeight() / 2f - (hintPaint.ascent() + hintPaint.descent()) / 2f,
                     hintPaint);
+            hintPaint.setTextSize(originalSize);
         }
         for (List<Ink.Point> stroke : strokes) drawStroke(canvas, stroke);
         if (current != null) drawStroke(canvas, current);
@@ -133,32 +152,51 @@ public final class DrawingView extends View {
     }
 
     @Override public boolean onTouchEvent(MotionEvent event) {
-        if (!isEnabled()) return false;
         int action = event.getActionMasked();
         if (action == MotionEvent.ACTION_DOWN) {
             cancelCurrent();
+            // Own the whole gesture, even when drawing is unavailable or its stroke is cancelled.
+            disallowParentScroll(true);
+            if (!isEnabled()) {
+                if (onDrawingBlocked != null) onDrawingBlocked.run();
+                else announceForAccessibility(getResources().getString(disabledHint));
+                return true;
+            }
             if (strokes.size() >= Ink.MAX_STROKES || pointCount >= Ink.MAX_POINTS) {
                 limitReached();
                 return true;
             }
             pointerId = event.getPointerId(0);
             current = new ArrayList<>();
-            if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
             addPoint(event.getX(), event.getY());
             changed();
             return true;
         }
-        if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_POINTER_DOWN
-                || action == MotionEvent.ACTION_POINTER_UP) {
+        if (action == MotionEvent.ACTION_CANCEL) {
+            cancelCurrent();
+            disallowParentScroll(false);
+            changed();
+            return true;
+        }
+        if (!isEnabled()) {
+            cancelCurrent();
+            if (action == MotionEvent.ACTION_UP) disallowParentScroll(false);
+            return true;
+        }
+        if (action == MotionEvent.ACTION_POINTER_DOWN || action == MotionEvent.ACTION_POINTER_UP) {
             cancelCurrent();
             changed();
             return true;
         }
         if (action == MotionEvent.ACTION_MOVE || action == MotionEvent.ACTION_UP) {
-            if (current == null) return true;
+            if (current == null) {
+                if (action == MotionEvent.ACTION_UP) disallowParentScroll(false);
+                return true;
+            }
             int index = event.findPointerIndex(pointerId);
             if (index < 0) {
                 cancelCurrent();
+                if (action == MotionEvent.ACTION_UP) disallowParentScroll(false);
                 changed();
                 return true;
             }
@@ -166,15 +204,15 @@ public final class DrawingView extends View {
                 addPoint(event.getHistoricalX(index, i), event.getHistoricalY(index, i));
             }
             if (current != null) addPoint(event.getX(index), event.getY(index));
-            if (action == MotionEvent.ACTION_UP && current != null) {
-                if (!current.isEmpty()) {
+            if (action == MotionEvent.ACTION_UP) {
+                boolean completed = current != null && !current.isEmpty();
+                if (completed) {
                     strokes.add(current);
                     pointCount += current.size();
                 }
-                current = null;
-                pointerId = -1;
-                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
-                performClick();
+                cancelCurrent();
+                disallowParentScroll(false);
+                if (completed) performClick();
             }
             changed();
             return true;
@@ -207,7 +245,10 @@ public final class DrawingView extends View {
     private void cancelCurrent() {
         current = null;
         pointerId = -1;
-        if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+    }
+
+    private void disallowParentScroll(boolean disallow) {
+        if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(disallow);
     }
 
     private void limitReached() {
@@ -231,7 +272,13 @@ public final class DrawingView extends View {
 
     @Override protected void onDetachedFromWindow() {
         cancelCurrent();
+        disallowParentScroll(false);
         super.onDetachedFromWindow();
+    }
+
+    @Override public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+        super.onInitializeAccessibilityNodeInfo(info);
+        if (!isEnabled()) info.setContentDescription(getResources().getString(disabledHint));
     }
 
     @Override public boolean performClick() {
