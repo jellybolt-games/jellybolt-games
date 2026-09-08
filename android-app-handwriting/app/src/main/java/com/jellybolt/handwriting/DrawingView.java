@@ -29,6 +29,7 @@ public final class DrawingView extends View {
     private Runnable onInkChanged;
     private Runnable onLimitReached;
     private Runnable onDrawingBlocked;
+    private Runnable onStrokeFinished;
     private int disabledHint = R.string.drawing_profile_hint;
 
     public DrawingView(Context context) {
@@ -63,6 +64,10 @@ public final class DrawingView extends View {
 
     public void setOnDrawingBlockedListener(Runnable listener) {
         onDrawingBlocked = listener;
+    }
+
+    public void setOnStrokeFinishedListener(Runnable listener) {
+        onStrokeFinished = listener;
     }
 
     public void setDisabledHint(int resource) {
@@ -158,11 +163,13 @@ public final class DrawingView extends View {
             // Own the whole gesture, even when drawing is unavailable or its stroke is cancelled.
             disallowParentScroll(true);
             if (!isEnabled()) {
+                changed();
                 if (onDrawingBlocked != null) onDrawingBlocked.run();
                 else announceForAccessibility(getResources().getString(disabledHint));
                 return true;
             }
             if (strokes.size() >= Ink.MAX_STROKES || pointCount >= Ink.MAX_POINTS) {
+                changed();
                 limitReached();
                 return true;
             }
@@ -204,6 +211,7 @@ public final class DrawingView extends View {
                 addPoint(event.getHistoricalX(index, i), event.getHistoricalY(index, i));
             }
             if (current != null) addPoint(event.getX(index), event.getY(index));
+            boolean finishedStroke = false;
             if (action == MotionEvent.ACTION_UP) {
                 boolean completed = current != null && !current.isEmpty();
                 if (completed) {
@@ -213,8 +221,10 @@ public final class DrawingView extends View {
                 cancelCurrent();
                 disallowParentScroll(false);
                 if (completed) performClick();
+                finishedStroke = completed;
             }
             changed();
+            if (finishedStroke && onStrokeFinished != null) onStrokeFinished.run();
             return true;
         }
         return true;

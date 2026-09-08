@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auto_insert_title">הזנה לאחר הפסקה בכתיבה</string>
+    <string name="auto_insert_help">במצב כתיבה, מרימים את האצבע וממתינים כדי להזין את התחזית המובילה. קו נוסף מאפס את ההמתנה. תחזיות עלולות להיות שגויות; אפשר לבטל או לתקן אותן. הזנה אוטומטית אינה שומרת דוגמאות לימוד.</string>
+    <string-array name="auto_insert_delays">
+        <item>כבוי — אישור ידני</item>
+        <item>אחרי 0.8 שניות</item>
+        <item>אחרי 1.2 שניות</item>
+        <item>אחרי 2 שניות</item>
+    </string-array>
+    <string-array name="auto_insert_delays_short">
+        <item>ידני</item>
+        <item>0.8 ש׳</item>
+        <item>1.2 ש׳</item>
+        <item>2 ש׳</item>
+    </string-array>
+    <string name="auto_insert_waiting">ממתינים להפסקה כדי להזין את התו החזוי…</string>
+    <string name="auto_insert_done">התחזית הוזנה. אפשר לבטל או לתקן; היא לא נשמרה ללימוד.</string>
+    <string name="auto_insert_uncertain">הוזנה תחזית שאינה ודאית. יש לבדוק אותה; היא לא נשמרה ללימוד.</string>
+    <string name="auto_insert_settings_changed">משך ההמתנה עודכן. מסיימים קו חדש כדי להתחיל את ההמתנה.</string>
+    <string name="auto_insert_undo">ביטול הזנה אוטומטית</string>
+    <string name="auto_insert_undone">התחזית הוסרה. אפשר לבחור את התו הרצוי או לצייר קו נוסף.</string>
+    <string name="starter_examples_help">צורות התחלתיות מובנות מכסות את כל האותיות והספרות, גם לפני אימון. דוגמאות אישיות משפרות את ההתאמה לכתב היד שלכם. המספרים מציגים רק דוגמאות ששמרתם, לא את הצורות המובנות.</string>
+    <string name="starter_examples_profile">צורות התחלתיות מובנות</string>
+    <string name="auto_insert_privacy">הצורות ההתחלתיות כלולות באפליקציה ואינן מכילות נתוני ילדים. כתיבה אוטומטית מופעלת כברירת מחדל אחרי הפסקה של 1.2 שניות ואפשר לבטל אותה. התחזיות מוזנות לטיוטה או לאפליקציה הנוכחית בלי להישמר כדוגמאות לימוד. תוצאת כתב יד אחרונה שאינה משדה פרטי והציור שלה עשויים להישמר לזמן קצר בזיכרון לצורך ביטול; הם מתנקים כשהקשר ההזנה משתנה.</string>
+</resources>

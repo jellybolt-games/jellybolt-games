@@ -18,4 +18,7 @@
     <item type="id" name="training_character_grid" />
     <item type="id" name="training_target" />
     <item type="id" name="training_sample_count" />
+    <item type="id" name="auto_insert_delay" />
+    <item type="id" name="undo_auto_insert" />
+    <item type="id" name="undo_output_character" />
 </resources>

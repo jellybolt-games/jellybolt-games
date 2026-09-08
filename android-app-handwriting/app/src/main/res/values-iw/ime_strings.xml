@@ -19,8 +19,14 @@
     <string name="ime_hebrew">עברית וסופיות</string>
     <string name="ime_loading_profiles">טוען פרופילים…</string>
     <string name="ime_no_profile">אין פרופיל</string>
-    <string name="ime_no_profiles">אפשר להקליד או לבחור תו. להצעות אישיות יש לפתוח את האימון.</string>
+    <string name="ime_no_profiles">הצורות המובנות מוכנות. ציירו תו; אימון מוסיף דוגמאות אישיות.</string>
     <string name="ime_draw_hint">ציירו תו אחד. זיהוי, בחירה ואז הוספה.</string>
+    <string name="ime_auto_draw_hint">ציירו תו אחד והמתינו להוספה. בחירה מאפשרת לתקן תחזית.</string>
+    <string name="ime_auto_undo">ביטול הוספה</string>
+    <string name="ime_auto_undo_unavailable">אי אפשר לבטל את ההוספה בבטחה. יש לתקן בעורך הטקסט.</string>
+    <string name="ime_auto_private">התחזית נוספה בלי לימוד. בשדה פרטי אפשר לתקן בעזרת מחיקה.</string>
+    <string name="ime_auto_private_uncertain">נוספה תחזית לא ודאית בלי לימוד. בשדה פרטי אפשר לתקן בעזרת מחיקה.</string>
+    <string name="ime_auto_without_undo">התחזית נוספה בלי לימוד. אפשר לתקן בעורך הטקסט.</string>
     <string name="ime_drawing_description">ציור תו אחד עבור המקלדת</string>
     <string name="ime_undo">ביטול קו</string>
     <string name="ime_clear">ניקוי</string>
@@ -50,8 +56,8 @@
     <string name="ime_edited">שדה הטקסט עודכן</string>
     <string name="ime_input_failed">השדה לא קיבל את הפעולה. געו בשדה הטקסט ונסו שוב.</string>
     <string name="ime_draw_first">סיימו לצייר תו תחילה, או השתמשו בבחירה.</string>
-    <string name="ime_recognizing">משווה לציורים השמורים שלכם…</string>
-    <string name="ime_need_training">יש לאמן לפחות שני תווים שונים בקבוצה זו, או להשתמש בבחירה.</string>
+    <string name="ime_recognizing">משווה לצורות המובנות ולציורים השמורים שלכם…</string>
+    <string name="ime_need_training">אין תחזית זמינה. נסו ציור נוסף או השתמשו בבחירה.</string>
     <string name="ime_similarity">דמיון צורני, לא הסתברות. בחרו התאמה ואז הוספה.</string>
     <string name="ime_uncertain">ההתאמה אינה ודאית. הציון הוא דמיון צורני, לא הסתברות. בחרו בזהירות.</string>
     <string name="ime_candidate_description">%1$s, דמיון צורני %2$d מתוך 100</string>

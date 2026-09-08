@@ -148,6 +148,39 @@ public class DrawingViewTest {
         assertTrue(page.getScrollY() > 250);
     }
 
+    @Test public void onlyAFinishedUserStrokeCanArmAutomaticInsertion() {
+        int[] finished = {0};
+        view.setOnStrokeFinishedListener(() -> finished[0]++);
+        event(MotionEvent.ACTION_DOWN, 20, 30);
+        event(MotionEvent.ACTION_MOVE, 40, 50);
+        assertEquals(0, finished[0]);
+        event(MotionEvent.ACTION_UP, 60, 70);
+        assertEquals(1, finished[0]);
+        Ink draft = view.getInk();
+        view.setInk(draft);
+        view.undoStroke();
+        view.clear();
+        assertEquals(1, finished[0]);
+        event(MotionEvent.ACTION_DOWN, 20, 30);
+        event(MotionEvent.ACTION_CANCEL, 40, 50);
+        event(MotionEvent.ACTION_UP, 40, 50);
+        assertEquals(1, finished[0]);
+    }
+
+    @Test public void rejectedDownAtTheLimitStillInvalidatesThePendingTimer() {
+        view.setInk(new Ink(Collections.nCopies(Ink.MAX_STROKES,
+                Collections.singletonList(new Ink.Point(10, 10)))));
+        int[] changes = {0};
+        int[] completions = {0};
+        view.setOnInkChangedListener(() -> changes[0]++);
+        view.setOnStrokeFinishedListener(() -> completions[0]++);
+        event(MotionEvent.ACTION_DOWN, 20, 30);
+        assertEquals(1, changes[0]);
+        event(MotionEvent.ACTION_UP, 20, 30);
+        assertEquals(0, completions[0]);
+        assertFalse(view.isDrawing());
+    }
+
     private ScrollView scrollingPage() {
         ScrollView page = new ScrollView(RuntimeEnvironment.getApplication());
         LinearLayout content = new LinearLayout(RuntimeEnvironment.getApplication());

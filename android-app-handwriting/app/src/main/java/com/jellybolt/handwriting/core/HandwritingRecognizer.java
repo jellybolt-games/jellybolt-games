@@ -8,8 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Per-user exemplar matching. No pretrained alphabet, rotation, mirroring,
- * stroke-order requirements, or language-model autocorrection.
+ * Offline stroke-shape matching, optionally with original hand-authored starter
+ * examples. No neural model, rotation, mirroring, stroke-order requirements,
+ * or language-model autocorrection.
  */
 public final class HandwritingRecognizer {
     private static final int GRID = 32;
@@ -45,8 +46,12 @@ public final class HandwritingRecognizer {
 
         private Candidate(String label, double distance) {
             this.label = label;
-            similarity = (int) Math.round(100 * Math.exp(-12 * distance));
+            similarity = shapeSimilarity(distance);
         }
+    }
+
+    private static int shapeSimilarity(double distance) {
+        return (int) Math.round(100 * Math.exp(-12 * distance));
     }
 
     public static final class Result {
@@ -96,6 +101,104 @@ public final class HandwritingRecognizer {
                 || first.similarity - candidates.get(1).similarity < 12
                 || distances.get(first.label).size() < 3;
         return new Result(candidates, uncertain, distances.size());
+    }
+
+    /**
+     * Matches this alphabet's bundled examples plus the child's own examples.
+     * trainedLabels still counts only personal labels, not the bundled alphabet.
+     */
+    public static Result recognize(Ink ink, String group, List<Example> personal) {
+        if (ink == null || ink.isEmpty()) throw new IllegalArgumentException("Draw a character first");
+        if (!Alphabet.isGroup(group)) throw new IllegalArgumentException("Unknown alphabet: " + group);
+        if (personal == null) throw new IllegalArgumentException("Examples are required");
+        checkCancelled();
+        Map<String, LabelMatch> matches = new LinkedHashMap<>();
+        for (String label : Alphabet.labels(group)) matches.put(label, new LabelMatch(label));
+        // Validate before matching; mixing alphabets must never silently discard saved data.
+        int trainedLabels = 0;
+        for (Example example : personal) {
+            checkCancelled();
+            if (example == null || !matches.containsKey(example.label)) {
+                throw new IllegalArgumentException("Personal example is outside alphabet: " + group);
+            }
+            LabelMatch match = matches.get(example.label);
+            if (!match.hasPersonal) {
+                match.hasPersonal = true;
+                trainedLabels++;
+            }
+        }
+        Shape query = new Shape(ink);
+        for (Example example : DefaultSamples.examples(group)) {
+            checkCancelled();
+            LabelMatch match = matches.get(example.label);
+            match.bundledDistance = Math.min(match.bundledDistance, query.distance(example.shape()));
+        }
+        for (Example example : personal) {
+            checkCancelled();
+            LabelMatch match = matches.get(example.label);
+            match.personalDistance = Math.min(match.personalDistance, query.distance(example.shape()));
+        }
+        /*
+         * Each source contributes only its nearest shape per label, not votes or
+         * a pooled neighbor mean. Thus many starters cannot drown one rare or
+         * mirrored personal example, and many personal samples cannot swamp an
+         * untrained label. A 0.8 personal-distance multiplier favors the child;
+         * exact ties prefer the personal source, then the label for determinism.
+         * Displayed similarity uses the winning source's UNWEIGHTED shape distance:
+         * it is a match score, never a calibrated probability or sample count.
+         */
+        List<LabelMatch> ordered = new ArrayList<>(matches.values());
+        ordered.sort((left, right) -> {
+            int distanceOrder = Double.compare(left.rankDistance(), right.rankDistance());
+            if (distanceOrder != 0) return distanceOrder;
+            if (left.usesPersonal() != right.usesPersonal()) return left.usesPersonal() ? -1 : 1;
+            return left.label.compareTo(right.label);
+        });
+        List<Candidate> candidates = new ArrayList<>();
+        for (int i = 0; i < Math.min(3, ordered.size()); i++) {
+            LabelMatch match = ordered.get(i);
+            candidates.add(new Candidate(match.label, match.shapeDistance()));
+        }
+        checkCancelled();
+        Candidate first = candidates.get(0);
+        int competingSimilarity = 0;
+        // Personal ranking can reorder raw similarities. Check every rival rather
+        // than assuming the second-ranked class has the next-closest raw shape.
+        for (int i = 1; i < ordered.size(); i++) {
+            competingSimilarity = Math.max(competingSimilarity, shapeSimilarity(ordered.get(i).shapeDistance()));
+        }
+        boolean uncertain = first.similarity < 55
+                || first.similarity - competingSimilarity < 12;
+        return new Result(candidates, uncertain, trainedLabels);
+    }
+
+    private static void checkCancelled() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new java.util.concurrent.CancellationException("Recognition cancelled");
+        }
+    }
+
+    private static final class LabelMatch {
+        final String label;
+        boolean hasPersonal;
+        double bundledDistance = Double.POSITIVE_INFINITY;
+        double personalDistance = Double.POSITIVE_INFINITY;
+
+        LabelMatch(String label) {
+            this.label = label;
+        }
+
+        boolean usesPersonal() {
+            return personalDistance * 0.8 <= bundledDistance;
+        }
+
+        double rankDistance() {
+            return Math.min(bundledDistance, personalDistance * 0.8);
+        }
+
+        double shapeDistance() {
+            return usesPersonal() ? personalDistance : bundledDistance;
+        }
     }
 
     private static final class Shape {

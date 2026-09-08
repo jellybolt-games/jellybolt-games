@@ -5,11 +5,13 @@ import android.content.Intent;
 import android.graphics.Insets;
 import android.graphics.Rect;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.Selection;
 import android.text.SpannableStringBuilder;
 import android.view.View;
+import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.inputmethod.BaseInputConnection;
@@ -21,6 +23,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.jellybolt.handwriting.core.Alphabet;
+import com.jellybolt.handwriting.core.HandwritingRecognizer;
 import com.jellybolt.handwriting.core.Ink;
 
 import org.junit.After;
@@ -36,6 +39,11 @@ import org.robolectric.annotation.LooperMode;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.lang.reflect.Field;
+import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
 import static org.junit.Assert.*;
@@ -67,6 +75,9 @@ public class HandwritingImeServiceTest {
         final Editable text = new SpannableStringBuilder();
         int action = -1;
         boolean accept = true;
+        boolean allowRead = true;
+        int commits;
+        int deletes;
 
         RecordingConnection(Context context) {
             super(new View(context), true);
@@ -78,7 +89,17 @@ public class HandwritingImeServiceTest {
         }
 
         @Override public boolean commitText(CharSequence value, int cursor) {
+            commits++;
             return accept && super.commitText(value, cursor);
+        }
+
+        @Override public boolean deleteSurroundingText(int before, int after) {
+            deletes++;
+            return super.deleteSurroundingText(before, after);
+        }
+
+        @Override public CharSequence getTextBeforeCursor(int length, int flags) {
+            return allowRead ? super.getTextBeforeCursor(length, flags) : null;
         }
 
         @Override public boolean performEditorAction(int id) {
@@ -93,6 +114,8 @@ public class HandwritingImeServiceTest {
         context.getSharedPreferences("handwriting-ui", Context.MODE_PRIVATE).edit()
                 .clear().putString("language", "en").commit();
         context.getSharedPreferences("handwriting-ime", Context.MODE_PRIVATE).edit().clear().commit();
+        context.getSharedPreferences(AutoInsertSettings.PREFERENCES, Context.MODE_PRIVATE)
+                .edit().clear().commit();
         store = new ProfileStore(context);
     }
 
@@ -106,6 +129,7 @@ public class HandwritingImeServiceTest {
         EditorInfo info = new EditorInfo();
         info.inputType = inputType;
         info.imeOptions = options;
+        info.initialSelStart = info.initialSelEnd = 0;
         return info;
     }
 
@@ -378,7 +402,7 @@ public class HandwritingImeServiceTest {
         assertEquals(2, store.examples(profileId, Alphabet.DIGITS).size());
     }
 
-    @Test public void recognitionRequiresSelectionAndNeverInsertsAutomatically() throws Exception {
+    @Test public void explicitRecognitionRequiresSelectionAndNeverInsertsAutomatically() throws Exception {
         createProfile();
         store.addExample(profileId, Alphabet.DIGITS, "7", ink);
         store.addExample(profileId, Alphabet.DIGITS, "1",
@@ -397,6 +421,495 @@ public class HandwritingImeServiceTest {
         click(R.id.ime_confirm);
         assertEquals("7", connection.text.toString());
         assertEquals(2, store.examples(profileId, Alphabet.DIGITS).size());
+    }
+
+    @Test public void builtInShapesInsertAfterDefaultPauseWithoutCreatingAProfile() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        assertEquals(context.getString(R.string.ime_no_profiles), status());
+        assertEquals(context.getString(R.string.starter_examples_profile),
+                ((Spinner) root.findViewById(R.id.ime_profile)).getSelectedItem().toString());
+        assertEquals(2, ((Spinner) root.findViewById(R.id.ime_auto_delay)).getSelectedItemPosition());
+        stroke();
+        assertTrue(root.findViewById(R.id.ime_recognize).isEnabled());
+        advance(1199);
+        drainWorker();
+        assertEquals("", connection.text.toString());
+        assertEquals(0, connection.commits);
+        advance(1);
+        await(() -> connection.commits == 1);
+        assertTrue(Alphabet.labels(Alphabet.DIGITS).contains(connection.text.toString()));
+        assertTrue(drawing().getInk().isEmpty());
+        assertTrue(store.profiles().isEmpty());
+        assertFalse(root.findViewById(R.id.ime_confirm).isEnabled());
+        advance(5000);
+        drainWorker();
+        assertEquals(1, connection.commits);
+    }
+
+    @Test public void additionalCompletedStrokeRestartsTheWholePause() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        stroke();
+        advance(1000);
+        stroke();
+        assertEquals(2, drawing().getInk().strokes.size());
+        advance(1199);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        advance(1);
+        await(() -> connection.commits == 1);
+        advance(3000);
+        drainWorker();
+        assertEquals(1, connection.commits);
+    }
+
+    @Test public void fingerHeldAndCancelledGesturesNeverStartOrFinishTheTimer() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        stroke();
+        advance(1000);
+        touch(MotionEvent.ACTION_DOWN, 0.25f, 0.25f);
+        advance(3000);
+        touch(MotionEvent.ACTION_MOVE, 0.7f, 0.6f);
+        advance(3000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        touch(MotionEvent.ACTION_CANCEL, 0.7f, 0.6f);
+        advance(3000);
+        touch(MotionEvent.ACTION_UP, 0.7f, 0.6f);
+        advance(3000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        assertEquals(1, drawing().getInk().strokes.size());
+    }
+
+    @Test public void programmaticInkAndStrokeUndoNeverArmAutomaticInsertion() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        drawing().setInk(ink);
+        advance(2000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        stroke();
+        click(R.id.ime_undo);
+        advance(2000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        assertEquals(1, drawing().getInk().strokes.size());
+    }
+
+    @Test public void manualSettingKeepsStrokeRecognitionAndInsertionExplicit() throws Exception {
+        AutoInsertSettings.select(context, 0);
+        launch(true, textEditor());
+        awaitReady();
+        stroke();
+        advance(5000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        click(R.id.ime_recognize);
+        await(() -> ((ViewGroup) root.findViewById(R.id.ime_candidates)).getChildCount() > 0);
+        assertEquals(0, connection.commits);
+        Button candidate = (Button) ((ViewGroup) root.findViewById(R.id.ime_candidates)).getChildAt(0);
+        String label = (String) candidate.getTag();
+        candidate.performClick();
+        click(R.id.ime_confirm);
+        assertEquals(label, connection.text.toString());
+        assertEquals(1, connection.commits);
+    }
+
+    @Test public void explicitRecognitionCancelsTheAutomaticTimerForThatStroke() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        stroke();
+        advance(800);
+        click(R.id.ime_recognize);
+        await(() -> ((ViewGroup) root.findViewById(R.id.ime_candidates)).getChildCount() > 0);
+        advance(3000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        assertFalse(root.findViewById(R.id.ime_confirm).isEnabled());
+    }
+
+    @Test public void delayChangesCancelPendingStrokeAndAreSharedWithTheApp() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        stroke();
+        advance(1000);
+        Spinner delay = root.findViewById(R.id.ime_auto_delay);
+        delay.setSelection(3);
+        layoutKeyboard();
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(2000, AutoInsertSettings.delay(context));
+        advance(3000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        stroke();
+        advance(1999);
+        assertEquals(0, connection.commits);
+        advance(1);
+        await(() -> connection.commits == 1);
+        stroke();
+        AutoInsertSettings.select(context, 0);
+        shadowOf(Looper.getMainLooper()).idle();
+        advance(5000);
+        drainWorker();
+        assertEquals(1, connection.commits);
+        service.onStartInputView(textEditor(), false);
+        awaitReady();
+        assertEquals(0, ((Spinner) root.findViewById(R.id.ime_auto_delay)).getSelectedItemPosition());
+    }
+
+    @Test public void navigationAndManualActionsCancelPendingAutomaticInsertion() throws Exception {
+        createProfile();
+        store.createProfile("Second learner");
+        launch(true, textEditor());
+        awaitProfiles();
+        for (int action : new int[]{R.id.ime_clear, R.id.ime_manual, R.id.ime_mode,
+                R.id.ime_space, R.id.ime_backspace, R.id.ime_enter, R.id.ime_training, R.id.ime_picker}) {
+            if (drawing() == null) click(R.id.ime_mode);
+            stroke();
+            advance(800);
+            click(action);
+            int attempts = connection.commits;
+            advance(3000);
+            drainWorker();
+            assertEquals("Unexpected automatic commit after action " + action, attempts, connection.commits);
+        }
+        service.onStartInput(textEditor(), false);
+        awaitProfiles();
+        stroke();
+        ((Spinner) root.findViewById(R.id.ime_alphabet)).setSelection(3);
+        layoutKeyboard();
+        shadowOf(Looper.getMainLooper()).idle();
+        int attempts = connection.commits;
+        advance(3000);
+        drainWorker();
+        assertEquals(attempts, connection.commits);
+        stroke();
+        ((Spinner) root.findViewById(R.id.ime_profile)).setSelection(1);
+        layoutKeyboard();
+        shadowOf(Looper.getMainLooper()).idle();
+        advance(3000);
+        drainWorker();
+        assertEquals(attempts, connection.commits);
+    }
+
+    @Test public void editorAndInputViewLifecyclesCancelPendingInsertion() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        stroke();
+        service.onFinishInputView(false);
+        advance(2000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        service.onStartInputView(textEditor(), false);
+        awaitReady();
+        stroke();
+        service.onFinishInput();
+        advance(2000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        service.onStartInput(textEditor(), false);
+        awaitReady();
+        stroke();
+        service.connection = new RecordingConnection(context);
+        service.onStartInput(textEditor(), false);
+        awaitReady();
+        advance(2000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        assertEquals(0, ((RecordingConnection) service.connection).commits);
+    }
+
+    @Test public void queuedRecognitionCannotCommitAfterNewFingerDown() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        CountDownLatch release = blockWorker();
+        try {
+            stroke();
+            advance(1200);
+            assertEquals(context.getString(R.string.ime_recognizing), status());
+            touch(MotionEvent.ACTION_DOWN, 0.4f, 0.2f);
+            touch(MotionEvent.ACTION_MOVE, 0.4f, 0.5f);
+        } finally {
+            release.countDown();
+        }
+        drainWorker();
+        advance(3000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        assertEquals(0, ((ViewGroup) root.findViewById(R.id.ime_candidates)).getChildCount());
+    }
+
+    @Test public void completedRecognitionCannotCommitAfterANewFingerDown() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        CountDownLatch release = blockWorker();
+        try {
+            stroke();
+            advance(1200);
+        } finally {
+            release.countDown();
+        }
+        worker().submit(() -> {}).get(10, TimeUnit.SECONDS);
+        touch(MotionEvent.ACTION_DOWN, 0.4f, 0.2f);
+        shadowOf(Looper.getMainLooper()).idle();
+        advance(3000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        touch(MotionEvent.ACTION_UP, 0.4f, 0.8f);
+        advance(1200);
+        await(() -> connection.commits == 1);
+    }
+
+    @Test public void destroyingServiceCancelsTheTimerAndClearsAutomaticUndo() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        stroke();
+        advance(1200);
+        await(() -> connection.commits == 1);
+        View undo = root.findViewById(R.id.ime_auto_undo);
+        assertEquals(View.VISIBLE, undo.getVisibility());
+        stroke();
+        ExecutorService executor = worker();
+        controller.destroy();
+        controller = null;
+        assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
+        advance(5000);
+        assertEquals(1, connection.commits);
+        assertEquals(View.GONE, undo.getVisibility());
+    }
+
+    @Test public void completedWorkerResultCannotCommitAfterAnEditorOrSettingChange() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        CountDownLatch release = blockWorker();
+        try {
+            stroke();
+            advance(1200);
+        } finally {
+            release.countDown();
+        }
+        // Drain comparisons without executing the result posted to the main looper.
+        worker().submit(() -> {}).get(10, TimeUnit.SECONDS);
+        AutoInsertSettings.select(context, 0);
+        AutoInsertSettings.select(context, 2);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(0, connection.commits);
+        release = blockWorker();
+        try {
+            stroke();
+            advance(1200);
+        } finally {
+            release.countDown();
+        }
+        worker().submit(() -> {}).get(10, TimeUnit.SECONDS);
+        service.onStartInput(textEditor(), false);
+        awaitReady();
+        assertEquals(0, connection.commits);
+    }
+
+    @Test public void autoInsertionUsesPersonalSamplesButNeverLearnsWithForcedConsent() throws Exception {
+        createProfile();
+        launch(true, textEditor());
+        awaitProfiles();
+        stroke();
+        Ink personalInk = drawing().getInk();
+        store.addExample(profileId, Alphabet.DIGITS, "7", personalInk);
+        learn().setChecked(true);
+        advance(1200);
+        await(() -> connection.commits == 1);
+        assertEquals("7", connection.text.toString());
+        assertEquals(1, store.examples(profileId, Alphabet.DIGITS).size());
+        assertFalse(learn().isChecked());
+    }
+
+    @Test public void automaticPrivateFieldsNeverLearnOrRetainUndoAndNeverEchoTheirCharacter() throws Exception {
+        createProfile();
+        launch(true, textEditor());
+        for (int type : new int[]{InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD,
+                InputType.TYPE_CLASS_TEXT}) {
+            service.onStartInput(editor(type, EditorInfo.IME_ACTION_DONE
+                    | EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING), false);
+            awaitProfiles();
+            stroke();
+            learn().setChecked(true);
+            int attempts = connection.commits;
+            advance(1200);
+            await(() -> connection.commits == attempts + 1);
+            assertEquals(View.GONE, root.findViewById(R.id.ime_auto_undo).getVisibility());
+            assertTrue(store.examples(profileId, Alphabet.DIGITS).isEmpty());
+            assertFalse(learn().isChecked());
+            assertFalse(status().matches(".*[0-9].*"));
+            assertTrue(status().contains("private"));
+        }
+    }
+
+    @Test public void rejectedAutomaticCommitLeavesInkAndNeverRetriesOrLearns() throws Exception {
+        createProfile();
+        launch(true, textEditor());
+        awaitProfiles();
+        stroke();
+        learn().setChecked(true);
+        connection.accept = false;
+        advance(1200);
+        await(() -> status().equals(context.getString(R.string.ime_input_failed)));
+        assertEquals("", connection.text.toString());
+        assertFalse(drawing().getInk().isEmpty());
+        assertEquals(View.GONE, root.findViewById(R.id.ime_auto_undo).getVisibility());
+        connection.accept = true;
+        advance(5000);
+        drainWorker();
+        assertEquals(1, connection.commits);
+        assertTrue(store.examples(profileId, Alphabet.DIGITS).isEmpty());
+        choose("7");
+        click(R.id.ime_confirm);
+        assertEquals("7", connection.text.toString());
+        assertTrue(store.examples(profileId, Alphabet.DIGITS).isEmpty());
+    }
+
+    @Test public void deletedSelectedProfileReportsAnErrorInsteadOfSilentlyUsingDefaults() throws Exception {
+        createProfile();
+        launch(true, textEditor());
+        awaitProfiles();
+        store.deleteProfile(profileId);
+        stroke();
+        advance(1200);
+        await(() -> status().equals(context.getString(R.string.ime_recognition_error)));
+        assertEquals(0, connection.commits);
+        assertFalse(drawing().getInk().isEmpty());
+    }
+
+    @Test public void automaticUndoRemovesOnlyLastCharacterAndRestoresInkWithoutRearming() throws Exception {
+        createProfile();
+        launch(true, textEditor());
+        awaitProfiles();
+        connection.text.append("prefix");
+        Selection.setSelection(connection.text, 6);
+        service.onUpdateSelection(0, 0, 6, 6, -1, -1);
+        stroke();
+        byte[] originalInk = drawing().getInk().encode();
+        advance(1200);
+        await(() -> connection.commits == 1);
+        assertEquals(7, connection.text.length());
+        service.onUpdateSelection(6, 6, 7, 7, -1, -1);
+        assertEquals(View.VISIBLE, root.findViewById(R.id.ime_auto_undo).getVisibility());
+        click(R.id.ime_auto_undo);
+        assertEquals("prefix", connection.text.toString());
+        assertArrayEquals(originalInk, drawing().getInk().encode());
+        assertEquals(context.getString(R.string.auto_insert_undone), status());
+        assertEquals(1, connection.deletes);
+        advance(4000);
+        drainWorker();
+        assertEquals(1, connection.commits);
+        choose("7");
+        learn().setChecked(true);
+        click(R.id.ime_confirm);
+        await(() -> status().equals(context.getString(R.string.ime_saved)));
+        assertEquals("prefix7", connection.text.toString());
+        assertEquals(1, store.examples(profileId, Alphabet.DIGITS).size());
+    }
+
+    @Test public void typingDrawingAndMovedCaretInvalidateAutomaticUndo() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        for (int action = 0; action < 3; action++) {
+            service.onStartInput(textEditor(), false);
+            connection.text.clear();
+            Selection.setSelection(connection.text, 0);
+            awaitReady();
+            stroke();
+            int attempts = connection.commits;
+            advance(1200);
+            await(() -> connection.commits == attempts + 1);
+            View undo = root.findViewById(R.id.ime_auto_undo);
+            assertEquals(View.VISIBLE, undo.getVisibility());
+            if (action == 0) {
+                click(R.id.ime_space);
+            } else if (action == 1) {
+                touch(MotionEvent.ACTION_DOWN, 0.3f, 0.2f);
+            } else {
+                Selection.setSelection(connection.text, 0);
+                service.onUpdateSelection(1, 1, 0, 0, -1, -1);
+                Selection.setSelection(connection.text, 1);
+                service.onUpdateSelection(0, 0, 1, 1, -1, -1);
+            }
+            String expected = connection.text.toString();
+            assertEquals(View.GONE, undo.getVisibility());
+            undo.performClick();
+            assertEquals(expected, connection.text.toString());
+            assertEquals(0, connection.deletes);
+            assertEquals(context.getString(R.string.ime_auto_undo_unavailable), status());
+        }
+    }
+
+    @Test public void automaticUndoRefusesAnUnreportedMoveMissingTextOrNewConnection() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        for (int action = 0; action < 3; action++) {
+            service.connection = connection;
+            service.onStartInput(textEditor(), false);
+            connection.text.clear();
+            connection.allowRead = true;
+            Selection.setSelection(connection.text, 0);
+            awaitReady();
+            stroke();
+            int attempts = connection.commits;
+            advance(1200);
+            await(() -> connection.commits == attempts + 1);
+            if (action == 0) {
+                Selection.setSelection(connection.text, 0);
+            } else if (action == 1) {
+                connection.allowRead = false;
+            } else {
+                service.connection = new RecordingConnection(context);
+            }
+            String expected = connection.text.toString();
+            click(R.id.ime_auto_undo);
+            assertEquals(expected, connection.text.toString());
+            assertEquals(0, connection.deletes);
+            assertEquals(context.getString(R.string.ime_auto_undo_unavailable), status());
+        }
+    }
+
+    @Test public void automaticHebrewKeepsRawLogicalOrderAndUndoOnlyRemovesTheLastLetter() throws Exception {
+        createProfile();
+        launch(true, textEditor());
+        awaitProfiles();
+        ((Spinner) root.findViewById(R.id.ime_alphabet)).setSelection(3);
+        layoutKeyboard();
+        shadowOf(Looper.getMainLooper()).idle();
+        stroke();
+        store.addExample(profileId, Alphabet.HEBREW, "ם", drawing().getInk());
+        advance(1200);
+        await(() -> connection.commits == 1);
+        assertEquals("ם", connection.text.toString());
+        stroke();
+        advance(1200);
+        await(() -> connection.commits == 2);
+        assertEquals("םם", connection.text.toString());
+        click(R.id.ime_auto_undo);
+        assertEquals("ם", connection.text.toString());
+        assertEquals(1, store.examples(profileId, Alphabet.HEBREW).size());
+    }
+
+    @Test public void uncertainTopPredictionStillInsertsWithoutManualApproval() throws Exception {
+        launch(true, textEditor());
+        awaitReady();
+        touch(MotionEvent.ACTION_DOWN, 0.5f, 0.5f);
+        touch(MotionEvent.ACTION_UP, 0.5f, 0.5f);
+        HandwritingRecognizer.Result expected = HandwritingRecognizer.recognize(
+                drawing().getInk(), Alphabet.DIGITS, Collections.emptyList());
+        assertTrue(expected.uncertain);
+        assertFalse(expected.candidates.isEmpty());
+        advance(1200);
+        await(() -> connection.commits == 1);
+        assertEquals(expected.candidates.get(0).label, connection.text.toString());
+        assertEquals(context.getString(R.string.auto_insert_uncertain), status());
     }
 
     @Test public void drawingAlphabetProfileAndModeChangesResetLearningAndSelection() throws Exception {
@@ -544,6 +1057,59 @@ public class HandwritingImeServiceTest {
 
     private void awaitProfiles() throws Exception {
         await(() -> root.findViewById(R.id.ime_profile).isEnabled());
+    }
+
+    private void awaitReady() throws Exception {
+        await(() -> drawing() != null && drawing().isEnabled()
+                && !status().equals(context.getString(R.string.ime_loading_profiles)));
+    }
+
+    private void advance(long millis) {
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(millis));
+    }
+
+    private ExecutorService worker() throws Exception {
+        Field field = HandwritingImeService.class.getDeclaredField("worker");
+        field.setAccessible(true);
+        return (ExecutorService) field.get(service);
+    }
+
+    private void drainWorker() throws Exception {
+        worker().submit(() -> {}).get(10, TimeUnit.SECONDS);
+        shadowOf(Looper.getMainLooper()).idle();
+    }
+
+    private CountDownLatch blockWorker() throws Exception {
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        worker().execute(() -> {
+            started.countDown();
+            try {
+                release.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        assertTrue(started.await(10, TimeUnit.SECONDS));
+        return release;
+    }
+
+    private void stroke() {
+        touch(MotionEvent.ACTION_DOWN, 0.5f, 0.15f);
+        touch(MotionEvent.ACTION_MOVE, 0.5f, 0.5f);
+        touch(MotionEvent.ACTION_UP, 0.5f, 0.85f);
+    }
+
+    private void touch(int action, float x, float y) {
+        DrawingView pad = drawing();
+        long time = SystemClock.uptimeMillis();
+        MotionEvent event = MotionEvent.obtain(time, time, action,
+                x * pad.getWidth(), y * pad.getHeight(), 0);
+        try {
+            assertTrue(pad.onTouchEvent(event));
+        } finally {
+            event.recycle();
+        }
     }
 
     @Test public void trainButtonCarriesTypingLanguageInsteadOfAlwaysOpeningDigits() {

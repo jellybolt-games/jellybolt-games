@@ -1,8 +1,10 @@
 package com.jellybolt.handwriting;
 
+import android.os.Build;
 import android.text.InputType;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.SurroundingText;
 
 public final class KeyboardEditor {
     private KeyboardEditor() {}
@@ -36,6 +38,25 @@ public final class KeyboardEditor {
     public static boolean commit(InputConnection connection, String text) {
         return connection != null && text != null && !text.isEmpty()
                 && connection.commitText(text, 1);
+    }
+
+    public static boolean undoAutomaticInsertion(InputConnection connection, String label,
+            int expectedEnd, int selectionStart, int selectionEnd) {
+        if (connection == null || label == null || label.length() != 1
+                || Character.isSurrogate(label.charAt(0)) || expectedEnd < label.length()
+                || selectionStart != expectedEnd || selectionEnd != expectedEnd) return false;
+        // Selection positions come from EditorInfo/onUpdateSelection, never an editor-text cache.
+        CharSequence selection = connection.getSelectedText(0);
+        if (selection != null && selection.length() != 0) return false;
+        if (Build.VERSION.SDK_INT >= 31) {
+            SurroundingText surrounding = connection.getSurroundingText(label.length(), 0, 0);
+            if (surrounding == null || surrounding.getOffset() < 0
+                    || surrounding.getOffset() + surrounding.getSelectionStart() != expectedEnd
+                    || surrounding.getOffset() + surrounding.getSelectionEnd() != expectedEnd) return false;
+        }
+        CharSequence previous = connection.getTextBeforeCursor(label.length(), 0);
+        if (previous == null || !label.contentEquals(previous)) return false;
+        return connection.deleteSurroundingText(label.length(), 0);
     }
 
     public static boolean backspace(InputConnection connection) {

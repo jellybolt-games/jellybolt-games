@@ -1,32 +1,38 @@
 # JellyBolt Games — Project Status
-Last updated: 2026-09-07
+Last updated: 2026-09-08
 
 ## Personal handwriting / כתב יד אישי
 
 - `android-app-handwriting/` — separate offline Android prototype for per-child
   recognition of digits, English letters, and Hebrew including final forms.
-  Teaches from locally labeled finger drawings; confirms one character at a
-  time into a number or word. English/Hebrew UI; no ads or network permission.
+  Teaches from locally labeled finger drawings; includes 119 starter templates
+  for all 89 labels. Writing inserts one prediction after a configurable pause,
+  with manual mode and correction/undo. English/Hebrew UI; no ads or network permission.
   See its README for build/install instructions and recognition limitations.
-- Version 0.4.0 targets Android 16/API 36 and includes an optional system keyboard:
+- Version 0.5.0 targets Android 16/API 36 and includes an optional system keyboard:
   English/Hebrew typing, symbols, shared handwriting profiles, and private-field
   learning protection. It remains disabled until the user enables it in Android.
   Drawing pads now explain unavailable states and retain drag gestures rather than scrolling the page.
   Visible alphabet choices and an 89-character grid expose Hebrew, English upper/lowercase
   and digit training with saved-example counts. Training selections persist, and the
   keyboard's Train button opens the appropriate alphabet.
-  Google Play internal testing is active as of September 7, 2026 (version code 5);
+  Writing works before personal training. Pause defaults to 1.2 seconds and can
+  be set to 0.8/2 seconds or disabled; automatic predictions never train profiles.
+  Google Play internal testing is active as of September 8, 2026 (version code 6);
   JellyBolt Beta Testers and My Handwriting Testers are enabled.
   Join: https://play.google.com/apps/internaltest/4700966795480494872
   Additional testers must be enrolled first. This is not a public production release.
 - `android-app-handwriting/` — אפליקציית Android ראשונית ונפרדת לזיהוי אישי של
   ספרות ואותיות באנגלית ובעברית, כולל אותיות סופיות. לומדת מדוגמאות מתויגות
-  במכשיר ופועלת ללא אינטרנט. מאשרים תו אחד בכל פעם ליצירת מספר או מילה.
+  במכשיר ופועלת ללא אינטרנט. כוללת 119 צורות התחלתיות לכל 89 התווים.
+  הכתיבה מזינה תחזית אחת לאחר הפסקה ניתנת להגדרה, עם מצב ידני וביטול לתיקון.
   הממשק בעברית ובאנגלית, ללא פרסומות או הרשאת רשת. הוראות ומגבלות ב־README.
-- גרסה 0.4.0 מכוונת ל־Android 16/API 36 וכוללת מקלדת מערכת אופציונלית:
+- גרסה 0.5.0 מכוונת ל־Android 16/API 36 וכוללת מקלדת מערכת אופציונלית:
   הקלדה באנגלית ובעברית, סימנים, פרופילי כתב יד משותפים והגנה על שדות פרטיים.
   המקלדת כבויה עד להפעלה מפורשת ב־Android. הבדיקה הפנימית ב־Google Play פעילה
-  מ־7 בספטמבר 2026, עם קוד גרסה 5 והרשימות JellyBolt Beta Testers ו־My Handwriting Testers.
+  מ־8 בספטמבר 2026, עם קוד גרסה 6 והרשימות JellyBolt Beta Testers ו־My Handwriting Testers.
+  אפשר לכתוב גם לפני אימון אישי. ההמתנה היא 1.2 שניות כברירת מחדל, ואפשר לבחור
+  0.8 או 2 שניות או לבטל הזנה אוטומטית. תחזיות אוטומטיות אינן נשמרות ללימוד.
   בחירה גלויה וטבלה של 89 תווים מאפשרות לימוד עברית, אותיות גדולות וקטנות באנגלית
   וספרות עם מספר הדוגמאות לכל תו. הבחירה נשמרת, וכפתור הלימוד במקלדת פותח את הקבוצה המתאימה.
   אזור הציור מסביר כעת מתי אינו זמין ושומר על תנועת הציור במקום לגלול את הדף.

@@ -31,12 +31,15 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.jellybolt.handwriting.core.Alphabet;
@@ -70,12 +73,23 @@ public final class MainActivity extends Activity {
     };
 
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
+    private final AutoInsertController autoInsert = new AutoInsertController();
     private final List<Button> profileControls = new ArrayList<>();
     private final Map<String, Button> groupButtons = new LinkedHashMap<>();
     private final Map<String, Button> characterButtons = new LinkedHashMap<>();
     private Map<String, Integer> characterCounts = Collections.emptyMap();
     private ProfileStore store;
     private SharedPreferences preferences;
+    private SharedPreferences automaticPreferences;
+    private final SharedPreferences.OnSharedPreferenceChangeListener automaticSettingsListener =
+            (settings, key) -> {
+                if (AutoInsertSettings.DELAY_KEY.equals(key) && !this.destroyed) {
+                    cancelPendingRecognition();
+                    if (this.autoDelay != null) {
+                        this.autoDelay.setSelection(AutoInsertSettings.selection(this));
+                    }
+                }
+            };
     private List<ProfileStore.Profile> profiles = new ArrayList<>();
     private long profileId = -1;
     private String group = Alphabet.DIGITS;
@@ -89,6 +103,8 @@ public final class MainActivity extends Activity {
     private Future<?> recognitionTask;
     private Future<?> countTask;
     private volatile boolean destroyed;
+    private boolean resumed;
+    private AutomaticInsertion lastAutomatic;
 
     private DrawingView drawing;
     private Button profileButton;
@@ -113,6 +129,8 @@ public final class MainActivity extends Activity {
     private TextView outputText;
     private TextView status;
     private CheckBox learnCheck;
+    private Spinner autoDelay;
+    private Button undoAutomaticButton;
     private ScrollView scroll;
 
     @Override protected void attachBaseContext(Context base) {
@@ -148,6 +166,8 @@ public final class MainActivity extends Activity {
         }
         rememberTrainingSelection();
         buildInterface();
+        automaticPreferences = getSharedPreferences(AutoInsertSettings.PREFERENCES, MODE_PRIVATE);
+        automaticPreferences.registerOnSharedPreferenceChangeListener(automaticSettingsListener);
         try {
             profiles = store.profiles();
             if (currentProfile() == null) profileId = profiles.isEmpty() ? -1 : profiles.get(0).id;
@@ -157,7 +177,7 @@ public final class MainActivity extends Activity {
         }
         updateProfileControls();
         updateMode();
-        if (state != null && profileId != -1 && state.getLong("profile", -1) == profileId) {
+        if (state != null && state.getLong("profile", -1) == profileId) {
             String savedOutput = state.getString("output", "");
             output.append(savedOutput, 0, Math.min(savedOutput.length(), MAX_OUTPUT));
             byte[] draft = state.getByteArray("ink");
@@ -223,6 +243,7 @@ public final class MainActivity extends Activity {
         languageButton = button(R.string.language_toggle, view -> toggleLanguage());
         languageButton.setContentDescription(getString(R.string.language_description));
         add(content, languageButton);
+        add(content, text(R.string.starter_examples_help, 16));
 
         LinearLayout alphabetPanel = card(content);
         heading(alphabetPanel, R.string.training_alphabet_heading);
@@ -260,7 +281,9 @@ public final class MainActivity extends Activity {
         add(profilePanel, text(R.string.privacy_note, 16));
         add(profilePanel, button(R.string.privacy_details_button, view ->
                 new AlertDialog.Builder(this).setTitle(R.string.privacy_details_button)
-                        .setMessage(R.string.privacy_details).setPositiveButton(R.string.ok, null).show()));
+                        .setMessage(getString(R.string.privacy_details) + "\n\n"
+                                + getString(R.string.auto_insert_privacy))
+                        .setPositiveButton(R.string.ok, null).show()));
 
         LinearLayout keyboardPanel = card(content);
         heading(keyboardPanel, R.string.keyboard_heading);
@@ -329,6 +352,7 @@ public final class MainActivity extends Activity {
             }
         });
         drawing.setOnInkChangedListener(this::invalidateDraft);
+        drawing.setOnStrokeFinishedListener(this::scheduleAutomaticInsertion);
         drawing.setOnDrawingBlockedListener(() -> status.setText(R.string.profile_required));
         drawing.setOnLimitReachedListener(() -> status.setText(R.string.ink_limit));
         add(inkPanel, text(R.string.drawing_help, 16));
@@ -348,6 +372,32 @@ public final class MainActivity extends Activity {
 
         writingPanel = card(content);
         heading(writingPanel, R.string.suggestions_heading);
+        heading(writingPanel, R.string.auto_insert_title);
+        autoDelay = new Spinner(this);
+        autoDelay.setId(R.id.auto_insert_delay);
+        autoDelay.setContentDescription(getString(R.string.auto_insert_title));
+        autoDelay.setMinimumHeight(dp(56));
+        ArrayAdapter<CharSequence> delayChoices = ArrayAdapter.createFromResource(
+                this, R.array.auto_insert_delays, android.R.layout.simple_spinner_item);
+        delayChoices.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        autoDelay.setAdapter(delayChoices);
+        autoDelay.setSelection(AutoInsertSettings.selection(this));
+        autoDelay.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position != parent.getSelectedItemPosition()) return;
+                if (position == AutoInsertSettings.selection(MainActivity.this)) return;
+                AutoInsertSettings.select(MainActivity.this, position);
+                cancelPendingRecognition();
+                status.setText(R.string.auto_insert_settings_changed);
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+        add(writingPanel, autoDelay);
+        add(writingPanel, text(R.string.auto_insert_help, 16));
+        undoAutomaticButton = button(R.string.auto_insert_undo, view -> undoAutomaticInsertion());
+        undoAutomaticButton.setId(R.id.undo_auto_insert);
+        undoAutomaticButton.setVisibility(View.GONE);
+        add(writingPanel, undoAutomaticButton);
         add(writingPanel, text(R.string.score_explanation, 16));
         suggestionsStatus = text(R.string.suggestions_empty, 18);
         suggestionsStatus.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
@@ -386,15 +436,24 @@ public final class MainActivity extends Activity {
         add(outputPanel, outputText);
         add(outputPanel, text(R.string.output_help, 16));
         add(outputPanel, button(R.string.copy_output, view -> copyOutput()));
-        add(outputPanel, button(R.string.undo_character, view -> {
+        Button undoCharacter = button(R.string.undo_character, view -> {
+            cancelPendingRecognition();
+            if (lastAutomatic != null) {
+                undoAutomaticInsertion();
+                return;
+            }
             if (output.length() > 0) {
                 int last = output.offsetByCodePoints(output.length(), -1);
                 output.delete(last, output.length());
                 updateOutput();
             } else status.setText(R.string.output_empty);
-        }));
+        });
+        undoCharacter.setId(R.id.undo_output_character);
+        add(outputPanel, undoCharacter);
         add(outputPanel, button(R.string.add_space, view -> {
-            if (requireProfile() && hasOutputRoom()) {
+            cancelPendingRecognition();
+            forgetAutomaticInsertion();
+            if (hasOutputRoom()) {
                 output.append(' ');
                 updateOutput();
             }
@@ -573,7 +632,7 @@ public final class MainActivity extends Activity {
     }
 
     private void chooseManualCharacter() {
-        if (!requireProfile()) return;
+        cancelPendingRecognition();
         List<String> labels = Alphabet.labels(group);
         new AlertDialog.Builder(this).setTitle(R.string.choose_character)
                 .setSingleChoiceItems(labels.toArray(new String[0]), labels.indexOf(chosenLabel),
@@ -584,16 +643,17 @@ public final class MainActivity extends Activity {
     }
 
     private void selectCharacter(String label) {
+        autoInsert.cancel();
         chosenLabel = label;
         learnCheck.setChecked(false);
         chosenText.setText(getString(R.string.chosen_character, isolated(label)));
-        confirmButton.setEnabled(profileId != -1);
+        confirmButton.setEnabled(true);
     }
 
     private void invalidateDraft() {
         draftGeneration++;
-        recognitionRequest++;
-        if (recognitionTask != null) recognitionTask.cancel(false);
+        cancelPendingRecognition();
+        forgetAutomaticInsertion();
         if (candidateButtons == null) return;
         candidateButtons.removeAllViews();
         chosenLabel = null;
@@ -601,34 +661,72 @@ public final class MainActivity extends Activity {
         suggestionsStatus.setText(R.string.suggestions_empty);
         learnCheck.setChecked(false);
         confirmButton.setEnabled(false);
-        recognizeButton.setEnabled(profileId != -1);
+        recognizeButton.setEnabled(true);
         recognizeButton.setText(R.string.recognize);
     }
 
+    private void cancelPendingRecognition() {
+        autoInsert.cancel();
+        recognitionRequest++;
+        if (recognitionTask != null) recognitionTask.cancel(false);
+        recognitionTask = null;
+        if (recognizeButton != null) {
+            recognizeButton.setEnabled(true);
+            recognizeButton.setText(R.string.recognize);
+        }
+    }
+
+    private void scheduleAutomaticInsertion() {
+        int delay = AutoInsertSettings.delay(this);
+        if (!resumed || destroyed || training || delay == 0
+                || drawing.isDrawing() || drawing.getInk().isEmpty()) return;
+        final long generation = draftGeneration;
+        final long profile = profileId;
+        final String alphabet = group;
+        status.setText(R.string.auto_insert_waiting);
+        autoInsert.arm(delay, () -> {
+            if (resumed && !training && matchesDraft(profile, alphabet, generation)
+                    && AutoInsertSettings.delay(this) == delay && !drawing.isDrawing()) {
+                recognize(true);
+            }
+        });
+    }
+
     private void recognize() {
-        if (!requireProfile() || !completedDrawing()) return;
+        recognize(false);
+    }
+
+    private void recognize(boolean automatic) {
+        if (!completedDrawing()) return;
         invalidateDraft();
         final Ink ink = drawing.getInk();
         final long requestedProfile = profileId;
         final String requestedGroup = group;
         final long generation = draftGeneration;
         final long request = recognitionRequest;
+        final int requestedDelay = AutoInsertSettings.delay(this);
         recognizeButton.setEnabled(false);
         recognizeButton.setText(R.string.recognizing);
         suggestionsStatus.setText(R.string.recognizing);
         recognitionTask = worker.submit(() -> {
             if (destroyed) return;
             try {
-                HandwritingRecognizer.Result result = HandwritingRecognizer.recognize(
-                        ink, store.examples(requestedProfile, requestedGroup));
+                List<HandwritingRecognizer.Example> personal = requestedProfile < 0
+                        ? Collections.emptyList() : store.examples(requestedProfile, requestedGroup);
+                HandwritingRecognizer.Result result = HandwritingRecognizer.recognize(ink, requestedGroup, personal);
                 runOnUiThread(() -> {
                     if (!matchesDraft(requestedProfile, requestedGroup, generation)
                             || request != recognitionRequest || training) return;
                     recognizeButton.setEnabled(true);
                     recognizeButton.setText(R.string.recognize);
                     candidateButtons.removeAllViews();
-                    if (result.trainedLabels < 2) {
-                        suggestionsStatus.setText(R.string.too_few_labels);
+                    if (automatic) {
+                        if (!resumed || requestedDelay == 0 || AutoInsertSettings.delay(this) != requestedDelay) return;
+                        if (result.candidates.isEmpty()) {
+                            suggestionsStatus.setText(R.string.suggestions_empty);
+                            return;
+                        }
+                        insertAutomatic(result.candidates.get(0).label, ink, result.uncertain);
                         return;
                     }
                     suggestionsStatus.setText(result.uncertain ? R.string.uncertain_result : R.string.choose_result);
@@ -674,6 +772,7 @@ public final class MainActivity extends Activity {
     }
 
     private void undoExample() {
+        cancelPendingRecognition();
         if (!requireProfile()) return;
         final long requestedProfile = profileId;
         final String requestedGroup = group;
@@ -695,7 +794,7 @@ public final class MainActivity extends Activity {
     }
 
     private void confirmCharacter() {
-        if (!requireProfile()) return;
+        cancelPendingRecognition();
         if (drawing.isDrawing()) {
             status.setText(R.string.finish_stroke);
             return;
@@ -707,6 +806,7 @@ public final class MainActivity extends Activity {
         if (!hasOutputRoom()) return;
         final String label = chosenLabel;
         final boolean learn = learnCheck.isChecked();
+        if (learn && !requireProfile()) return;
         if (learn && drawing.getInk().isEmpty()) {
             status.setText(R.string.learn_needs_ink);
             return;
@@ -720,6 +820,55 @@ public final class MainActivity extends Activity {
             status.setText(getString(learn ? R.string.character_learned : R.string.character_appended, isolated(label)));
         } catch (IllegalArgumentException | IllegalStateException | SQLiteException error) {
             showError(error);
+        }
+    }
+
+    private void insertAutomatic(String label, Ink ink, boolean uncertain) {
+        if (!hasOutputRoom()) return;
+        int start = output.length();
+        output.append(label);
+        updateOutput();
+        drawing.clear();
+        // Automatic acceptance never calls ProfileStore.addExample, even if consent was checked earlier.
+        lastAutomatic = new AutomaticInsertion(label, ink, start, profileId, group);
+        undoAutomaticButton.setVisibility(View.VISIBLE);
+        status.setText(uncertain ? R.string.auto_insert_uncertain : R.string.auto_insert_done);
+    }
+
+    private void undoAutomaticInsertion() {
+        cancelPendingRecognition();
+        AutomaticInsertion insertion = lastAutomatic;
+        if (insertion == null) return;
+        if (profileId != insertion.profile || !group.equals(insertion.alphabet)
+                || output.length() != insertion.start + insertion.label.length()
+                || !output.substring(insertion.start).equals(insertion.label)) {
+            forgetAutomaticInsertion();
+            return;
+        }
+        output.delete(insertion.start, output.length());
+        updateOutput();
+        drawing.setInk(insertion.ink);
+        status.setText(R.string.auto_insert_undone);
+    }
+
+    private void forgetAutomaticInsertion() {
+        lastAutomatic = null;
+        if (undoAutomaticButton != null) undoAutomaticButton.setVisibility(View.GONE);
+    }
+
+    private static final class AutomaticInsertion {
+        final String label;
+        final Ink ink;
+        final int start;
+        final long profile;
+        final String alphabet;
+
+        AutomaticInsertion(String label, Ink ink, int start, long profile, String alphabet) {
+            this.label = label;
+            this.ink = ink;
+            this.start = start;
+            this.profile = profile;
+            this.alphabet = alphabet;
         }
     }
 
@@ -760,6 +909,7 @@ public final class MainActivity extends Activity {
     }
 
     private void addProfile() {
+        cancelPendingRecognition();
         EditText alias = new EditText(this);
         alias.setSingleLine(true);
         alias.setTextSize(20);
@@ -800,6 +950,7 @@ public final class MainActivity extends Activity {
     }
 
     private void chooseProfile() {
+        cancelPendingRecognition();
         try {
             profiles = store.profiles();
         } catch (IllegalArgumentException | IllegalStateException | SQLiteException error) {
@@ -833,6 +984,7 @@ public final class MainActivity extends Activity {
     }
 
     private void deleteProfile() {
+        cancelPendingRecognition();
         ProfileStore.Profile selectedProfile = currentProfile();
         if (selectedProfile == null) {
             status.setText(R.string.profile_required);
@@ -874,13 +1026,13 @@ public final class MainActivity extends Activity {
         profileButton.setText(profile == null ? getString(R.string.no_profile)
                 : getString(R.string.current_profile, isolated(profile.name)));
         for (Button control : profileControls) control.setEnabled(enabled);
-        drawing.setEnabled(enabled);
+        drawing.setEnabled(enabled || !training);
         saveButton.setEnabled(enabled);
         undoExampleButton.setEnabled(enabled);
-        recognizeButton.setEnabled(enabled);
-        correctionButton.setEnabled(enabled);
+        recognizeButton.setEnabled(true);
+        correctionButton.setEnabled(true);
         learnCheck.setEnabled(enabled);
-        confirmButton.setEnabled(enabled && chosenLabel != null);
+        confirmButton.setEnabled(chosenLabel != null);
     }
 
     private boolean requireProfile() {
@@ -916,6 +1068,7 @@ public final class MainActivity extends Activity {
     }
 
     private void copyOutput() {
+        cancelPendingRecognition();
         if (output.length() == 0) {
             status.setText(R.string.output_empty);
             return;
@@ -926,6 +1079,7 @@ public final class MainActivity extends Activity {
     }
 
     private void clearOutput() {
+        cancelPendingRecognition();
         if (output.length() == 0) {
             status.setText(R.string.output_empty);
             return;
@@ -935,6 +1089,7 @@ public final class MainActivity extends Activity {
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.confirm, (dialog, which) -> {
                     output.setLength(0);
+                    forgetAutomaticInsertion();
                     updateOutput();
                     status.setText(R.string.output_cleared);
                 }).show();
@@ -957,6 +1112,18 @@ public final class MainActivity extends Activity {
                 .setPositiveButton(R.string.ok, null).show();
     }
 
+    @Override protected void onResume() {
+        super.onResume();
+        resumed = true;
+        if (autoDelay != null) autoDelay.setSelection(AutoInsertSettings.selection(this));
+    }
+
+    @Override protected void onPause() {
+        resumed = false;
+        cancelPendingRecognition();
+        super.onPause();
+    }
+
     @Override protected void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
         state.putLong("profile", profileId);
@@ -970,6 +1137,10 @@ public final class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         destroyed = true;
+        autoInsert.cancel();
+        if (automaticPreferences != null) {
+            automaticPreferences.unregisterOnSharedPreferenceChangeListener(automaticSettingsListener);
+        }
         if (recognitionTask != null) recognitionTask.cancel(false);
         if (countTask != null) countTask.cancel(false);
         // Close after any in-flight read; never close a helper underneath its worker.

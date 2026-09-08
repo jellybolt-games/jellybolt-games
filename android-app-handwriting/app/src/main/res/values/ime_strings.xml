@@ -19,8 +19,14 @@
     <string name="ime_hebrew">Hebrew + finals</string>
     <string name="ime_loading_profiles">Loading profiles…</string>
     <string name="ime_no_profile">No profile</string>
-    <string name="ime_no_profiles">Type or choose a character. Open Train for personal suggestions.</string>
+    <string name="ime_no_profiles">Built-in shapes are ready. Draw a character; Train adds personal examples.</string>
     <string name="ime_draw_hint">Draw one character. Recognize, choose, then insert.</string>
+    <string name="ime_auto_draw_hint">Draw one character, then pause to insert. Choose corrects a prediction.</string>
+    <string name="ime_auto_undo">Undo insert</string>
+    <string name="ime_auto_undo_unavailable">Cannot safely undo this insertion. Use the editor to correct it.</string>
+    <string name="ime_auto_private">Prediction inserted without learning. In private fields, use Backspace to correct it.</string>
+    <string name="ime_auto_private_uncertain">Uncertain prediction inserted without learning. In private fields, use Backspace to correct it.</string>
+    <string name="ime_auto_without_undo">Prediction inserted without learning. Use the editor to correct it.</string>
     <string name="ime_drawing_description">Draw one character for this keyboard</string>
     <string name="ime_undo">Undo</string>
     <string name="ime_clear">Clear</string>
@@ -50,8 +56,8 @@
     <string name="ime_edited">Editor updated</string>
     <string name="ime_input_failed">The editor did not accept this action. Tap the text field and retry.</string>
     <string name="ime_draw_first">Finish drawing a character first, or use Choose.</string>
-    <string name="ime_recognizing">Comparing with your saved drawings…</string>
-    <string name="ime_need_training">Train at least two different characters in this alphabet, or use Choose.</string>
+    <string name="ime_recognizing">Comparing built-in shapes and your saved drawings…</string>
+    <string name="ime_need_training">No prediction is available. Try another drawing or use Choose.</string>
     <string name="ime_similarity">Shape similarity, not probability. Choose a match, then Insert.</string>
     <string name="ime_uncertain">Uncertain match. Scores are shape similarity, not probability. Choose carefully.</string>
     <string name="ime_candidate_description">%1$s, shape similarity %2$d out of 100</string>

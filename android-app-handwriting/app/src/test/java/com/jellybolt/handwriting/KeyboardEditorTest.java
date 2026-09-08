@@ -7,6 +7,7 @@ import android.text.SpannableStringBuilder;
 import android.view.View;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.SurroundingText;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,6 +45,72 @@ public class KeyboardEditorTest {
         assertFalse(KeyboardEditor.commit(connection, ""));
         assertFalse(KeyboardEditor.commit(connection, null));
         assertEquals("unchanged", connection.text.toString());
+    }
+
+    @Test public void automaticUndoDeletesOnlyTheVerifiedInsertedCharacter() {
+        Connection connection = new Connection("word7");
+        assertTrue(KeyboardEditor.undoAutomaticInsertion(connection, "7", 5, 5, 5));
+        assertEquals("word", connection.text.toString());
+        assertEquals(1, connection.lastLegacyDeletion);
+        assertEquals(1, connection.lastReadLength);
+        assertEquals(1, connection.lastSurroundingBefore);
+        assertEquals(0, connection.lastSurroundingAfter);
+    }
+
+    @Test public void automaticUndoPreservesHebrewLogicalOrder() {
+        Connection connection = new Connection("שלום");
+        assertTrue(KeyboardEditor.undoAutomaticInsertion(connection, "ם", 4, 4, 4));
+        assertEquals("שלו", connection.text.toString());
+    }
+
+    @Test public void automaticUndoRefusesChangedOrUnavailableContextWithoutDeleting() {
+        Connection connection = new Connection("word7");
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 5, 4, 4));
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 5, 4, 5));
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "8", 5, 5, 5));
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 5, -1, -1));
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(null, "7", 5, 5, 5));
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "", 5, 5, 5));
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "word7", 5, 5, 5));
+        connection.allowReadingBeforeCursor = false;
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 5, 5, 5));
+        assertEquals("word7", connection.text.toString());
+        assertEquals(-1, connection.lastLegacyDeletion);
+    }
+
+    @Test public void automaticUndoRefusesUnavailableSurroundingSelection() {
+        Connection connection = new Connection("word7");
+        connection.allowSurroundingText = false;
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 5, 5, 5));
+        assertEquals("word7", connection.text.toString());
+        assertEquals(-1, connection.lastLegacyDeletion);
+    }
+
+    @Test public void automaticUndoRejectsMovedCursorEvenBeforeItsSelectionCallback() {
+        Connection connection = new Connection("77");
+        Selection.setSelection(connection.text, 1);
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 2, 2, 2));
+        Selection.setSelection(connection.text, 0, 2);
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 2, 2, 2));
+        assertEquals("77", connection.text.toString());
+        assertEquals(-1, connection.lastLegacyDeletion);
+    }
+
+    @Test @Config(sdk = 26)
+    public void legacyAutomaticUndoUsesTrackedSelectionAndOneCharacterOnly() {
+        Connection connection = new Connection("a7");
+        assertTrue(KeyboardEditor.undoAutomaticInsertion(connection, "7", 2, 2, 2));
+        assertEquals("a", connection.text.toString());
+        assertEquals(1, connection.lastReadLength);
+        assertEquals(-1, connection.lastSurroundingBefore);
+    }
+
+    @Test public void failedAutomaticUndoDoesNotRetryOrFallBackToBackspace() {
+        Connection connection = new Connection("word7");
+        connection.allowLegacyDeletion = false;
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 5, 5, 5));
+        assertEquals("word7", connection.text.toString());
+        assertEquals(1, connection.legacyDeletionCalls);
     }
 
     @Test public void backspaceDeletesTheSelection() {
@@ -198,8 +265,14 @@ public class KeyboardEditorTest {
         boolean allowAction = true;
         boolean supportsCodePointDeletion = true;
         boolean allowReadingBeforeCursor = true;
+        boolean allowSurroundingText = true;
+        boolean allowLegacyDeletion = true;
         int lastAction = -1;
         int lastLegacyDeletion = -1;
+        int legacyDeletionCalls;
+        int lastReadLength = -1;
+        int lastSurroundingBefore = -1;
+        int lastSurroundingAfter = -1;
 
         Connection(String initial) {
             super(new View(RuntimeEnvironment.getApplication()), true);
@@ -219,11 +292,19 @@ public class KeyboardEditorTest {
 
         @Override public boolean deleteSurroundingText(int before, int after) {
             lastLegacyDeletion = before;
-            return super.deleteSurroundingText(before, after);
+            legacyDeletionCalls++;
+            return allowLegacyDeletion && super.deleteSurroundingText(before, after);
         }
 
         @Override public CharSequence getTextBeforeCursor(int length, int flags) {
+            lastReadLength = length;
             return allowReadingBeforeCursor ? super.getTextBeforeCursor(length, flags) : null;
+        }
+
+        @Override public SurroundingText getSurroundingText(int before, int after, int flags) {
+            lastSurroundingBefore = before;
+            lastSurroundingAfter = after;
+            return allowSurroundingText ? super.getSurroundingText(before, after, flags) : null;
         }
 
         @Override public boolean performEditorAction(int action) {

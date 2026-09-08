@@ -17,6 +17,8 @@
     <item name="ime_manual" type="id" />
     <item name="ime_manual_panel" type="id" />
     <item name="ime_candidates" type="id" />
+    <item name="ime_auto_delay" type="id" />
+    <item name="ime_auto_undo" type="id" />
     <item name="ime_selected" type="id" />
     <item name="ime_confirm" type="id" />
     <item name="ime_learn" type="id" />
