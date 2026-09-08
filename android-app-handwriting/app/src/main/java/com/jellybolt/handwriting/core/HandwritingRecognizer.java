@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * Offline stroke-shape matching, optionally with original hand-authored starter
- * examples. No neural model, rotation, mirroring, stroke-order requirements,
+ * examples and optional labeled left/right reflections. No neural model, rotation, stroke-order requirements,
  * or language-model autocorrection.
  */
 public final class HandwritingRecognizer {
@@ -108,19 +108,48 @@ public final class HandwritingRecognizer {
      * trainedLabels still counts only personal labels, not the bundled alphabet.
      */
     public static Result recognize(Ink ink, String group, List<Example> personal) {
+        return recognize(ink, group, personal, false);
+    }
+
+    public static Result recognize(Ink ink, String group, List<Example> personal, boolean mirrored) {
+        return recognizeGroups(ink, Collections.singletonList(group),
+                Collections.singletonMap(group, personal), mirrored);
+    }
+
+    // A single shared ranking is necessary for word-mode digits and letters: merging
+    // separately ranked suggestions would lose the personal-source tie preference.
+    static Result recognizeGroups(Ink ink, List<String> groups,
+                                  Map<String, List<Example>> personalByGroup, boolean mirrored) {
+        return recognizeGroups(ink, groups, personalByGroup, mirrored, false);
+    }
+
+    static Result recognizeGroups(Ink ink, List<String> groups,
+                                  Map<String, List<Example>> personalByGroup, boolean mirrored,
+                                  boolean flexibleWidth) {
         if (ink == null || ink.isEmpty()) throw new IllegalArgumentException("Draw a character first");
-        if (!Alphabet.isGroup(group)) throw new IllegalArgumentException("Unknown alphabet: " + group);
-        if (personal == null) throw new IllegalArgumentException("Examples are required");
         checkCancelled();
         Map<String, LabelMatch> matches = new LinkedHashMap<>();
-        for (String label : Alphabet.labels(group)) matches.put(label, new LabelMatch(label));
+        List<Example> personal = new ArrayList<>();
+        List<Example> bundled = new ArrayList<>();
+        for (String group : groups) {
+            if (!Alphabet.isGroup(group)) throw new IllegalArgumentException("Unknown alphabet: " + group);
+            List<Example> examples = personalByGroup.get(group);
+            if (examples == null) throw new IllegalArgumentException("Examples are required");
+            List<String> labels = Alphabet.labels(group);
+            for (String label : labels) matches.put(label, new LabelMatch(label));
+            for (Example example : examples) {
+                checkCancelled();
+                if (example == null || !labels.contains(example.label)) {
+                    throw new IllegalArgumentException("Personal example is outside alphabet: " + group);
+                }
+                personal.add(example);
+            }
+            bundled.addAll(DefaultSamples.examples(group, mirrored));
+        }
         // Validate before matching; mixing alphabets must never silently discard saved data.
         int trainedLabels = 0;
         for (Example example : personal) {
             checkCancelled();
-            if (example == null || !matches.containsKey(example.label)) {
-                throw new IllegalArgumentException("Personal example is outside alphabet: " + group);
-            }
             LabelMatch match = matches.get(example.label);
             if (!match.hasPersonal) {
                 match.hasPersonal = true;
@@ -128,15 +157,21 @@ public final class HandwritingRecognizer {
             }
         }
         Shape query = new Shape(ink);
-        for (Example example : DefaultSamples.examples(group)) {
+        float[] widthFactors = flexibleWidth ? new float[]{1, .65f, .8f, 1.25f, 1.5f, 1.75f} : new float[]{1};
+        Shape[] queries = new Shape[widthFactors.length];
+        queries[0] = query;
+        for (int i = 1; i < queries.length; i++) queries[i] = new Shape(ink, widthFactors[i]);
+        for (Example example : bundled) {
             checkCancelled();
             LabelMatch match = matches.get(example.label);
-            match.bundledDistance = Math.min(match.bundledDistance, query.distance(example.shape()));
+            match.bundledDistance = Math.min(match.bundledDistance,
+                    widthTolerantDistance(queries, widthFactors, example));
         }
         for (Example example : personal) {
             checkCancelled();
             LabelMatch match = matches.get(example.label);
-            match.personalDistance = Math.min(match.personalDistance, query.distance(example.shape()));
+            match.personalDistance = Math.min(match.personalDistance,
+                    widthTolerantDistance(queries, widthFactors, example));
         }
         /*
          * Each source contributes only its nearest shape per label, not votes or
@@ -168,8 +203,32 @@ public final class HandwritingRecognizer {
             competingSimilarity = Math.max(competingSimilarity, shapeSimilarity(ordered.get(i).shapeDistance()));
         }
         boolean uncertain = first.similarity < 55
-                || first.similarity - competingSimilarity < 12;
+                || first.similarity - competingSimilarity < 12
+                // These pairs become the same intended geometry under reflection.
+                // Differences in our hand-authored exemplars are not evidence of intent.
+                || (mirrored && groups.contains(Alphabet.ENGLISH_LOWER)
+                    && ("b".equals(first.label) || "d".equals(first.label)
+                        || "p".equals(first.label) || "q".equals(first.label)));
         return new Result(candidates, uncertain, trainedLabels);
+    }
+
+    private static double widthTolerantDistance(Shape[] queries, float[] factors, Example example) {
+        Shape template = example.shape();
+        // Oval 0/O/o templates differ mainly in proportions after bounding-box
+        // normalization. Removing that signal would turn ordinary "mom" into "m0m".
+        if ("0".equals(example.label) || "O".equals(example.label) || "o".equals(example.label)) {
+            return queries[0].distance(template);
+        }
+        double best = Double.POSITIVE_INFINITY;
+        for (int i = 0; i < queries.length; i++) {
+            checkCancelled();
+            // Print within a word is often narrower than an isolated training glyph.
+            // A bounded width search penalizes deformation; it never changes ink,
+            // case, orientation, stroke order, or the legacy single-character metric.
+            double penalty = .025 * Math.abs(Math.log(factors[i]));
+            best = Math.min(best, queries[i].distance(template) + penalty);
+        }
+        return best;
     }
 
     private static void checkCancelled() {
@@ -207,9 +266,14 @@ public final class HandwritingRecognizer {
         final int[] occupied;
 
         Shape(Ink ink) {
+            this(ink, 1);
+        }
+
+        Shape(Ink ink, float widthFactor) {
             float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
             float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
             for (List<Ink.Point> stroke : ink.strokes) {
+                checkCancelled();
                 for (Ink.Point p : stroke) {
                     minX = Math.min(minX, p.x);
                     maxX = Math.max(maxX, p.x);
@@ -217,19 +281,21 @@ public final class HandwritingRecognizer {
                     maxY = Math.max(maxY, p.y);
                 }
             }
-            float extent = Math.max(maxX - minX, maxY - minY);
+            float extent = Math.max((maxX - minX) * widthFactor, maxY - minY);
             float scale = extent == 0 ? 1 : (GRID - 5) / extent;
             float centerX = minX + (maxX - minX) / 2;
             float centerY = minY + (maxY - minY) / 2;
             for (List<Ink.Point> stroke : ink.strokes) {
+                checkCancelled();
                 Ink.Point previous = null;
                 for (Ink.Point point : stroke) {
-                    float x = (point.x - centerX) * scale + (GRID - 1) / 2f;
+                    checkCancelled();
+                    float x = (point.x - centerX) * scale * widthFactor + (GRID - 1) / 2f;
                     float y = (point.y - centerY) * scale + (GRID - 1) / 2f;
                     if (previous == null) {
                         mark(x, y);
                     } else {
-                        float px = (previous.x - centerX) * scale + (GRID - 1) / 2f;
+                        float px = (previous.x - centerX) * scale * widthFactor + (GRID - 1) / 2f;
                         float py = (previous.y - centerY) * scale + (GRID - 1) / 2f;
                         int steps = Math.max(1, (int) Math.ceil(Math.hypot(x - px, y - py) * 2));
                         for (int i = 0; i <= steps; i++) {
@@ -252,6 +318,7 @@ public final class HandwritingRecognizer {
             }
             // Two-pass chamfer distance field: O(grid area), independent of stroke sampling density.
             for (int y = 0; y < GRID; y++) {
+                checkCancelled();
                 for (int x = 0; x < GRID; x++) {
                     int i = y * GRID + x;
                     if (x > 0) relax(i, i - 1, 1);
@@ -263,6 +330,7 @@ public final class HandwritingRecognizer {
                 }
             }
             for (int y = GRID - 1; y >= 0; y--) {
+                checkCancelled();
                 for (int x = GRID - 1; x >= 0; x--) {
                     int i = y * GRID + x;
                     if (x < GRID - 1) relax(i, i + 1, 1);

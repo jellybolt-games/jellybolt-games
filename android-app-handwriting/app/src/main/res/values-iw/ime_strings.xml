@@ -69,4 +69,14 @@
     <string name="ime_picker_error">פתיחת בורר המקלדות נכשלה. השתמשו בהגדרות המקלדת של Android.</string>
     <string name="ime_ink_limit">הגעתם למגבלת הציור. בטלו קו או נקו ונסו שוב.</string>
     <string name="ime_more_symbols">החלפת עמוד סימנים</string>
+    <string name="ime_writing_options">אפשרויות</string>
+    <string name="ime_word_character">בחירת מיקום התו לתיקון</string>
+    <string name="ime_word_insert">הוספת מילה</string>
+    <string name="ime_word_pause">הוספת מילה אוטומטית ממתינה לפחות 2 שניות לאחר הקו האחרון. בחרו כבוי להוספה ידנית.</string>
+    <string-array name="ime_word_auto_delays">
+        <item>כבוי</item>
+        <item>2 שנ׳ לפחות (0.8 לתו)</item>
+        <item>2 שנ׳ לפחות (1.2 לתו)</item>
+        <item>2 שנ׳</item>
+    </string-array>
 </resources>

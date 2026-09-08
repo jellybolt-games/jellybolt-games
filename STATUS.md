@@ -6,10 +6,11 @@ Last updated: 2026-09-08
 - `android-app-handwriting/` — separate offline Android prototype for per-child
   recognition of digits, English letters, and Hebrew including final forms.
   Teaches from locally labeled finger drawings; includes 119 starter templates
-  for all 89 labels. Writing inserts one prediction after a configurable pause,
+  for all 89 labels, plus their horizontal reflections. Writing inserts a character
+  or an optional whole-word prediction after a configurable pause,
   with manual mode and correction/undo. English/Hebrew UI; no ads or network permission.
   See its README for build/install instructions and recognition limitations.
-- Version 0.5.0 targets Android 16/API 36 and includes an optional system keyboard:
+- Version 0.6.0 targets Android 16/API 36 and includes an optional system keyboard:
   English/Hebrew typing, symbols, shared handwriting profiles, and private-field
   learning protection. It remains disabled until the user enables it in Android.
   Drawing pads now explain unavailable states and retain drag gestures rather than scrolling the page.
@@ -18,21 +19,30 @@ Last updated: 2026-09-08
   keyboard's Train button opens the appropriate alphabet.
   Writing works before personal training. Pause defaults to 1.2 seconds and can
   be set to 0.8/2 seconds or disabled; automatic predictions never train profiles.
-  Google Play internal testing is active as of September 8, 2026 (version code 6);
+  Mirrored starter matching is on by default. Optional word/number mode splits
+  up to 16 separated printed characters on one line, with a minimum 2-second
+  automatic pause, logical Hebrew/digit order, manual corrections and whole-word Undo.
+  Joined cursive is not supported; identical mirror shapes remain ambiguous.
+  Word corrections never become character training samples.
+  Google Play internal testing is active as of September 8, 2026 (version code 7);
   JellyBolt Beta Testers and My Handwriting Testers are enabled.
   Join: https://play.google.com/apps/internaltest/4700966795480494872
   Additional testers must be enrolled first. This is not a public production release.
 - `android-app-handwriting/` — אפליקציית Android ראשונית ונפרדת לזיהוי אישי של
   ספרות ואותיות באנגלית ובעברית, כולל אותיות סופיות. לומדת מדוגמאות מתויגות
-  במכשיר ופועלת ללא אינטרנט. כוללת 119 צורות התחלתיות לכל 89 התווים.
-  הכתיבה מזינה תחזית אחת לאחר הפסקה ניתנת להגדרה, עם מצב ידני וביטול לתיקון.
+  במכשיר ופועלת ללא אינטרנט. כוללת 119 צורות התחלתיות לכל 89 התווים ושיקוף אופקי שלהן.
+  הכתיבה מזינה תו או מילה שלמה במצב אופציונלי לאחר הפסקה ניתנת להגדרה, עם מצב ידני וביטול לתיקון.
   הממשק בעברית ובאנגלית, ללא פרסומות או הרשאת רשת. הוראות ומגבלות ב־README.
-- גרסה 0.5.0 מכוונת ל־Android 16/API 36 וכוללת מקלדת מערכת אופציונלית:
+- גרסה 0.6.0 מכוונת ל־Android 16/API 36 וכוללת מקלדת מערכת אופציונלית:
   הקלדה באנגלית ובעברית, סימנים, פרופילי כתב יד משותפים והגנה על שדות פרטיים.
   המקלדת כבויה עד להפעלה מפורשת ב־Android. הבדיקה הפנימית ב־Google Play פעילה
-  מ־8 בספטמבר 2026, עם קוד גרסה 6 והרשימות JellyBolt Beta Testers ו־My Handwriting Testers.
+  מ־8 בספטמבר 2026, עם קוד גרסה 7 והרשימות JellyBolt Beta Testers ו־My Handwriting Testers.
   אפשר לכתוב גם לפני אימון אישי. ההמתנה היא 1.2 שניות כברירת מחדל, ואפשר לבחור
   0.8 או 2 שניות או לבטל הזנה אוטומטית. תחזיות אוטומטיות אינן נשמרות ללימוד.
+  זיהוי כתב ראי מופעל כברירת מחדל. מצב מילה או מספר שלמים מפריד עד 16 תווי דפוס
+  נפרדים בשורה אחת, עם המתנה של לפחות 2 שניות, סדר תקין בעברית ובמספרים,
+  תיקון ידני וביטול מילה. כתב מחובר אינו נתמך וצורות ראי זהות עדיין עמומות.
+  תיקוני מילים אינם נשמרים כדוגמאות לימוד לתווים.
   בחירה גלויה וטבלה של 89 תווים מאפשרות לימוד עברית, אותיות גדולות וקטנות באנגלית
   וספרות עם מספר הדוגמאות לכל תו. הבחירה נשמרת, וכפתור הלימוד במקלדת פותח את הקבוצה המתאימה.
   אזור הציור מסביר כעת מתי אינו זמין ושומר על תנועת הציור במקום לגלול את הדף.

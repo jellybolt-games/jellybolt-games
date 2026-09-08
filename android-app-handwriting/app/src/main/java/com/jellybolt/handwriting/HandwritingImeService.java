@@ -26,6 +26,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -33,12 +34,15 @@ import android.widget.TextView;
 import com.jellybolt.handwriting.core.Alphabet;
 import com.jellybolt.handwriting.core.HandwritingRecognizer;
 import com.jellybolt.handwriting.core.Ink;
+import com.jellybolt.handwriting.core.WordRecognizer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,9 +63,17 @@ public class HandwritingImeService extends InputMethodService {
     private SharedPreferences appPreferences;
     private SharedPreferences imePreferences;
     private SharedPreferences autoPreferences;
+    private SharedPreferences writingPreferences;
     private final SharedPreferences.OnSharedPreferenceChangeListener autoSettingsListener =
             (preferences, key) -> {
                 if (AutoInsertSettings.DELAY_KEY.equals(key) && !this.destroyed) refreshAutoSettings();
+            };
+    private final SharedPreferences.OnSharedPreferenceChangeListener writingSettingsListener =
+            (preferences, key) -> {
+                if (!this.destroyed && (key == null || WritingSettings.WORD_MODE.equals(key)
+                        || WritingSettings.MIRRORED.equals(key) || WritingSettings.REVERSE_ORDER.equals(key))) {
+                    refreshWritingSettings();
+                }
             };
     private Context ui;
     private EditorInfo editor;
@@ -91,6 +103,8 @@ public class HandwritingImeService extends InputMethodService {
     private List<ProfileStore.Profile> profiles = new ArrayList<>();
     private String selectedLabel;
     private Draft selectedDraft;
+    private List<WordRecognizer.CharacterResult> wordCharacters = Collections.emptyList();
+    private int wordCharacterIndex;
     private FrameLayout root;
     private LinearLayout content;
     private LinearLayout body;
@@ -102,6 +116,8 @@ public class HandwritingImeService extends InputMethodService {
     private Spinner profileSpinner;
     private Spinner alphabetSpinner;
     private Spinner autoSpinner;
+    private Spinner wordCharacterSpinner;
+    private Button writingOptions;
     private Button undoAutomatic;
     private Button recognize;
     private Button confirm;
@@ -115,8 +131,10 @@ public class HandwritingImeService extends InputMethodService {
         appPreferences = getSharedPreferences("handwriting-ui", MODE_PRIVATE);
         imePreferences = getSharedPreferences("handwriting-ime", MODE_PRIVATE);
         autoPreferences = getSharedPreferences(AutoInsertSettings.PREFERENCES, MODE_PRIVATE);
-        autoDelay = AutoInsertSettings.delay(this);
+        writingPreferences = getSharedPreferences(WritingSettings.PREFERENCES, MODE_PRIVATE);
+        autoDelay = WritingSettings.delay(this);
         autoPreferences.registerOnSharedPreferenceChangeListener(autoSettingsListener);
+        writingPreferences.registerOnSharedPreferenceChangeListener(writingSettingsListener);
         handwriting = imePreferences.getBoolean("handwriting", false);
         hebrewTyping = "he".equals(imePreferences.getString("typing-language", "en"));
         String savedGroup = imePreferences.getString("alphabet", Alphabet.DIGITS);
@@ -173,7 +191,7 @@ public class HandwritingImeService extends InputMethodService {
         editing = info != null;
         selectionStart = info == null ? -1 : info.initialSelStart;
         selectionEnd = info == null ? -1 : info.initialSelEnd;
-        autoDelay = AutoInsertSettings.delay(this);
+        autoDelay = WritingSettings.delay(this);
         invalidateDraft(true);
         shift = false;
         symbols = KeyboardEditor.isNumeric(info);
@@ -193,7 +211,7 @@ public class HandwritingImeService extends InputMethodService {
         editing = info != null;
         selectionStart = info == null ? -1 : info.initialSelStart;
         selectionEnd = info == null ? -1 : info.initialSelEnd;
-        autoDelay = AutoInsertSettings.delay(this);
+        autoDelay = WritingSettings.delay(this);
         invalidateDraft(true);
         updateLocale();
         if (root != null) buildContent();
@@ -250,6 +268,9 @@ public class HandwritingImeService extends InputMethodService {
         if (autoPreferences != null) {
             autoPreferences.unregisterOnSharedPreferenceChangeListener(autoSettingsListener);
         }
+        if (writingPreferences != null) {
+            writingPreferences.unregisterOnSharedPreferenceChangeListener(writingSettingsListener);
+        }
         main.removeCallbacksAndMessages(null);
         // The helper belongs to the worker queue; closing it earlier races outstanding reads/saves.
         if (store != null) worker.execute(store::close);
@@ -292,6 +313,8 @@ public class HandwritingImeService extends InputMethodService {
         profileSpinner = null;
         alphabetSpinner = null;
         autoSpinner = null;
+        wordCharacterSpinner = null;
+        writingOptions = null;
         undoAutomatic = null;
         keys = null;
         root.setLayoutDirection(ui.getResources().getConfiguration().getLayoutDirection());
@@ -462,6 +485,9 @@ public class HandwritingImeService extends InputMethodService {
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
         addKey(toolbar, alphabetSpinner, 1.2f);
+        writingOptions = button(R.id.ime_writing_options, text(R.string.ime_writing_options),
+                this::showWritingOptions);
+        addKey(toolbar, writingOptions, 0.9f);
 
         drawing = new DrawingView(ui);
         drawing.setId(R.id.ime_drawing);
@@ -493,11 +519,22 @@ public class HandwritingImeService extends InputMethodService {
         addKey(controls, recognize, 1.5f);
         addKey(controls, button(R.id.ime_manual, text(R.string.ime_manual), view -> {
             boolean open = !manualOpen;
-            invalidateDraft(false);
+            if (WritingSettings.wordMode(this)) {
+                cancelRecognition();
+                automaticInsertion = null;
+                if (selectedDraft == null || !current(selectedDraft) || wordCharacters.isEmpty()) {
+                    showStatus(R.string.word_choose_first);
+                    updateHandwritingControls();
+                    return;
+                }
+            } else {
+                invalidateDraft(false);
+            }
             manualOpen = open;
             manualScroller.setVisibility(open ? View.VISIBLE : View.GONE);
             drawing.setVisibility(open ? View.GONE : View.VISIBLE);
-            showStatus(open ? R.string.ime_manual_hint : R.string.ime_draw_hint);
+            showStatus(WritingSettings.wordMode(this) ? R.string.word_correction_help
+                    : open ? R.string.ime_manual_hint : R.string.ime_draw_hint);
         }), 1);
         manualPanel = column();
         manualPanel.setId(R.id.ime_manual_panel);
@@ -511,9 +548,7 @@ public class HandwritingImeService extends InputMethodService {
         LinearLayout predictionRow = row(false);
         autoSpinner = new Spinner(ui, Spinner.MODE_DROPDOWN);
         autoSpinner.setId(R.id.ime_auto_delay);
-        autoSpinner.setContentDescription(text(R.string.auto_insert_title));
-        autoSpinner.setAdapter(adapter(Arrays.asList(
-                ui.getResources().getStringArray(R.array.auto_insert_delays_short))));
+        configureAutoSpinner();
         autoSpinner.setSelection(AutoInsertSettings.selection(this));
         autoSpinner.setSaveEnabled(false);
         autoSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -526,6 +561,12 @@ public class HandwritingImeService extends InputMethodService {
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
         addKey(predictionRow, autoSpinner, 1.2f);
+        wordCharacterSpinner = new Spinner(ui, Spinner.MODE_DROPDOWN);
+        wordCharacterSpinner.setId(R.id.ime_word_character);
+        wordCharacterSpinner.setContentDescription(text(R.string.ime_word_character));
+        wordCharacterSpinner.setSaveEnabled(false);
+        addKey(predictionRow, wordCharacterSpinner, 1.2f);
+        wordCharacterSpinner.setVisibility(View.GONE);
         candidates = row(true);
         candidates.setId(R.id.ime_candidates);
         addKey(predictionRow, candidates, 3);
@@ -541,6 +582,8 @@ public class HandwritingImeService extends InputMethodService {
         selected.setId(R.id.ime_selected);
         selected.setSaveEnabled(false);
         selected.setTextSize(14);
+        selected.setTextDirection(View.TEXT_DIRECTION_FIRST_STRONG);
+        selected.setMaxLines(2);
         selected.setGravity(Gravity.CENTER_VERTICAL);
         selected.setPadding(dp(5), 0, dp(5), 0);
         addKey(confirmation, selected, 1.1f);
@@ -560,7 +603,10 @@ public class HandwritingImeService extends InputMethodService {
     private void buildManualPanel() {
         if (manualPanel == null) return;
         manualPanel.removeAllViews();
-        List<String> labels = Alphabet.labels(group);
+        List<String> labels = new ArrayList<>(Alphabet.labels(group));
+        if (WritingSettings.wordMode(this) && !Alphabet.DIGITS.equals(group)) {
+            labels.addAll(Alphabet.labels(Alphabet.DIGITS));
+        }
         LinearLayout line = null;
         for (int i = 0; i < labels.size(); i++) {
             if (i % 10 == 0) {
@@ -573,7 +619,11 @@ public class HandwritingImeService extends InputMethodService {
                     showStatus(editing ? R.string.ime_draw_first : R.string.ime_input_failed);
                     return;
                 }
-                select(label, new Draft());
+                if (WritingSettings.wordMode(this)) {
+                    replaceWordCharacter(label, selectedDraft, wordCharacterIndex);
+                } else {
+                    select(label, new Draft());
+                }
                 manualOpen = false;
                 manualScroller.setVisibility(View.GONE);
                 drawing.setVisibility(View.VISIBLE);
@@ -664,10 +714,54 @@ public class HandwritingImeService extends InputMethodService {
     }
 
     private void refreshAutoSettings() {
-        autoDelay = AutoInsertSettings.delay(this);
+        autoDelay = WritingSettings.delay(this);
         invalidateDraft(false);
         if (autoSpinner != null) autoSpinner.setSelection(AutoInsertSettings.selection(this));
         showStatus(R.string.auto_insert_settings_changed);
+    }
+
+    private void showWritingOptions(View anchor) {
+        invalidateDraft(false);
+        PopupMenu menu = new PopupMenu(ui, anchor);
+        menu.getMenu().add(0, R.id.ime_word_mode, 0, R.string.word_mode)
+                .setCheckable(true).setChecked(WritingSettings.wordMode(this));
+        menu.getMenu().add(0, R.id.ime_mirrored, 1, R.string.mirrored_mode)
+                .setCheckable(true).setChecked(WritingSettings.mirrored(this));
+        menu.getMenu().add(0, R.id.ime_reverse_order, 2, R.string.reverse_word_order)
+                .setCheckable(true).setChecked(WritingSettings.reverseOrder(this))
+                .setEnabled(WritingSettings.wordMode(this));
+        menu.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.ime_word_mode) {
+                WritingSettings.setWordMode(this, !WritingSettings.wordMode(this));
+            } else if (item.getItemId() == R.id.ime_mirrored) {
+                WritingSettings.setMirrored(this, !WritingSettings.mirrored(this));
+            } else if (item.getItemId() == R.id.ime_reverse_order) {
+                WritingSettings.setReverseOrder(this, !WritingSettings.reverseOrder(this));
+            } else {
+                return false;
+            }
+            return true;
+        });
+        menu.show();
+    }
+
+    private void configureAutoSpinner() {
+        if (autoSpinner == null) return;
+        boolean wordMode = WritingSettings.wordMode(this);
+        autoSpinner.setContentDescription(text(wordMode ? R.string.ime_word_pause : R.string.auto_insert_title));
+        autoSpinner.setAdapter(adapter(Arrays.asList(ui.getResources().getStringArray(wordMode
+                ? R.array.ime_word_auto_delays : R.array.auto_insert_delays_short))));
+    }
+
+    private void refreshWritingSettings() {
+        autoDelay = WritingSettings.delay(this);
+        // Erase the old line as well as cancelling timers and already-posted worker results.
+        invalidateDraft(true);
+        buildManualPanel();
+        configureAutoSpinner();
+        if (autoSpinner != null) autoSpinner.setSelection(AutoInsertSettings.selection(this));
+        updateHandwritingControls();
+        showStatus(R.string.word_options_changed);
     }
 
     private void armAutomaticInsertion() {
@@ -678,19 +772,34 @@ public class HandwritingImeService extends InputMethodService {
         autoInsert.arm(autoDelay, () -> {
             if (automaticCurrent(pending)) recognize(true);
         });
-        showStatus(R.string.auto_insert_waiting);
+        showStatus(pending.wordMode ? R.string.word_waiting : R.string.auto_insert_waiting);
     }
 
     private boolean automaticCurrent(Draft draft) {
         return current(draft) && !loadingProfiles && !profilesFailed && !manualOpen
                 && drawing != null && !drawing.isDrawing() && !drawing.getInk().isEmpty()
                 && draft.delay > 0 && draft.delay == autoDelay
-                && draft.delay == AutoInsertSettings.delay(this);
+                && draft.delay == WritingSettings.delay(this);
     }
 
     private List<HandwritingRecognizer.Example> personalExamples(Draft request) {
         if (request.profile < 0) return Collections.emptyList();
         List<HandwritingRecognizer.Example> examples = store.examples(request.profile, request.alphabet);
+        requireProfile(request);
+        return examples;
+    }
+
+    private Map<String, List<HandwritingRecognizer.Example>> personalWordExamples(Draft request) {
+        Map<String, List<HandwritingRecognizer.Example>> examples = new HashMap<>();
+        if (request.profile < 0) return examples;
+        for (String alphabet : WordRecognizer.personalGroups(request.alphabet)) {
+            examples.put(alphabet, store.examples(request.profile, alphabet));
+        }
+        requireProfile(request);
+        return examples;
+    }
+
+    private void requireProfile(Draft request) {
         boolean exists = false;
         for (ProfileStore.Profile profile : store.profiles()) {
             if (profile.id == request.profile) {
@@ -699,11 +808,10 @@ public class HandwritingImeService extends InputMethodService {
             }
         }
         if (!exists) throw new IllegalStateException("The selected profile is no longer available");
-        return examples;
     }
 
     private void insertAutomatically(String label, Ink ink, Draft request, boolean uncertain) {
-        if (!automaticCurrent(request) || !Alphabet.labels(group).contains(label)) return;
+        if (!automaticCurrent(request) || !validText(label, request.wordMode)) return;
         boolean privateField = !KeyboardEditor.allowsLearning(editor);
         AutomaticInsertion insertion = !privateField && selectionStart >= 0
                 && selectionStart == selectionEnd
@@ -748,6 +856,7 @@ public class HandwritingImeService extends InputMethodService {
             return !destroyed && editing && handwriting && KeyboardEditor.allowsLearning(editor)
                     && draft.session == sessionRevision && draft.profile == profileId
                     && draft.alphabet.equals(group) && draft.connection == editorConnection()
+                    && writingOptionsMatch(draft)
                     && selectionStart == expectedEnd && selectionEnd == expectedEnd;
         }
     }
@@ -796,8 +905,14 @@ public class HandwritingImeService extends InputMethodService {
         showStatus(R.string.ime_recognizing);
         recognitionTask = worker.submit(() -> {
             try {
+                if (request.wordMode) {
+                    WordRecognizer.Result result = WordRecognizer.recognize(ink, request.alphabet,
+                            personalWordExamples(request), request.mirrored, request.reverseOrder);
+                    main.post(() -> publishWordResult(result, ink, request, automatic));
+                    return;
+                }
                 HandwritingRecognizer.Result result = HandwritingRecognizer.recognize(
-                        ink, request.alphabet, personalExamples(request));
+                        ink, request.alphabet, personalExamples(request), request.mirrored);
                 main.post(() -> {
                     if (!current(request) || (automatic && !automaticCurrent(request))) return;
                     recognizing = false;
@@ -832,6 +947,95 @@ public class HandwritingImeService extends InputMethodService {
         });
     }
 
+    private void publishWordResult(WordRecognizer.Result result, Ink ink, Draft request, boolean automatic) {
+        if (!current(request) || (automatic && !automaticCurrent(request))) return;
+        recognizing = false;
+        recognitionTask = null;
+        if (result.needsSeparation || !validText(result.text, true)
+                || result.characters.size() != result.text.length()) {
+            showStatus(R.string.word_separation_needed);
+            updateHandwritingControls();
+            return;
+        }
+        if (automatic) {
+            insertAutomatically(result.text, ink, request, result.uncertain);
+            return;
+        }
+        // The recognizer has already placed Hebrew letters and digit runs in logical order.
+        selectedLabel = result.text;
+        selectedDraft = request;
+        wordCharacters = new ArrayList<>(result.characters);
+        wordCharacterIndex = 0;
+        populateWordCharacters();
+        updateHandwritingControls();
+        showStatus(result.uncertain ? R.string.word_uncertain : R.string.word_review);
+    }
+
+    private void populateWordCharacters() {
+        if (wordCharacterSpinner == null || selectedLabel == null) return;
+        List<String> labels = new ArrayList<>();
+        for (int i = 0; i < wordCharacters.size(); i++) {
+            labels.add(ui.getString(R.string.word_candidate, i + 1, selectedLabel.substring(i, i + 1)));
+        }
+        wordCharacterSpinner.setOnItemSelectedListener(null);
+        wordCharacterSpinner.setAdapter(adapter(labels));
+        wordCharacterSpinner.setSelection(wordCharacterIndex);
+        wordCharacterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (parent != wordCharacterSpinner || position != parent.getSelectedItemPosition()
+                        || selectedDraft == null || !current(selectedDraft)
+                        || position < 0 || position >= wordCharacters.size()) return;
+                wordCharacterIndex = position;
+                showWordCandidates();
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+        showWordCandidates();
+    }
+
+    private void showWordCandidates() {
+        if (candidates == null || selectedDraft == null || !current(selectedDraft)
+                || wordCharacterIndex < 0 || wordCharacterIndex >= wordCharacters.size()) return;
+        candidates.removeAllViews();
+        int index = wordCharacterIndex;
+        Draft request = selectedDraft;
+        for (HandwritingRecognizer.Candidate candidate : wordCharacters.get(index).candidates) {
+            Button choice = button(View.NO_ID, candidate.label + " · " + candidate.similarity,
+                    view -> replaceWordCharacter(candidate.label, request, index));
+            choice.setTag(candidate.label);
+            choice.setContentDescription(ui.getString(R.string.ime_candidate_description,
+                    candidate.label, candidate.similarity));
+            addKey(candidates, choice, 1);
+        }
+    }
+
+    private void replaceWordCharacter(String label, Draft request, int index) {
+        if (request == null || !current(request) || !request.wordMode || drawing.isDrawing()
+                || selectedLabel == null || index != wordCharacterIndex
+                || index < 0 || index >= wordCharacters.size() || label == null
+                || label.length() != 1 || !validText(label, true)) return;
+        cancelRecognition();
+        automaticInsertion = null;
+        selectedLabel = selectedLabel.substring(0, index) + label + selectedLabel.substring(index + 1);
+        learn.setChecked(false);
+        populateWordCharacters();
+        updateHandwritingControls();
+        showStatus(R.string.word_review);
+    }
+
+    private boolean validText(String value, boolean wordMode) {
+        if (value == null || value.isEmpty() || value.length() > (wordMode ? WordRecognizer.MAX_CHARACTERS : 1)) {
+            return false;
+        }
+        List<String> labels = Alphabet.labels(group);
+        List<String> digits = Alphabet.labels(Alphabet.DIGITS);
+        for (int i = 0; i < value.length(); i++) {
+            String label = value.substring(i, i + 1);
+            if (!labels.contains(label) && !(wordMode && digits.contains(label))) return false;
+        }
+        return true;
+    }
+
     private void select(String label, Draft request) {
         if (!current(request) || !Alphabet.labels(group).contains(label) || drawing.isDrawing()) return;
         invalidateDraft(false);
@@ -847,8 +1051,8 @@ public class HandwritingImeService extends InputMethodService {
         boolean consent = learn != null && learn.isChecked();
         if (learn != null) learn.setChecked(false);
         if (selectedLabel == null || selectedDraft == null || !current(selectedDraft)
-                || drawing.isDrawing() || !Alphabet.labels(group).contains(selectedLabel)) {
-            showStatus(R.string.ime_nothing_selected);
+                || drawing.isDrawing() || !validText(selectedLabel, selectedDraft.wordMode)) {
+            showStatus(WritingSettings.wordMode(this) ? R.string.word_choose_first : R.string.ime_nothing_selected);
             return;
         }
         String label = selectedLabel;
@@ -856,7 +1060,7 @@ public class HandwritingImeService extends InputMethodService {
         long confirmedProfile = profileId;
         String confirmedGroup = group;
         // Never trust enabled/checked UI state as the privacy gate.
-        boolean save = consent && KeyboardEditor.allowsLearning(editor)
+        boolean save = !selectedDraft.wordMode && consent && KeyboardEditor.allowsLearning(editor)
                 && confirmedProfile >= 0 && !loadingProfiles && !ink.isEmpty();
         if (!commitCharacter(label)) {
             showStatus(R.string.ime_input_failed);
@@ -954,6 +1158,12 @@ public class HandwritingImeService extends InputMethodService {
         automaticInsertion = null;
         selectedLabel = null;
         selectedDraft = null;
+        wordCharacters = Collections.emptyList();
+        wordCharacterIndex = 0;
+        if (wordCharacterSpinner != null) {
+            wordCharacterSpinner.setOnItemSelectedListener(null);
+            wordCharacterSpinner.setAdapter(null);
+        }
         manualOpen = false;
         if (candidates != null) candidates.removeAllViews();
         if (manualScroller != null) manualScroller.setVisibility(View.GONE);
@@ -980,24 +1190,48 @@ public class HandwritingImeService extends InputMethodService {
     }
 
     private void updateHandwritingControls() {
+        boolean wordMode = WritingSettings.wordMode(this);
         boolean completeInk = drawing != null && !drawing.isDrawing() && !drawing.getInk().isEmpty();
         if (drawing != null) {
             drawing.setDisabledHint(loadingProfiles ? R.string.drawing_loading_hint : R.string.drawing_editor_hint);
+            drawing.setEmptyHint(wordMode ? R.string.word_draw_here : R.string.draw_here);
+            drawing.setContentDescription(text(wordMode ? R.string.word_drawing_description
+                    : R.string.ime_drawing_description));
             drawing.setEnabled(editing && !loadingProfiles);
+        }
+        if (writingOptions != null) {
+            writingOptions.setText(text(wordMode ? R.string.word_mode_short : R.string.ime_writing_options));
+            writingOptions.setContentDescription(text(R.string.ime_writing_options) + ". "
+                    + text(wordMode ? R.string.word_help : R.string.mirror_help));
         }
         if (recognize != null) recognize.setEnabled(editing && !recognizing && !loadingProfiles
                 && !profilesFailed && completeInk);
         if (undoAutomatic != null) {
             undoAutomatic.setVisibility(automaticInsertion == null ? View.GONE : View.VISIBLE);
+            undoAutomatic.setContentDescription(text(wordMode ? R.string.word_undo : R.string.auto_insert_undo));
             candidates.setVisibility(automaticInsertion == null ? View.VISIBLE : View.GONE);
         }
-        if (confirm != null) confirm.setEnabled(editing && selectedLabel != null
-                && selectedDraft != null && current(selectedDraft) && !drawing.isDrawing());
-        if (selected != null) selected.setText(selectedLabel == null ? text(R.string.ime_nothing_selected)
-                : ui.getString(R.string.ime_selected, selectedLabel));
+        boolean reviewingWord = wordMode && selectedLabel != null && !wordCharacters.isEmpty();
+        if (wordCharacterSpinner != null) {
+            wordCharacterSpinner.setVisibility(reviewingWord ? View.VISIBLE : View.GONE);
+            autoSpinner.setVisibility(reviewingWord ? View.GONE : View.VISIBLE);
+        }
+        if (confirm != null) {
+            confirm.setText(text(wordMode ? R.string.ime_word_insert : R.string.ime_confirm));
+            confirm.setContentDescription(text(wordMode ? R.string.word_insert : R.string.ime_confirm));
+            confirm.setEnabled(editing && selectedLabel != null
+                    && selectedDraft != null && current(selectedDraft) && !drawing.isDrawing());
+        }
+        if (selected != null) selected.setText(selectedLabel == null
+                ? text(wordMode ? R.string.word_choose_first : R.string.ime_nothing_selected)
+                : ui.getString(wordMode ? R.string.word_result : R.string.ime_selected, selectedLabel));
         if (learn != null) {
-            boolean policy = editing && KeyboardEditor.allowsLearning(editor);
-            learn.setText(text(policy ? R.string.ime_learn : R.string.ime_learning_private));
+            boolean policy = !wordMode && editing && KeyboardEditor.allowsLearning(editor);
+            learn.setText(text(wordMode ? R.string.word_no_learning
+                    : policy ? R.string.ime_learn : R.string.ime_learning_private));
+            learn.setContentDescription(text(wordMode ? R.string.word_no_learning : R.string.ime_learning_description));
+            // Keep the full-word preview legible without adding another row above the drawing pad.
+            learn.setVisibility(reviewingWord ? View.GONE : View.VISIBLE);
             learn.setEnabled(policy && profileId >= 0 && !loadingProfiles && completeInk && selectedLabel != null);
             if (!learn.isEnabled()) learn.setChecked(false);
         }
@@ -1009,13 +1243,22 @@ public class HandwritingImeService extends InputMethodService {
         final long profile = profileId;
         final String alphabet = group;
         final int delay = autoDelay;
+        final boolean wordMode = WritingSettings.wordMode(HandwritingImeService.this);
+        final boolean mirrored = WritingSettings.mirrored(HandwritingImeService.this);
+        final boolean reverseOrder = WritingSettings.reverseOrder(HandwritingImeService.this);
         final InputConnection connection = editorConnection();
     }
 
     private boolean current(Draft draft) {
         return !destroyed && editing && handwriting && draft.session == sessionRevision
                 && draft.revision == drawingRevision && draft.profile == profileId && draft.alphabet.equals(group)
-                && draft.connection == editorConnection();
+                && draft.connection == editorConnection() && writingOptionsMatch(draft);
+    }
+
+    private boolean writingOptionsMatch(Draft draft) {
+        return draft.wordMode == WritingSettings.wordMode(this)
+                && draft.mirrored == WritingSettings.mirrored(this)
+                && draft.reverseOrder == WritingSettings.reverseOrder(this);
     }
 
     private void openTraining() {
@@ -1036,6 +1279,7 @@ public class HandwritingImeService extends InputMethodService {
     private void showDefaultStatus() {
         showStatus(!handwriting ? R.string.ime_ready : loadingProfiles ? R.string.ime_loading_profiles
                 : profilesFailed ? R.string.ime_profile_error
+                : WritingSettings.wordMode(this) ? R.string.word_help
                 : profileId < 0 ? R.string.ime_no_profiles
                 : autoDelay > 0 ? R.string.ime_auto_draw_hint : R.string.ime_draw_hint);
     }

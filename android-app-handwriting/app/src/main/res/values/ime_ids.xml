@@ -28,4 +28,9 @@
     <item name="ime_enter" type="id" />
     <item name="ime_status" type="id" />
     <item type="id" name="ime_symbol_page" />
+    <item name="ime_writing_options" type="id" />
+    <item name="ime_word_mode" type="id" />
+    <item name="ime_mirrored" type="id" />
+    <item name="ime_reverse_order" type="id" />
+    <item name="ime_word_character" type="id" />
 </resources>

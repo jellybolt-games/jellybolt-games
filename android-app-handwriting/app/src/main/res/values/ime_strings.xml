@@ -69,4 +69,14 @@
     <string name="ime_picker_error">Could not open the keyboard picker. Use Android keyboard settings.</string>
     <string name="ime_ink_limit">Drawing limit reached. Undo or clear, then try again.</string>
     <string name="ime_more_symbols">Switch symbol page</string>
+    <string name="ime_writing_options">Options</string>
+    <string name="ime_word_character">Choose the character position to correct</string>
+    <string name="ime_word_insert">Insert word</string>
+    <string name="ime_word_pause">Automatic word insertion waits at least 2 seconds after the last stroke. Choose Off for manual insertion.</string>
+    <string-array name="ime_word_auto_delays">
+        <item>Off</item>
+        <item>2s min (0.8s single)</item>
+        <item>2s min (1.2s single)</item>
+        <item>2s</item>
+    </string-array>
 </resources>

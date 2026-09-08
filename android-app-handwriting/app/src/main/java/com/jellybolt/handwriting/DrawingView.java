@@ -31,6 +31,7 @@ public final class DrawingView extends View {
     private Runnable onDrawingBlocked;
     private Runnable onStrokeFinished;
     private int disabledHint = R.string.drawing_profile_hint;
+    private int emptyHint = R.string.draw_here;
 
     public DrawingView(Context context) {
         this(context, null);
@@ -73,6 +74,12 @@ public final class DrawingView extends View {
     public void setDisabledHint(int resource) {
         if (disabledHint == resource) return;
         disabledHint = resource;
+        invalidate();
+    }
+
+    public void setEmptyHint(int resource) {
+        if (emptyHint == resource) return;
+        emptyHint = resource;
         invalidate();
     }
 
@@ -124,7 +131,7 @@ public final class DrawingView extends View {
         surfacePaint.setColor(Color.rgb(112, 146, 151));
         canvas.drawRoundRect(bounds, dp(16), dp(16), surfacePaint);
         if (strokes.isEmpty() && current == null) {
-            String hint = getResources().getString(isEnabled() ? R.string.draw_here : disabledHint);
+            String hint = getResources().getString(isEnabled() ? emptyHint : disabledHint);
             float originalSize = hintPaint.getTextSize();
             float measured = hintPaint.measureText(hint);
             float available = Math.max(1, getWidth() - dp(24));

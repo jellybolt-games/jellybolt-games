@@ -8,6 +8,9 @@ optional system keyboard; the standalone teaching and practice screens remain.
 Version 0.5.0 adds bundled starter stroke examples and pause-to-insert writing.
 These are original shape templates, not a pretrained neural network or a
 clinically validated handwriting model.
+Version 0.6.0 adds horizontal mirrored starter shapes and optional separated
+whole-word/number input. Mirroring is enabled by default; whole-word mode is
+opt-in so an existing one-character workflow is not silently reinterpreted.
 
 אפליקציית Android ראשונית שפועלת ללא אינטרנט ולומדת מדוגמאות מתויגות של כתב היד
 האישי של הילד או הילדה. הממשק זמין בעברית ובאנגלית, ללא פרסומות, חשבונות,
@@ -15,12 +18,14 @@ clinically validated handwriting model.
 אופציונלית, לצד מסכי הלימוד והתרגול הקיימים.
 גרסה 0.5.0 מוסיפה צורות כתב יד התחלתיות והזנה לאחר הפסקה. אלו תבניות צורה
 מקוריות, ולא רשת עצבית מאומנת או מודל כתב יד שעבר תיקוף קליני.
+גרסה 0.6.0 מוסיפה צורות התחלתיות בכתב ראי ומצב אופציונלי למילה או מספר
+שלמים עם תווים מופרדים. שיקוף מופעל כברירת מחדל; מצב מילה שלמה דורש בחירה.
 
 ## Install and use
 
 Requires Android 8.0 or later. Build the debug APK below and transfer it to the
 device. Open it and allow installation from that source if Android requests it.
-This is a sideloadable prototype. Version 0.5.0 is also available through
+This is a sideloadable prototype. Version 0.6.0 is also available through
 [Google Play internal testing](https://play.google.com/apps/internaltest/4700966795480494872),
 not public production. Tester access uses the enabled JellyBolt Beta Testers
 and My Handwriting Testers lists; additional Google accounts must be enrolled through the app's
@@ -60,6 +65,7 @@ moving to draw; mouse-wheel or two-finger trackpad scrolling is not handwriting.
 The four alphabets contain 89 labels in total: 10 digits, 26 uppercase letters,
 26 lowercase letters, and 27 Hebrew forms including ך ם ן ף ץ. Recognition is
 restricted to the selected alphabet to reduce ambiguity such as `0` versus `O`.
+Whole-word mode also includes digits alongside the selected letter alphabet.
 Hebrew output follows logical typing order and is displayed using Android's
 bidirectional text handling. The app does not automatically select final forms,
 add vowel points, fix spelling, or separate connected letters in a whole word.
@@ -71,7 +77,7 @@ handwriting alphabet (or typing language), rather than resetting to digits.
 
 נדרשת גרסת Android 8.0 ומעלה. בונים את קובץ ה־APK לפי ההוראות בהמשך,
 מעבירים אותו למכשיר ופותחים אותו. אם Android מבקש, מאשרים התקנה מהמקור הזה.
-זו גרסה ראשונית להתקנה ישירה. גרסה 0.5.0 זמינה גם בבדיקה פנימית ב־Google Play
+זו גרסה ראשונית להתקנה ישירה. גרסה 0.6.0 זמינה גם בבדיקה פנימית ב־Google Play
 בקישור שלמעלה, ולא בהפצה ציבורית. הגישה ניתנת דרך הרשימות JellyBolt Beta Testers
 ו־My Handwriting Testers; יש להוסיף חשבונות Google נוספים בלשונית Testers לפני השימוש בקישור.
 לגרסת הפיתוח ולגרסה עתידית מהחנות חתימות שונות. מעבר ביניהן עלול לדרוש
@@ -105,6 +111,7 @@ handwriting alphabet (or typing language), rather than resetting to digits.
 בעברית, כולל ך ם ן ף ץ. הזיהוי מוגבל לקבוצת התווים שנבחרה. סדר הטקסט
 בעברית הוא סדר ההקלדה הלוגי, עם תצוגה דו־כיוונית של Android. אין בחירה
 אוטומטית באותיות סופיות, ניקוד, תיקון איות או הפרדה של אותיות מחוברות במילה שלמה.
+במצב מילה שלמה מזוהות גם ספרות לצד קבוצת האותיות שנבחרה.
 האפליקציה זוכרת את קבוצת התווים ואת התו האחרון בכל קבוצה גם לאחר סגירה.
 כפתור **לימוד** במקלדת פותח את קבוצת כתב היד הנבחרת או את שפת ההקלדה,
 במקום לחזור אוטומטית לספרות.
@@ -162,6 +169,73 @@ to that app's privacy policy.
 נשמר. שדות שסומנו כסיסמה ב־Android ובקשות להזנה פרטית חוסמים הוספת דוגמאות.
 דוגמאות שכבר נשמרו עדיין יכולות לסייע בזיהוי. למידה מתיקונים דורשת בחירה
 מפורשת ומתאפסת בין שדות. טקסט שהוזן לאפליקציה אחרת כפוף למדיניות שלה.
+
+## Mirrored characters and whole words / כתב ראי ומילים שלמות
+
+**Recognize mirrored character shapes** includes each starter character's
+left/right reflection under the same intended label. It does not rotate the
+drawing or reverse the text order. Unchecking it restores normal starter-only
+matching; personal examples of unusual shapes still work. This cannot make
+identical shapes distinguishable: a reversed `b` may look exactly like `d`,
+and other Latin/Hebrew/digit pairs can collide. Personal examples take
+priority where possible; uncertain predictions still need review. This is
+shape matching, not a language model that knows what the child intended.
+
+Enable **Write a whole word or number** in writing mode, or open **Options**
+in the keyboard's handwriting toolbar and enable it there:
+
+1. Choose **Hebrew**, **English A–Z**, **English a–z**, or **Digits**. English
+   case is explicit; whole-word mode includes digits with the chosen letters.
+2. Draw a single line, up to **16 characters**, leaving a small gap between
+   printed characters. Lift your finger normally between strokes of a letter.
+   The tool groups character strokes spatially, rather than treating each
+   stroke as a separate character.
+3. Pause to split, recognize, and insert the entire result together. Word mode
+   uses a minimum **2-second** pause regardless of the shorter single-character
+   setting. Choose **Off** and press Recognize if pauses between letters are longer.
+4. Hebrew letters use right-to-left spatial order, while contiguous digit
+   runs remain left-to-right. **Reverse the reading order** is a separate
+   option for an entire line written backwards, including the order within
+   digit sequences; mirrored glyphs alone do not require reversing the order.
+5. Review uncertain words and use correction or Undo. Word corrections are
+   **never** saved as a single-character training example. Continue teaching
+   individual letters in the existing training screen.
+
+This first version segments **separated print-style handwriting**. Joined
+cursive, touching/overlapping characters, multiple lines, and ambiguous
+spacing are not reliably supported. It requests more separation when it
+cannot split safely, but ambiguous layouts can still yield the wrong split.
+It does not insert spaces, choose Hebrew final forms automatically, fix
+spelling, or infer missing strokes. A useful starting point is a short number
+such as `57`, then a spaced lowercase word such as `cat`.
+
+**זיהוי תווים בכתב ראי** כולל שיקוף אופקי של כל תו התחלתי עם אותה תווית.
+הוא אינו מסובב את הציור ואינו משנה את סדר הטקסט. ביטול האפשרות מחזיר
+להשוואת הצורות הרגילות; דוגמאות אישיות חריגות עדיין משמשות לזיהוי.
+צורות זהות אינן ניתנות להבחנה מהציור בלבד: למשל b משוקפת עשויה להיראות
+בדיוק כמו d. דוגמאות אישיות מקבלות עדיפות כשאפשר, אך תחזיות לא ודאיות
+עדיין דורשות בדיקה. זהו זיהוי צורות, לא מודל שפה שמבין את כוונת הילד.
+
+מפעילים **כתיבת מילה או מספר שלמים** במצב כתיבה, או פותחים **אפשרויות**
+בסרגל כתב היד של המקלדת ומפעילים את האפשרות שם:
+
+1. בוחרים עברית, אותיות גדולות או קטנות באנגלית או ספרות. במצב מילה שלמה
+   אפשר לשלב ספרות עם קבוצת האותיות הנבחרת.
+2. כותבים שורה אחת של עד **16 תווים**, עם רווח קטן בין האותיות. אפשר להרים
+   את האצבע בין קווים של אותה אות. ההפרדה מבוססת על מיקום, ולא על קו יחיד.
+3. ממתינים להפרדה ולזיהוי של כל התווים ולהזנה של התוצאה כולה. ההשהיה במצב
+   מילה היא לפחות **2 שניות**; אפשר לבטל הזנה אוטומטית ולהשתמש בזיהוי ידני.
+4. אותיות בעברית נקראות מימין לשמאל, ורצפי ספרות נשארים משמאל לימין.
+   **היפוך סדר הקריאה** מיועד לשורה שלמה שנכתבה לאחור, כולל סדר הספרות
+   בתוך מספרים; כתב ראי של תווים כשלעצמו אינו מצריך שינוי בסדר.
+5. בודקים תחזיות לא ודאיות ומתקנים או מבטלים. תיקון של מילה אינו נשמר
+   כדוגמת לימוד של תו אחד; ממשיכים ללמד אותיות בודדות במסך הלימוד הקיים.
+
+הגרסה הראשונה מפרידה **אותיות דפוס נפרדות**. כתב מחובר, אותיות נוגעות או
+חופפות, כמה שורות ורווחים עמומים אינם נתמכים באופן אמין. כשלא ניתן להפריד
+בבטחה תופיע בקשה להוסיף רווחים, אך עדיין עלולה להתרחש הפרדה שגויה.
+אין הוספת רווחים או בחירה אוטומטית באותיות סופיות, תיקון איות או השלמת קווים.
+מומלץ להתחיל ממספר קצר כמו `57` ואז מילה קצרה עם אותיות מופרדות.
 
 ## Automatic writing and corrections / כתיבה אוטומטית ותיקונים
 

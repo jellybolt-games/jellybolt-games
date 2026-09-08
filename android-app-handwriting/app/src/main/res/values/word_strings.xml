@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="word_mode">Write a whole word or number</string>
+    <string name="word_mode_short">Word / number</string>
+    <string name="mirrored_mode">Recognize mirrored character shapes</string>
+    <string name="mirrored_mode_short">Mirror shapes</string>
+    <string name="reverse_word_order">Reverse the reading order</string>
+    <string name="reverse_word_order_short">Reverse order</string>
+    <string name="word_help">Write one line with a small gap between characters (up to 16). Letters use the selected alphabet; digits are also recognized. Normally Hebrew reads right to left and numbers left to right. Reverse the reading order handles an entire line written backwards, including reversed digit sequences. Joined or overlapping letters may need to be redrawn separately. Automatic word insertion waits at least 2 seconds after the last stroke; turn it off if you need longer.</string>
+    <string name="mirror_help">Starter examples include left/right mirror images for every character. Some shapes become identical, such as b and d. Personal examples help; check uncertain predictions. Mirrored shapes do not automatically reverse the word.</string>
+    <string name="word_draw_here">Write a word here</string>
+    <string name="word_drawing_description">Draw one word or number on one line with a small gap between characters.</string>
+    <string name="word_options_changed">Recognition options changed. Draw again to start automatic input.</string>
+    <string name="word_separation_needed">I could not separate this line reliably. Leave small gaps, use at most 16 characters, or switch to one-character mode.</string>
+    <string name="word_result">Prediction: %1$s</string>
+    <string name="word_uncertain">Some characters are uncertain. Check the word or number before using it.</string>
+    <string name="word_review">Review the separated characters, then insert the word or number.</string>
+    <string name="word_candidate">Character %1$d: %2$s</string>
+    <string name="word_insert">Insert word / number</string>
+    <string name="word_correct">Correct word / number</string>
+    <string name="word_correction_help">Use only characters from the selected alphabet and digits, up to 16. Whole-word corrections are not saved as character training examples.</string>
+    <string name="word_correction_invalid">Enter 1–16 characters from this alphabet or digits. For other letters, change the alphabet first.</string>
+    <string name="word_no_learning">Teach one character at a time in training mode. Word predictions and corrections never become training examples automatically.</string>
+    <string name="word_waiting">Pause to recognize and insert the whole line…</string>
+    <string name="word_undo">Undo last automatic word</string>
+    <string name="word_choose_first">Draw and recognize a word, or correct the text manually.</string>
+    <string name="word_privacy">Mirrored starter shapes are bundled locally and contain no child data. Whole-word mode splits and recognizes one line on the device. Word predictions and word corrections are not stored as personal character samples. Guarded Undo may briefly read up to 16 preceding characters to verify that it removes only the text just inserted; that context is not retained or uploaded.</string>
+</resources>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="word_mode">כתיבת מילה או מספר שלמים</string>
+    <string name="word_mode_short">מילה / מספר</string>
+    <string name="mirrored_mode">זיהוי תווים בכתב ראי</string>
+    <string name="mirrored_mode_short">כתב ראי</string>
+    <string name="reverse_word_order">היפוך סדר הקריאה</string>
+    <string name="reverse_word_order_short">סדר הפוך</string>
+    <string name="word_help">כותבים שורה אחת עם רווח קטן בין התווים, עד 16 תווים. האותיות מזוהות לפי הקבוצה שנבחרה, וגם ספרות נתמכות. בדרך כלל עברית נקראת מימין לשמאל ומספרים משמאל לימין. היפוך סדר הקריאה מיועד לשורה שלמה שנכתבה לאחור, כולל סדר הספרות בתוך מספרים. אותיות מחוברות או חופפות עשויות לדרוש ציור נפרד. הזנת מילה אוטומטית ממתינה לפחות 2 שניות אחרי הקו האחרון; אפשר לבטל אותה אם צריך יותר זמן.</string>
+    <string name="mirror_help">הדוגמאות ההתחלתיות כוללות שיקוף אופקי של כל תו. חלק מהצורות הופכות לזהות, כגון b ו־d. דוגמאות אישיות מסייעות; חשוב לבדוק תחזיות לא ודאיות. כתב ראי אינו הופך אוטומטית את סדר המילה.</string>
+    <string name="word_draw_here">כותבים כאן מילה</string>
+    <string name="word_drawing_description">מציירים מילה או מספר בשורה אחת עם רווח קטן בין התווים.</string>
+    <string name="word_options_changed">אפשרויות הזיהוי השתנו. יש לצייר שוב כדי להתחיל הזנה אוטומטית.</string>
+    <string name="word_separation_needed">לא הצלחתי להפריד את השורה באופן אמין. יש להשאיר רווחים קטנים, לכתוב עד 16 תווים או לעבור למצב תו יחיד.</string>
+    <string name="word_result">תחזית: %1$s</string>
+    <string name="word_uncertain">חלק מהתווים אינם ודאיים. יש לבדוק את המילה או המספר לפני השימוש.</string>
+    <string name="word_review">בודקים את התווים שהופרדו ואז מזינים את המילה או המספר.</string>
+    <string name="word_candidate">תו %1$d: %2$s</string>
+    <string name="word_insert">הוספת מילה / מספר</string>
+    <string name="word_correct">תיקון מילה / מספר</string>
+    <string name="word_correction_help">יש להשתמש בתווים מקבוצת האותיות שנבחרה ובספרות בלבד, עד 16 תווים. תיקוני מילים שלמות אינם נשמרים כדוגמאות לימוד לתווים.</string>
+    <string name="word_correction_invalid">יש להזין 1–16 תווים מקבוצת האותיות שנבחרה או ספרות. לאותיות אחרות מחליפים קבוצה תחילה.</string>
+    <string name="word_no_learning">מלמדים תו אחד בכל פעם במצב לימוד. תחזיות ותיקוני מילים אינם הופכים אוטומטית לדוגמאות לימוד.</string>
+    <string name="word_waiting">ממתינים כדי לזהות ולהזין את כל השורה…</string>
+    <string name="word_undo">ביטול המילה האוטומטית האחרונה</string>
+    <string name="word_choose_first">מציירים ומזהים מילה, או מתקנים את הטקסט באופן ידני.</string>
+    <string name="word_privacy">הצורות ההתחלתיות המשוקפות כלולות במכשיר ואינן מכילות נתוני ילדים. מצב מילה שלמה מפריד ומזהה שורה אחת במכשיר. תחזיות ותיקוני מילים אינם נשמרים כדוגמאות תווים אישיות. לצורך ביטול מוגן בלבד ניתן לקרוא לזמן קצר עד 16 תווים לפני הסמן כדי לוודא שמסירים רק את הטקסט שזה עתה הוזן; ההקשר אינו נשמר או מועלה.</string>
+</resources>

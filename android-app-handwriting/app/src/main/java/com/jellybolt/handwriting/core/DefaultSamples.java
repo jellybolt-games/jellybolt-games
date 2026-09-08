@@ -27,8 +27,67 @@ public final class DefaultSamples {
         return Samples.BY_GROUP.get(group);
     }
 
+    /** Optional left/right reflections retain the child's intended character label. */
+    public static List<HandwritingRecognizer.Example> examples(String group, boolean mirrored) {
+        if (!mirrored) return examples(group);
+        if (!Alphabet.isGroup(group)) throw new IllegalArgumentException("Unknown alphabet: " + group);
+        return MirroredSamples.get().get(group);
+    }
+
+    public static Ink mirror(Ink ink) {
+        if (ink == null || ink.isEmpty()) throw new IllegalArgumentException("Draw a character first");
+        float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
+        for (List<Ink.Point> stroke : ink.strokes) {
+            checkCancelled();
+            for (Ink.Point point : stroke) {
+                minX = Math.min(minX, point.x);
+                maxX = Math.max(maxX, point.x);
+            }
+        }
+        List<List<Ink.Point>> strokes = new ArrayList<>();
+        for (List<Ink.Point> stroke : ink.strokes) {
+            checkCancelled();
+            List<Ink.Point> points = new ArrayList<>();
+            for (Ink.Point point : stroke) {
+                points.add(new Ink.Point((float) ((double) minX + maxX - point.x), point.y));
+            }
+            strokes.add(points);
+        }
+        return new Ink(strokes);
+    }
+
+    private static void checkCancelled() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new java.util.concurrent.CancellationException("Recognition cancelled");
+        }
+    }
+
     private static final class Samples {
         static final Map<String, List<HandwritingRecognizer.Example>> BY_GROUP = create();
+    }
+
+    private static final class MirroredSamples {
+        private static Map<String, List<HandwritingRecognizer.Example>> byGroup;
+
+        static synchronized Map<String, List<HandwritingRecognizer.Example>> get() {
+            // Cancellation during the first request must not poison a class initializer.
+            if (byGroup == null) byGroup = createMirrored();
+            return byGroup;
+        }
+    }
+
+    private static Map<String, List<HandwritingRecognizer.Example>> createMirrored() {
+        Map<String, List<HandwritingRecognizer.Example>> groups = new LinkedHashMap<>();
+        for (Map.Entry<String, List<HandwritingRecognizer.Example>> entry : Samples.BY_GROUP.entrySet()) {
+            List<HandwritingRecognizer.Example> examples = new ArrayList<>(entry.getValue());
+            for (HandwritingRecognizer.Example original : entry.getValue()) {
+                // The original ids start at -1; this separate range is global across alphabets.
+                examples.add(new HandwritingRecognizer.Example(Long.MIN_VALUE - original.id,
+                        original.label, mirror(original.ink)));
+            }
+            groups.put(entry.getKey(), Collections.unmodifiableList(examples));
+        }
+        return Collections.unmodifiableMap(groups);
     }
 
     private static Map<String, List<HandwritingRecognizer.Example>> create() {
@@ -198,7 +257,7 @@ public final class DefaultSamples {
     private static void hebrew(Builder b) {
         b.group(Alphabet.HEBREW);
         // Recognizable unpointed print centerlines. Descenders retain proportions
-        // relative to the letter body; we do not manufacture mirrored variants.
+        // relative to the letter body; originals here are never reflected in place.
         b.add("\u05d0", line(.2, .14, .8, .9),
                 line(.76, .13, .68, .4, .49, .5),
                 line(.43, .46, .3, .58, .21, .9)); // alef

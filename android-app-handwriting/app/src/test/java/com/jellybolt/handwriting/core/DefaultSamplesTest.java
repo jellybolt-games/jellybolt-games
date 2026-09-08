@@ -270,6 +270,94 @@ public class DefaultSamplesTest {
         }
     }
 
+    @Test public void mirroredCacheRetainsAll119OriginalsAndReflectsEveryIntendedLabel() {
+        Set<Long> ids = new HashSet<>();
+        int originals = 0;
+        for (String group : GROUPS) {
+            List<HandwritingRecognizer.Example> normal = DefaultSamples.examples(group);
+            List<HandwritingRecognizer.Example> mirrored = DefaultSamples.examples(group, true);
+            originals += normal.size();
+            assertSame(normal, DefaultSamples.examples(group, false));
+            assertSame(mirrored, DefaultSamples.examples(group, true));
+            assertEquals(normal.size() * 2, mirrored.size());
+            assertThrows(UnsupportedOperationException.class, mirrored::clear);
+            for (int i = 0; i < normal.size(); i++) {
+                HandwritingRecognizer.Example original = normal.get(i);
+                HandwritingRecognizer.Example reflected = mirrored.get(i + normal.size());
+                assertSame(original, mirrored.get(i));
+                assertEquals(original.label, reflected.label);
+                assertArrayEquals(DefaultSamples.mirror(original.ink).encode(), reflected.ink.encode());
+                HandwritingRecognizer.Result result = HandwritingRecognizer.recognize(
+                        reflected.ink, group, Collections.emptyList(), true);
+                HandwritingRecognizer.Candidate intended = candidate(result, original.label);
+                assertNotNull(group + " reflection of " + original.label, intended);
+                assertEquals(100, intended.similarity);
+                if (!result.candidates.get(0).label.equals(original.label)) {
+                    assertTrue("A deterministic tie is not confidence", result.uncertain);
+                }
+            }
+            for (HandwritingRecognizer.Example example : mirrored) {
+                assertTrue(example.id < 0);
+                assertTrue("Mirror ids must also be globally unique", ids.add(example.id));
+            }
+        }
+        assertEquals(119, originals);
+        assertEquals(238, ids.size());
+    }
+
+    @Test public void reflectionChangesOnlyHorizontalCoordinatesAndPreservesPenLifts() {
+        Ink ink = draw(path(-43, 12, 28, 70, 61, 94), path(55, 4, 11, 32));
+        Ink reflected = DefaultSamples.mirror(ink);
+        assertEquals(ink.strokes.size(), reflected.strokes.size());
+        for (int s = 0; s < ink.strokes.size(); s++) {
+            for (int p = 0; p < ink.strokes.get(s).size(); p++) {
+                assertEquals(18 - ink.strokes.get(s).get(p).x, reflected.strokes.get(s).get(p).x, 0);
+                assertEquals(ink.strokes.get(s).get(p).y, reflected.strokes.get(s).get(p).y, 0);
+            }
+        }
+        assertArrayEquals(ink.encode(), DefaultSamples.mirror(reflected).encode());
+        assertThrows(IllegalArgumentException.class, () -> DefaultSamples.mirror(null));
+        assertThrows(IllegalArgumentException.class, () -> DefaultSamples.mirror(new Ink(Collections.emptyList())));
+        assertThrows(IllegalArgumentException.class, () -> DefaultSamples.examples("unknown", true));
+    }
+
+    @Test public void mirroredBAndPConfusionsStayUncertainAndPersonalMeaningWins() {
+        for (String label : Arrays.asList("b", "d", "p", "q")) {
+            Ink mirrored = DefaultSamples.mirror(first(label, Alphabet.ENGLISH_LOWER).ink);
+            HandwritingRecognizer.Result baseline = HandwritingRecognizer.recognize(
+                    mirrored, Alphabet.ENGLISH_LOWER, Collections.emptyList(), true);
+            assertNotNull(candidate(baseline, label));
+            assertTrue(label + " reflection has an intrinsic competing letter", baseline.uncertain);
+        }
+        Ink normalD = first("d", Alphabet.ENGLISH_LOWER).ink;
+        HandwritingRecognizer.Result personal = HandwritingRecognizer.recognize(normalD, Alphabet.ENGLISH_LOWER,
+                Collections.singletonList(new HandwritingRecognizer.Example(42, "b", normalD)), true);
+        assertEquals("b", personal.candidates.get(0).label);
+        assertEquals(100, personal.candidates.get(0).similarity);
+        assertTrue(personal.uncertain);
+        assertEquals(1, personal.trainedLabels);
+    }
+
+    @Test public void reflectedHeldOutShapesWorkWithoutTrainingAndLegacyThreeArgsStayNormal() {
+        Ink three = draw(path(15, 11, 45, 2, 72, 13, 81, 29, 59, 48,
+                78, 62, 77, 80, 63, 95, 35, 97, 12, 85));
+        Ink reflected = DefaultSamples.mirror(three);
+        assertEquals("3", HandwritingRecognizer.recognize(reflected, Alphabet.DIGITS,
+                Collections.emptyList(), true).candidates.get(0).label);
+        for (String group : GROUPS) {
+            for (HandwritingRecognizer.Example example : DefaultSamples.examples(group)) {
+                HandwritingRecognizer.Result legacy = recognize(example.ink, group);
+                HandwritingRecognizer.Result explicit = HandwritingRecognizer.recognize(
+                        example.ink, group, Collections.emptyList(), false);
+                assertEquals(legacy.uncertain, explicit.uncertain);
+                for (int i = 0; i < legacy.candidates.size(); i++) {
+                    assertEquals(legacy.candidates.get(i).label, explicit.candidates.get(i).label);
+                    assertEquals(legacy.candidates.get(i).similarity, explicit.candidates.get(i).similarity);
+                }
+            }
+        }
+    }
+
     private static HandwritingRecognizer.Example first(String label, String group) {
         for (HandwritingRecognizer.Example example : DefaultSamples.examples(group)) {
             if (example.label.equals(label)) return example;

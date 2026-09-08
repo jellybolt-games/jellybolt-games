@@ -23,6 +23,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.jellybolt.handwriting.core.Alphabet;
+import com.jellybolt.handwriting.core.DefaultSamples;
 import com.jellybolt.handwriting.core.HandwritingRecognizer;
 import com.jellybolt.handwriting.core.Ink;
 
@@ -39,6 +40,7 @@ import org.robolectric.annotation.LooperMode;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
@@ -115,6 +117,8 @@ public class HandwritingImeServiceTest {
                 .clear().putString("language", "en").commit();
         context.getSharedPreferences("handwriting-ime", Context.MODE_PRIVATE).edit().clear().commit();
         context.getSharedPreferences(AutoInsertSettings.PREFERENCES, Context.MODE_PRIVATE)
+                .edit().clear().commit();
+        context.getSharedPreferences(WritingSettings.PREFERENCES, Context.MODE_PRIVATE)
                 .edit().clear().commit();
         store = new ProfileStore(context);
     }
@@ -903,7 +907,7 @@ public class HandwritingImeServiceTest {
         touch(MotionEvent.ACTION_DOWN, 0.5f, 0.5f);
         touch(MotionEvent.ACTION_UP, 0.5f, 0.5f);
         HandwritingRecognizer.Result expected = HandwritingRecognizer.recognize(
-                drawing().getInk(), Alphabet.DIGITS, Collections.emptyList());
+                drawing().getInk(), Alphabet.DIGITS, Collections.emptyList(), true);
         assertTrue(expected.uncertain);
         assertFalse(expected.candidates.isEmpty());
         advance(1200);
@@ -1141,6 +1145,483 @@ public class HandwritingImeServiceTest {
         click(R.id.ime_training);
         assertEquals(Alphabet.HEBREW, shadowOf(service).getNextStartedActivity()
                 .getStringExtra(MainActivity.EXTRA_TRAINING_ALPHABET));
+    }
+
+    @Test public void wholeNumberAutomaticallyCommitsOnceOnlyAfterTheTwoSecondMinimum() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        assertEquals(2, ((Spinner) root.findViewById(R.id.ime_auto_delay)).getSelectedItemPosition());
+        assertTrue(((Spinner) root.findViewById(R.id.ime_auto_delay)).getSelectedItem().toString().contains("2s"));
+        drawLine(Alphabet.DIGITS, "23");
+        advance(1999);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        advance(1);
+        await(() -> connection.commits == 1);
+        assertEquals("23", connection.text.toString());
+        assertEquals(-1, connection.action);
+        assertTrue(drawing().getInk().isEmpty());
+        assertTrue(store.profiles().isEmpty());
+        advance(5000);
+        drainWorker();
+        assertEquals(1, connection.commits);
+    }
+
+    @Test public void anotherCharacterRestartsTheWholeWordPause() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        drawGlyph(Alphabet.DIGITS, "2", 0, 2);
+        advance(1700);
+        drawGlyph(Alphabet.DIGITS, "3", 1, 2);
+        advance(1999);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        advance(1);
+        await(() -> connection.commits == 1);
+        assertEquals("23", connection.text.toString());
+    }
+
+    @Test public void hebrewWholeWordsAndDigitRunsAreInsertedInRecognizerLogicalOrder() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        context.getSharedPreferences("handwriting-ime", Context.MODE_PRIVATE).edit()
+                .putString("alphabet", Alphabet.HEBREW).commit();
+        launch(true, textEditor());
+        awaitReady();
+        drawLine(Alphabet.HEBREW, "םולש");
+        advance(2000);
+        await(() -> connection.commits == 1);
+        assertEquals("שלום", connection.text.toString());
+        drawLine(Alphabet.HEBREW, "ם12ש");
+        advance(2000);
+        await(() -> connection.commits == 2);
+        assertEquals("שלוםש12ם", connection.text.toString());
+        click(R.id.ime_auto_undo);
+        assertEquals("שלום", connection.text.toString());
+    }
+
+    @Test public void reverseReadingOrderChangesTheWordButNotMirrorShapeRecognition() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        WritingSettings.setReverseOrder(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        drawLine(Alphabet.DIGITS, "23");
+        advance(2000);
+        await(() -> connection.commits == 1);
+        assertEquals("32", connection.text.toString());
+        assertTrue(WritingSettings.mirrored(context));
+    }
+
+    @Test public void manualWholeWordReviewChangesOnlySelectedCharacterAndInsertsOnce() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        drawLine(Alphabet.DIGITS, "23");
+        advance(1500);
+        click(R.id.ime_recognize);
+        awaitWordReview();
+        assertTrue(selected().contains("23"));
+        assertEquals(0, connection.commits);
+        Spinner positions = root.findViewById(R.id.ime_word_character);
+        assertEquals(2, positions.getCount());
+        positions.setSelection(1);
+        layoutKeyboard();
+        shadowOf(Looper.getMainLooper()).idle();
+        choose("7");
+        assertTrue(selected().contains("27"));
+        assertFalse(learn().isEnabled());
+        learn().setChecked(true);
+        advance(5000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        click(R.id.ime_confirm);
+        click(R.id.ime_confirm);
+        assertEquals("27", connection.text.toString());
+        assertEquals(1, connection.commits);
+        assertTrue(store.profiles().isEmpty());
+        assertFalse(learn().isChecked());
+    }
+
+    @Test public void wordCandidateButtonsChangeTheLocalWordWithoutCommittingOrRearming() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        drawLine(Alphabet.DIGITS, "23");
+        click(R.id.ime_recognize);
+        awaitWordReview();
+        ViewGroup choices = root.findViewById(R.id.ime_candidates);
+        Button alternative = (Button) choices.getChildAt(choices.getChildCount() - 1);
+        String corrected = alternative.getTag() + "3";
+        alternative.performClick();
+        assertTrue(selected().contains(corrected));
+        advance(5000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        click(R.id.ime_confirm);
+        assertEquals(corrected, connection.text.toString());
+        assertEquals(1, connection.commits);
+    }
+
+    @Test public void wordRejectShowsSeparationHelpAndNeverCommitsAnyPart() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        drawLine(Alphabet.DIGITS, "22222222222222222");
+        advance(2000);
+        await(() -> status().equals(context.getString(R.string.word_separation_needed)));
+        assertFalse(drawing().getInk().isEmpty());
+        assertFalse(root.findViewById(R.id.ime_confirm).isEnabled());
+        advance(5000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        click(R.id.ime_recognize);
+        await(() -> status().equals(context.getString(R.string.word_separation_needed)));
+        assertEquals(0, connection.commits);
+    }
+
+    @Test public void wordCorrectionsNeverTrainEvenWithForcedConsentInAnyEditor() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        createProfile();
+        launch(true, textEditor());
+        for (int type : new int[]{InputType.TYPE_CLASS_TEXT,
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD}) {
+            service.onStartInput(editor(type, EditorInfo.IME_ACTION_DONE), false);
+            awaitProfiles();
+            drawLine(Alphabet.DIGITS, "23");
+            click(R.id.ime_recognize);
+            awaitWordReview();
+            assertFalse(learn().isEnabled());
+            assertEquals(context.getString(R.string.word_no_learning), learn().getText().toString());
+            learn().setChecked(true);
+            click(R.id.ime_confirm);
+            assertFalse(learn().isChecked());
+            assertFalse(selected().contains("23"));
+            assertFalse(status().contains("23"));
+        }
+        drainWorker();
+        assertEquals("232323", connection.text.toString());
+        assertTrue(store.examples(profileId, Alphabet.DIGITS).isEmpty());
+    }
+
+    @Test public void automaticPrivateWholeNumberDoesNotLearnEchoOrRememberUndo() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        createProfile();
+        launch(true, editor(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD,
+                EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING));
+        awaitProfiles();
+        drawLine(Alphabet.DIGITS, "23");
+        learn().setChecked(true);
+        advance(2000);
+        await(() -> connection.commits == 1);
+        assertEquals("23", connection.text.toString());
+        assertEquals(View.GONE, root.findViewById(R.id.ime_auto_undo).getVisibility());
+        assertFalse(learn().isChecked());
+        assertFalse(status().contains("23"));
+        assertFalse(selected().contains("23"));
+        assertTrue(store.examples(profileId, Alphabet.DIGITS).isEmpty());
+    }
+
+    @Test public void wordsLoadPersonalExamplesForTheSelectedAlphabetAndDigitsOnly() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        createProfile();
+        store.addExample(profileId, Alphabet.ENGLISH_UPPER, "Z", sample(Alphabet.ENGLISH_UPPER, "A"));
+        store.addExample(profileId, Alphabet.DIGITS, "7", sample(Alphabet.DIGITS, "2"));
+        context.getSharedPreferences("handwriting-ime", Context.MODE_PRIVATE).edit()
+                .putString("alphabet", Alphabet.ENGLISH_UPPER).commit();
+        launch(true, textEditor());
+        awaitProfiles();
+        drawLine(Alphabet.ENGLISH_UPPER, "A2");
+        advance(2000);
+        await(() -> connection.commits == 1);
+        assertEquals("Z7", connection.text.toString());
+        assertEquals(1, store.examples(profileId, Alphabet.ENGLISH_UPPER).size());
+        assertEquals(1, store.examples(profileId, Alphabet.DIGITS).size());
+        assertTrue(store.examples(profileId, Alphabet.ENGLISH_LOWER).isEmpty());
+    }
+
+    @Test public void rejectedWholeWordCommitRetainsInkAndRequiresAnotherExplicitAttempt() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        drawLine(Alphabet.DIGITS, "23");
+        byte[] original = drawing().getInk().encode();
+        connection.accept = false;
+        advance(2000);
+        await(() -> status().equals(context.getString(R.string.ime_input_failed)));
+        assertArrayEquals(original, drawing().getInk().encode());
+        assertEquals("", connection.text.toString());
+        assertEquals(View.GONE, root.findViewById(R.id.ime_auto_undo).getVisibility());
+        connection.accept = true;
+        advance(5000);
+        drainWorker();
+        assertEquals(1, connection.commits);
+        click(R.id.ime_recognize);
+        awaitWordReview();
+        click(R.id.ime_confirm);
+        assertEquals("23", connection.text.toString());
+        assertEquals(2, connection.commits);
+    }
+
+    @Test public void writingOptionChangesInvalidateExistingWholeWordUndo() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        drawLine(Alphabet.DIGITS, "23");
+        advance(2000);
+        await(() -> connection.commits == 1);
+        assertEquals(View.VISIBLE, root.findViewById(R.id.ime_auto_undo).getVisibility());
+        WritingSettings.setReverseOrder(context, true);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(View.GONE, root.findViewById(R.id.ime_auto_undo).getVisibility());
+        click(R.id.ime_auto_undo);
+        assertEquals("23", connection.text.toString());
+        assertEquals(0, connection.deletes);
+    }
+
+    @Test public void wholeWordUndoRestoresTheCompleteLineWithoutRearming() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        connection.text.append("prefix");
+        Selection.setSelection(connection.text, 6);
+        service.onUpdateSelection(0, 0, 6, 6, -1, -1);
+        drawLine(Alphabet.DIGITS, "23");
+        byte[] original = drawing().getInk().encode();
+        advance(2000);
+        await(() -> connection.commits == 1);
+        assertEquals("prefix23", connection.text.toString());
+        service.onUpdateSelection(6, 6, 8, 8, -1, -1);
+        click(R.id.ime_auto_undo);
+        assertEquals("prefix", connection.text.toString());
+        assertArrayEquals(original, drawing().getInk().encode());
+        assertEquals(1, connection.deletes);
+        advance(5000);
+        drainWorker();
+        assertEquals(1, connection.commits);
+        click(R.id.ime_recognize);
+        awaitWordReview();
+        assertFalse(learn().isEnabled());
+    }
+
+    @Test public void wordUndoRejectsChangedSuffixAndUnreportedCaretWithoutDeleting() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        for (boolean moved : new boolean[]{false, true}) {
+            connection.text.clear();
+            Selection.setSelection(connection.text, 0);
+            service.onStartInput(textEditor(), false);
+            awaitReady();
+            drawLine(Alphabet.DIGITS, "23");
+            int attempts = connection.commits;
+            advance(2000);
+            await(() -> connection.commits == attempts + 1);
+            if (moved) Selection.setSelection(connection.text, 1);
+            else connection.text.replace(0, 2, "24");
+            click(R.id.ime_auto_undo);
+            assertEquals(moved ? "23" : "24", connection.text.toString());
+            assertEquals(0, connection.deletes);
+            assertEquals(context.getString(R.string.ime_auto_undo_unavailable), status());
+        }
+    }
+
+    @Test public void wordSettingsProfileAndEditorChangesDiscardQueuedRecognition() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        createProfile();
+        store.createProfile("Second learner");
+        launch(true, textEditor());
+        awaitProfiles();
+        for (int action = 0; action < 6; action++) {
+            WritingSettings.setWordMode(context, true);
+            shadowOf(Looper.getMainLooper()).idle();
+            awaitReady();
+            CountDownLatch release = blockWorker();
+            try {
+                drawLine(Alphabet.DIGITS, "23");
+                advance(2000);
+                assertEquals("Action " + action, context.getString(R.string.ime_recognizing), status());
+                switch (action) {
+                    case 0: WritingSettings.setWordMode(context, false); break;
+                    case 1: WritingSettings.setMirrored(context, !WritingSettings.mirrored(context)); break;
+                    case 2: WritingSettings.setReverseOrder(context, !WritingSettings.reverseOrder(context)); break;
+                    case 3:
+                        ((Spinner) root.findViewById(R.id.ime_profile)).setSelection(1);
+                        layoutKeyboard();
+                        shadowOf(Looper.getMainLooper()).idle();
+                        break;
+                    case 4: service.onStartInput(textEditor(), false); break;
+                    default: click(R.id.ime_mode); break;
+                }
+            } finally {
+                release.countDown();
+            }
+            drainWorker();
+            advance(4000);
+            drainWorker();
+            assertEquals(0, connection.commits);
+        }
+    }
+
+    @Test public void completedWordResultCannotOutliveSharedMirrorSettingChanges() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        CountDownLatch release = blockWorker();
+        try {
+            drawLine(Alphabet.DIGITS, "23");
+            advance(2000);
+        } finally {
+            release.countDown();
+        }
+        worker().submit(() -> {}).get(10, TimeUnit.SECONDS);
+        WritingSettings.setMirrored(context, false);
+        WritingSettings.setMirrored(context, true);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(0, connection.commits);
+        assertTrue(drawing().getInk().isEmpty());
+        assertFalse(root.findViewById(R.id.ime_confirm).isEnabled());
+    }
+
+    @Test public void selectedMissingProfileIsAnErrorForWholeWordsRatherThanDefaultFallback() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        createProfile();
+        launch(true, textEditor());
+        awaitProfiles();
+        store.deleteProfile(profileId);
+        drawLine(Alphabet.DIGITS, "23");
+        advance(2000);
+        await(() -> status().equals(context.getString(R.string.ime_recognition_error)));
+        assertEquals(0, connection.commits);
+    }
+
+    @Test public void mirrorPreferenceRoutesSingleCharacterRecognitionThroughTheFourArgumentContract() throws Exception {
+        assertTrue(WritingSettings.mirrored(context));
+        assertFalse(WritingSettings.wordMode(context));
+        launch(true, textEditor());
+        awaitReady();
+        Ink reflected = DefaultSamples.mirror(sample(Alphabet.DIGITS, "2"));
+        for (boolean mirrored : new boolean[]{false, true}) {
+            WritingSettings.setMirrored(context, mirrored);
+            shadowOf(Looper.getMainLooper()).idle();
+            drawing().setInk(reflected);
+            click(R.id.ime_recognize);
+            await(() -> ((ViewGroup) root.findViewById(R.id.ime_candidates)).getChildCount() > 0);
+            HandwritingRecognizer.Result expected = HandwritingRecognizer.recognize(
+                    reflected, Alphabet.DIGITS, Collections.emptyList(), mirrored);
+            ViewGroup choices = root.findViewById(R.id.ime_candidates);
+            assertEquals(expected.candidates.size(), choices.getChildCount());
+            for (int i = 0; i < expected.candidates.size(); i++) {
+                HandwritingRecognizer.Candidate candidate = expected.candidates.get(i);
+                assertEquals(candidate.label + " · " + candidate.similarity,
+                        ((Button) choices.getChildAt(i)).getText().toString());
+            }
+            if (mirrored) assertEquals("2", expected.candidates.get(0).label);
+        }
+        assertEquals(0, connection.commits);
+    }
+
+    @Test public void wordNumericEditorOverridesSavedAlphabetAndWordManualModeStaysOff() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        AutoInsertSettings.select(context, 0);
+        context.getSharedPreferences("handwriting-ime", Context.MODE_PRIVATE).edit()
+                .putString("alphabet", Alphabet.HEBREW).commit();
+        launch(true, editor(InputType.TYPE_CLASS_NUMBER, EditorInfo.IME_ACTION_DONE));
+        awaitReady();
+        Spinner alphabet = root.findViewById(R.id.ime_alphabet);
+        assertEquals(0, alphabet.getSelectedItemPosition());
+        assertFalse(alphabet.isEnabled());
+        drawLine(Alphabet.DIGITS, "23");
+        advance(5000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+        click(R.id.ime_recognize);
+        awaitWordReview();
+        click(R.id.ime_confirm);
+        assertEquals("23", connection.text.toString());
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h640dp-mdpi")
+    public void wordOptionsAndReviewPreserveUsablePadAndVisibleActionsWithoutExtraRows() throws Exception {
+        WritingSettings.setWordMode(context, true);
+        launch(true, textEditor());
+        awaitReady();
+        root.dispatchApplyWindowInsets(new WindowInsets.Builder()
+                .setInsets(WindowInsets.Type.systemBars(), Insets.of(0, 24, 0, 24)).build());
+        layoutWordKeyboard();
+        int height = drawing().getHeight();
+        assertTrue("Word canvas height=" + height, height >= 80);
+        for (int id : new int[]{R.id.ime_writing_options, R.id.ime_recognize, R.id.ime_manual,
+                R.id.ime_confirm, R.id.ime_space, R.id.ime_auto_delay}) {
+            assertFullyVisible(id);
+        }
+        drawLine(Alphabet.DIGITS, "23");
+        click(R.id.ime_recognize);
+        awaitWordReview();
+        layoutWordKeyboard();
+        assertEquals(height, drawing().getHeight());
+        assertFullyVisible(R.id.ime_word_character);
+        assertFullyVisible(R.id.ime_confirm);
+        WritingSettings.setMirrored(context, false);
+        shadowOf(Looper.getMainLooper()).idle();
+        layoutWordKeyboard();
+        assertEquals(height, drawing().getHeight());
+        assertTrue(drawing().getInk().isEmpty());
+        assertFalse(root.findViewById(R.id.ime_confirm).isEnabled());
+        assertEquals(View.GONE, root.findViewById(R.id.ime_word_character).getVisibility());
+        assertFullyVisible(R.id.ime_auto_delay);
+        advance(5000);
+        drainWorker();
+        assertEquals(0, connection.commits);
+    }
+
+    private void layoutWordKeyboard() {
+        root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.AT_MOST));
+        root.layout(0, 0, root.getMeasuredWidth(), root.getMeasuredHeight());
+    }
+
+    private void assertFullyVisible(int id) {
+        View control = root.findViewById(id);
+        Rect visible = new Rect();
+        assertTrue("Hidden control " + id, control.getGlobalVisibleRect(visible));
+        assertEquals(control.getHeight(), visible.height());
+    }
+
+    private void awaitWordReview() throws Exception {
+        await(() -> root.findViewById(R.id.ime_word_character).getVisibility() == View.VISIBLE
+                && root.findViewById(R.id.ime_confirm).isEnabled());
+    }
+
+    private Ink sample(String group, String label) {
+        for (HandwritingRecognizer.Example example : DefaultSamples.examples(group)) {
+            if (label.equals(example.label)) return example.ink;
+        }
+        throw new AssertionError("Missing starter " + label);
+    }
+
+    private void drawLine(String group, String visualLeftToRight) {
+        for (int i = 0; i < visualLeftToRight.length(); i++) {
+            String label = visualLeftToRight.substring(i, i + 1);
+            drawGlyph(Character.isDigit(label.charAt(0)) ? Alphabet.DIGITS : group,
+                    label, i, visualLeftToRight.length());
+        }
+    }
+
+    private void drawGlyph(String group, String label, int index, int slots) {
+        float scale = Math.min((drawing().getWidth() - 20f) / (slots * 1.2f), drawing().getHeight() * 0.7f);
+        for (List<Ink.Point> stroke : sample(group, label).strokes) {
+            for (int i = 0; i < stroke.size(); i++) {
+                Ink.Point point = stroke.get(i);
+                float x = (10 + (index * 1.2f + point.x) * scale) / drawing().getWidth();
+                float y = ((drawing().getHeight() - scale) / 2 + point.y * scale) / drawing().getHeight();
+                touch(i == 0 ? MotionEvent.ACTION_DOWN
+                        : i == stroke.size() - 1 ? MotionEvent.ACTION_UP : MotionEvent.ACTION_MOVE, x, y);
+                if (stroke.size() == 1) touch(MotionEvent.ACTION_UP, x, y);
+            }
+        }
     }
 
     private void await(BooleanSupplier condition) throws Exception {

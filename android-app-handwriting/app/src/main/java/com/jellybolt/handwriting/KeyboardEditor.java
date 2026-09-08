@@ -6,6 +6,8 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.SurroundingText;
 
+import com.jellybolt.handwriting.core.WordRecognizer;
+
 public final class KeyboardEditor {
     private KeyboardEditor() {}
 
@@ -42,9 +44,13 @@ public final class KeyboardEditor {
 
     public static boolean undoAutomaticInsertion(InputConnection connection, String label,
             int expectedEnd, int selectionStart, int selectionEnd) {
-        if (connection == null || label == null || label.length() != 1
-                || Character.isSurrogate(label.charAt(0)) || expectedEnd < label.length()
+        if (connection == null || label == null || label.isEmpty()
+                || label.length() > WordRecognizer.MAX_CHARACTERS || expectedEnd < label.length()
                 || selectionStart != expectedEnd || selectionEnd != expectedEnd) return false;
+        for (int i = 0; i < label.length(); i++) {
+            char character = label.charAt(i);
+            if (Character.isSurrogate(character) || !Character.isLetterOrDigit(character)) return false;
+        }
         // Selection positions come from EditorInfo/onUpdateSelection, never an editor-text cache.
         CharSequence selection = connection.getSelectedText(0);
         if (selection != null && selection.length() != 0) return false;

@@ -45,6 +45,7 @@ import android.widget.TextView;
 import com.jellybolt.handwriting.core.Alphabet;
 import com.jellybolt.handwriting.core.HandwritingRecognizer;
 import com.jellybolt.handwriting.core.Ink;
+import com.jellybolt.handwriting.core.WordRecognizer;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -81,6 +82,14 @@ public final class MainActivity extends Activity {
     private ProfileStore store;
     private SharedPreferences preferences;
     private SharedPreferences automaticPreferences;
+    private SharedPreferences recognitionPreferences;
+    private final SharedPreferences.OnSharedPreferenceChangeListener recognitionSettingsListener =
+            (settings, key) -> {
+                if (!this.destroyed && this.drawing != null) {
+                    invalidateDraft();
+                    updateWritingOptions();
+                }
+            };
     private final SharedPreferences.OnSharedPreferenceChangeListener automaticSettingsListener =
             (settings, key) -> {
                 if (AutoInsertSettings.DELAY_KEY.equals(key) && !this.destroyed) {
@@ -131,6 +140,12 @@ public final class MainActivity extends Activity {
     private CheckBox learnCheck;
     private Spinner autoDelay;
     private Button undoAutomaticButton;
+    private CheckBox wordModeCheck;
+    private CheckBox mirroredCheck;
+    private CheckBox reverseOrderCheck;
+    private TextView wordHelp;
+    private WordRecognizer.Result recognizedWord;
+    private final List<String> wordLabels = new ArrayList<>();
     private ScrollView scroll;
 
     @Override protected void attachBaseContext(Context base) {
@@ -168,6 +183,8 @@ public final class MainActivity extends Activity {
         buildInterface();
         automaticPreferences = getSharedPreferences(AutoInsertSettings.PREFERENCES, MODE_PRIVATE);
         automaticPreferences.registerOnSharedPreferenceChangeListener(automaticSettingsListener);
+        recognitionPreferences = getSharedPreferences(WritingSettings.PREFERENCES, MODE_PRIVATE);
+        recognitionPreferences.registerOnSharedPreferenceChangeListener(recognitionSettingsListener);
         try {
             profiles = store.profiles();
             if (currentProfile() == null) profileId = profiles.isEmpty() ? -1 : profiles.get(0).id;
@@ -244,6 +261,21 @@ public final class MainActivity extends Activity {
         languageButton.setContentDescription(getString(R.string.language_description));
         add(content, languageButton);
         add(content, text(R.string.starter_examples_help, 16));
+        mirroredCheck = new CheckBox(this);
+        mirroredCheck.setId(R.id.mirrored_handwriting);
+        mirroredCheck.setText(R.string.mirrored_mode);
+        mirroredCheck.setTextSize(18);
+        mirroredCheck.setMinHeight(dp(56));
+        mirroredCheck.setSaveEnabled(false);
+        mirroredCheck.setChecked(WritingSettings.mirrored(this));
+        mirroredCheck.setOnCheckedChangeListener((button, checked) -> {
+            if (checked == WritingSettings.mirrored(this)) return;
+            WritingSettings.setMirrored(this, checked);
+            invalidateDraft();
+            status.setText(R.string.word_options_changed);
+        });
+        add(content, mirroredCheck);
+        add(content, text(R.string.mirror_help, 16));
 
         LinearLayout alphabetPanel = card(content);
         heading(alphabetPanel, R.string.training_alphabet_heading);
@@ -282,7 +314,8 @@ public final class MainActivity extends Activity {
         add(profilePanel, button(R.string.privacy_details_button, view ->
                 new AlertDialog.Builder(this).setTitle(R.string.privacy_details_button)
                         .setMessage(getString(R.string.privacy_details) + "\n\n"
-                                + getString(R.string.auto_insert_privacy))
+                                + getString(R.string.auto_insert_privacy) + "\n\n"
+                                + getString(R.string.word_privacy))
                         .setPositiveButton(R.string.ok, null).show()));
 
         LinearLayout keyboardPanel = card(content);
@@ -343,11 +376,13 @@ public final class MainActivity extends Activity {
         drawingSize.gravity = Gravity.CENTER_HORIZONTAL;
         inkPanel.addView(drawing, drawingSize);
         inkPanel.addOnLayoutChangeListener((view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
-            int side = Math.min(right - left - inkPanel.getPaddingLeft() - inkPanel.getPaddingRight(),
-                    dp(drawingHeight));
-            if (side > 0 && drawingSize.width != side) {
+            boolean word = !training && WritingSettings.wordMode(this);
+            int available = right - left - inkPanel.getPaddingLeft() - inkPanel.getPaddingRight();
+            int side = word ? available : Math.min(available, dp(drawingHeight));
+            int height = word ? dp(Math.min(220, drawingHeight)) : side;
+            if (side > 0 && (drawingSize.width != side || drawingSize.height != height)) {
                 drawingSize.width = side;
-                drawingSize.height = side;
+                drawingSize.height = height;
                 drawing.setLayoutParams(drawingSize);
             }
         });
@@ -372,6 +407,37 @@ public final class MainActivity extends Activity {
 
         writingPanel = card(content);
         heading(writingPanel, R.string.suggestions_heading);
+        wordModeCheck = new CheckBox(this);
+        wordModeCheck.setId(R.id.whole_word_mode);
+        wordModeCheck.setText(R.string.word_mode);
+        wordModeCheck.setTextSize(18);
+        wordModeCheck.setMinHeight(dp(56));
+        wordModeCheck.setSaveEnabled(false);
+        wordModeCheck.setChecked(WritingSettings.wordMode(this));
+        wordModeCheck.setOnCheckedChangeListener((button, checked) -> {
+            if (checked == WritingSettings.wordMode(this)) return;
+            WritingSettings.setWordMode(this, checked);
+            invalidateDraft();
+            updateWritingOptions();
+            status.setText(R.string.word_options_changed);
+        });
+        add(activityPanel, wordModeCheck);
+        reverseOrderCheck = new CheckBox(this);
+        reverseOrderCheck.setId(R.id.reverse_word_order);
+        reverseOrderCheck.setText(R.string.reverse_word_order);
+        reverseOrderCheck.setTextSize(18);
+        reverseOrderCheck.setMinHeight(dp(56));
+        reverseOrderCheck.setSaveEnabled(false);
+        reverseOrderCheck.setChecked(WritingSettings.reverseOrder(this));
+        reverseOrderCheck.setOnCheckedChangeListener((button, checked) -> {
+            if (checked == WritingSettings.reverseOrder(this)) return;
+            WritingSettings.setReverseOrder(this, checked);
+            invalidateDraft();
+            status.setText(R.string.word_options_changed);
+        });
+        add(activityPanel, reverseOrderCheck);
+        wordHelp = text(R.string.word_help, 16);
+        add(activityPanel, wordHelp);
         heading(writingPanel, R.string.auto_insert_title);
         autoDelay = new Spinner(this);
         autoDelay.setId(R.id.auto_insert_delay);
@@ -549,6 +615,46 @@ public final class MainActivity extends Activity {
         trainingTarget.setVisibility(training ? View.VISIBLE : View.GONE);
         updateTrainingLabels();
         updateProfileControls();
+        updateWritingOptions();
+    }
+
+    private void updateWritingOptions() {
+        boolean word = !training && WritingSettings.wordMode(this);
+        if (mirroredCheck != null) mirroredCheck.setChecked(WritingSettings.mirrored(this));
+        if (wordModeCheck != null) {
+            wordModeCheck.setChecked(WritingSettings.wordMode(this));
+            wordModeCheck.setVisibility(training ? View.GONE : View.VISIBLE);
+        }
+        if (reverseOrderCheck != null) {
+            reverseOrderCheck.setChecked(WritingSettings.reverseOrder(this));
+            reverseOrderCheck.setVisibility(word ? View.VISIBLE : View.GONE);
+        }
+        if (wordHelp != null) wordHelp.setVisibility(word ? View.VISIBLE : View.GONE);
+        if (instructions != null) instructions.setText(training ? R.string.training_instructions
+                : R.string.writing_instructions);
+        if (learnCheck != null) {
+            learnCheck.setEnabled(!word && currentProfile() != null);
+            learnCheck.setText(word ? R.string.word_no_learning : R.string.learn_checkbox);
+            if (word) learnCheck.setChecked(false);
+        }
+        if (confirmButton != null) confirmButton.setText(word ? R.string.word_insert : R.string.confirm_character);
+        if (correctionButton != null) correctionButton.setText(word ? R.string.word_correct : R.string.manual_correction);
+        if (drawing != null) {
+            drawing.setEmptyHint(word ? R.string.word_draw_here : R.string.draw_here);
+            drawing.setContentDescription(getString(word ? R.string.word_drawing_description : R.string.drawing_description));
+            if (drawing.getParent() instanceof ViewGroup) {
+                ViewGroup parent = (ViewGroup) drawing.getParent();
+                int available = parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight();
+                int defaultHeight = Math.max(220, Math.min(380, getResources().getConfiguration().screenHeightDp / 2));
+                if (available > 0) {
+                    ViewGroup.LayoutParams size = drawing.getLayoutParams();
+                    size.width = word ? available : Math.min(available, dp(defaultHeight));
+                    size.height = word ? dp(220) : size.width;
+                    drawing.setLayoutParams(size);
+                }
+            }
+            drawing.requestLayout();
+        }
     }
 
     private void changeGroup(String nextGroup) {
@@ -633,6 +739,10 @@ public final class MainActivity extends Activity {
 
     private void chooseManualCharacter() {
         cancelPendingRecognition();
+        if (WritingSettings.wordMode(this) && !training) {
+            correctWord();
+            return;
+        }
         List<String> labels = Alphabet.labels(group);
         new AlertDialog.Builder(this).setTitle(R.string.choose_character)
                 .setSingleChoiceItems(labels.toArray(new String[0]), labels.indexOf(chosenLabel),
@@ -657,6 +767,8 @@ public final class MainActivity extends Activity {
         if (candidateButtons == null) return;
         candidateButtons.removeAllViews();
         chosenLabel = null;
+        recognizedWord = null;
+        wordLabels.clear();
         chosenText.setText(R.string.nothing_selected);
         suggestionsStatus.setText(R.string.suggestions_empty);
         learnCheck.setChecked(false);
@@ -677,16 +789,16 @@ public final class MainActivity extends Activity {
     }
 
     private void scheduleAutomaticInsertion() {
-        int delay = AutoInsertSettings.delay(this);
+        int delay = WritingSettings.delay(this);
         if (!resumed || destroyed || training || delay == 0
                 || drawing.isDrawing() || drawing.getInk().isEmpty()) return;
         final long generation = draftGeneration;
         final long profile = profileId;
         final String alphabet = group;
-        status.setText(R.string.auto_insert_waiting);
+        status.setText(WritingSettings.wordMode(this) ? R.string.word_waiting : R.string.auto_insert_waiting);
         autoInsert.arm(delay, () -> {
             if (resumed && !training && matchesDraft(profile, alphabet, generation)
-                    && AutoInsertSettings.delay(this) == delay && !drawing.isDrawing()) {
+                    && WritingSettings.delay(this) == delay && !drawing.isDrawing()) {
                 recognize(true);
             }
         });
@@ -704,24 +816,58 @@ public final class MainActivity extends Activity {
         final String requestedGroup = group;
         final long generation = draftGeneration;
         final long request = recognitionRequest;
-        final int requestedDelay = AutoInsertSettings.delay(this);
+        final int requestedDelay = WritingSettings.delay(this);
+        final boolean requestedWord = WritingSettings.wordMode(this);
+        final boolean requestedMirrored = WritingSettings.mirrored(this);
+        final boolean requestedReverse = WritingSettings.reverseOrder(this);
         recognizeButton.setEnabled(false);
         recognizeButton.setText(R.string.recognizing);
         suggestionsStatus.setText(R.string.recognizing);
         recognitionTask = worker.submit(() -> {
             if (destroyed) return;
             try {
+                if (requestedWord) {
+                    Map<String, List<HandwritingRecognizer.Example>> personal = new LinkedHashMap<>();
+                    for (String alphabet : WordRecognizer.personalGroups(requestedGroup)) {
+                        personal.put(alphabet, requestedProfile < 0 ? Collections.emptyList()
+                                : store.examples(requestedProfile, alphabet));
+                    }
+                    WordRecognizer.Result result = WordRecognizer.recognize(ink, requestedGroup, personal,
+                            requestedMirrored, requestedReverse);
+                    runOnUiThread(() -> {
+                        if (!matchesDraft(requestedProfile, requestedGroup, generation)
+                                || request != recognitionRequest || training
+                                || !recognitionOptionsMatch(requestedWord, requestedMirrored, requestedReverse)) return;
+                        recognizeButton.setEnabled(true);
+                        recognizeButton.setText(R.string.recognize);
+                        if (result.needsSeparation || result.text.isEmpty()) {
+                            suggestionsStatus.setText(R.string.word_separation_needed);
+                            status.setText(R.string.word_separation_needed);
+                            return;
+                        }
+                        if (automatic) {
+                            if (resumed && requestedDelay > 0 && WritingSettings.delay(this) == requestedDelay) {
+                                insertAutomatic(result.text, ink, result.uncertain);
+                            }
+                        } else {
+                            showWordResult(result, generation);
+                        }
+                    });
+                    return;
+                }
                 List<HandwritingRecognizer.Example> personal = requestedProfile < 0
                         ? Collections.emptyList() : store.examples(requestedProfile, requestedGroup);
-                HandwritingRecognizer.Result result = HandwritingRecognizer.recognize(ink, requestedGroup, personal);
+                HandwritingRecognizer.Result result = HandwritingRecognizer.recognize(ink, requestedGroup, personal,
+                        requestedMirrored);
                 runOnUiThread(() -> {
                     if (!matchesDraft(requestedProfile, requestedGroup, generation)
-                            || request != recognitionRequest || training) return;
+                            || request != recognitionRequest || training
+                            || !recognitionOptionsMatch(requestedWord, requestedMirrored, requestedReverse)) return;
                     recognizeButton.setEnabled(true);
                     recognizeButton.setText(R.string.recognize);
                     candidateButtons.removeAllViews();
                     if (automatic) {
-                        if (!resumed || requestedDelay == 0 || AutoInsertSettings.delay(this) != requestedDelay) return;
+                        if (!resumed || requestedDelay == 0 || WritingSettings.delay(this) != requestedDelay) return;
                         if (result.candidates.isEmpty()) {
                             suggestionsStatus.setText(R.string.suggestions_empty);
                             return;
@@ -757,6 +903,101 @@ public final class MainActivity extends Activity {
     private boolean matchesDraft(long requestedProfile, String requestedGroup, long generation) {
         return !destroyed && profileId == requestedProfile && group.equals(requestedGroup)
                 && draftGeneration == generation;
+    }
+
+    private boolean recognitionOptionsMatch(boolean word, boolean mirrored, boolean reverse) {
+        return word == WritingSettings.wordMode(this) && mirrored == WritingSettings.mirrored(this)
+                && reverse == WritingSettings.reverseOrder(this);
+    }
+
+    private void showWordResult(WordRecognizer.Result result, long generation) {
+        recognizedWord = result;
+        wordLabels.clear();
+        for (WordRecognizer.CharacterResult character : result.characters) wordLabels.add(character.label);
+        chosenLabel = result.text;
+        chosenText.setText(getString(R.string.word_result, isolated(chosenLabel)));
+        learnCheck.setChecked(false);
+        confirmButton.setEnabled(true);
+        suggestionsStatus.setText(result.uncertain ? R.string.word_uncertain : R.string.word_review);
+        renderWordCandidates(result, generation);
+    }
+
+    private void renderWordCandidates(WordRecognizer.Result result, long generation) {
+        candidateButtons.removeAllViews();
+        for (int i = 0; i < result.characters.size(); i++) {
+            int index = i;
+            Button character = button(getString(R.string.word_candidate, i + 1, isolated(wordLabels.get(i))), view -> {
+                cancelPendingRecognition();
+                if (recognizedWord != result || draftGeneration != generation) return;
+                List<String> labels = wordAllowedLabels();
+                new AlertDialog.Builder(this).setTitle(getString(R.string.word_candidate,
+                                index + 1, isolated(wordLabels.get(index))))
+                        .setSingleChoiceItems(labels.toArray(new String[0]), labels.indexOf(wordLabels.get(index)),
+                                (dialog, which) -> {
+                                    dialog.dismiss();
+                                    if (recognizedWord != result || draftGeneration != generation) return;
+                                    wordLabels.set(index, labels.get(which));
+                                    chosenLabel = String.join("", wordLabels);
+                                    chosenText.setText(getString(R.string.word_result, isolated(chosenLabel)));
+                                    renderWordCandidates(result, generation);
+                                }).setNegativeButton(R.string.cancel, null).show();
+            });
+            character.setTag("word-character-" + i);
+            add(candidateButtons, character);
+        }
+    }
+
+    private List<String> wordAllowedLabels() {
+        List<String> labels = new ArrayList<>(Alphabet.labels(group));
+        if (!Alphabet.DIGITS.equals(group)) labels.addAll(Alphabet.labels(Alphabet.DIGITS));
+        return labels;
+    }
+
+    private boolean validWordText(String value) {
+        if (value == null || value.isEmpty() || value.length() > WordRecognizer.MAX_CHARACTERS) return false;
+        List<String> labels = wordAllowedLabels();
+        for (int i = 0; i < value.length(); i++) if (!labels.contains(value.substring(i, i + 1))) return false;
+        return true;
+    }
+
+    private void correctWord() {
+        final String alphabet = group;
+        final long generation = draftGeneration;
+        EditText correction = new EditText(this);
+        correction.setSingleLine(true);
+        correction.setTextSize(24);
+        correction.setContentDescription(getString(R.string.word_correct));
+        correction.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        correction.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        correction.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);
+        correction.setText(chosenLabel == null ? "" : chosenLabel);
+        correction.setFilters(new InputFilter[]{new InputFilter.LengthFilter(WordRecognizer.MAX_CHARACTERS)});
+        LinearLayout panel = column();
+        panel.setPadding(dp(20), dp(10), dp(20), dp(10));
+        add(panel, text(R.string.word_correction_help, 16));
+        add(panel, correction);
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.word_correct).setView(panel)
+                .setNegativeButton(R.string.cancel, null).setPositiveButton(R.string.confirm, null).create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+            String value = correction.getText().toString();
+            if (!group.equals(alphabet) || draftGeneration != generation || !WritingSettings.wordMode(this)) {
+                dialog.dismiss();
+                return;
+            }
+            if (!validWordText(value)) {
+                correction.setError(getString(R.string.word_correction_invalid));
+                return;
+            }
+            recognizedWord = null;
+            wordLabels.clear();
+            candidateButtons.removeAllViews();
+            chosenLabel = value;
+            chosenText.setText(getString(R.string.word_result, isolated(value)));
+            learnCheck.setChecked(false);
+            confirmButton.setEnabled(true);
+            dialog.dismiss();
+        }));
+        dialog.show();
     }
 
     private void saveSample() {
@@ -799,13 +1040,16 @@ public final class MainActivity extends Activity {
             status.setText(R.string.finish_stroke);
             return;
         }
-        if (chosenLabel == null || !Alphabet.labels(group).contains(chosenLabel)) {
-            status.setText(R.string.choose_first);
+        boolean word = WritingSettings.wordMode(this) && !training;
+        boolean valid = word ? validWordText(chosenLabel)
+                : chosenLabel != null && Alphabet.labels(group).contains(chosenLabel);
+        if (!valid) {
+            status.setText(word ? R.string.word_choose_first : R.string.choose_first);
             return;
         }
-        if (!hasOutputRoom()) return;
+        if (!hasOutputRoom(chosenLabel.length())) return;
         final String label = chosenLabel;
-        final boolean learn = learnCheck.isChecked();
+        final boolean learn = !word && learnCheck.isChecked();
         if (learn && !requireProfile()) return;
         if (learn && drawing.getInk().isEmpty()) {
             status.setText(R.string.learn_needs_ink);
@@ -824,7 +1068,7 @@ public final class MainActivity extends Activity {
     }
 
     private void insertAutomatic(String label, Ink ink, boolean uncertain) {
-        if (!hasOutputRoom()) return;
+        if (!hasOutputRoom(label.length())) return;
         int start = output.length();
         output.append(label);
         updateOutput();
@@ -1031,7 +1275,7 @@ public final class MainActivity extends Activity {
         undoExampleButton.setEnabled(enabled);
         recognizeButton.setEnabled(true);
         correctionButton.setEnabled(true);
-        learnCheck.setEnabled(enabled);
+        learnCheck.setEnabled(enabled && (training || !WritingSettings.wordMode(this)));
         confirmButton.setEnabled(chosenLabel != null);
     }
 
@@ -1054,7 +1298,11 @@ public final class MainActivity extends Activity {
     }
 
     private boolean hasOutputRoom() {
-        if (output.length() < MAX_OUTPUT) return true;
+        return hasOutputRoom(1);
+    }
+
+    private boolean hasOutputRoom(int count) {
+        if (count <= MAX_OUTPUT - output.length()) return true;
         status.setText(R.string.output_limit);
         return false;
     }
@@ -1116,6 +1364,7 @@ public final class MainActivity extends Activity {
         super.onResume();
         resumed = true;
         if (autoDelay != null) autoDelay.setSelection(AutoInsertSettings.selection(this));
+        updateWritingOptions();
     }
 
     @Override protected void onPause() {
@@ -1140,6 +1389,9 @@ public final class MainActivity extends Activity {
         autoInsert.cancel();
         if (automaticPreferences != null) {
             automaticPreferences.unregisterOnSharedPreferenceChangeListener(automaticSettingsListener);
+        }
+        if (recognitionPreferences != null) {
+            recognitionPreferences.unregisterOnSharedPreferenceChangeListener(recognitionSettingsListener);
         }
         if (recognitionTask != null) recognitionTask.cancel(false);
         if (countTask != null) countTask.cancel(false);

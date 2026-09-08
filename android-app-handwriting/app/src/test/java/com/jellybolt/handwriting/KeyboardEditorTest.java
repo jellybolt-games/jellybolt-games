@@ -71,7 +71,7 @@ public class KeyboardEditorTest {
         assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 5, -1, -1));
         assertFalse(KeyboardEditor.undoAutomaticInsertion(null, "7", 5, 5, 5));
         assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "", 5, 5, 5));
-        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "word7", 5, 5, 5));
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "word8", 5, 5, 5));
         connection.allowReadingBeforeCursor = false;
         assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 5, 5, 5));
         assertEquals("word7", connection.text.toString());
@@ -84,6 +84,53 @@ public class KeyboardEditorTest {
         assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "7", 5, 5, 5));
         assertEquals("word7", connection.text.toString());
         assertEquals(-1, connection.lastLegacyDeletion);
+    }
+
+    @Test public void automaticUndoRemovesAnEntireBoundedWordAndOnlyReadsItsLength() {
+        for (String word : new String[]{"12345", "שלום", "ש12ם", "Abc123", "abcdefghijklmnop"}) {
+            Connection connection = new Connection("prefix:" + word);
+            int end = connection.text.length();
+            assertTrue(KeyboardEditor.undoAutomaticInsertion(connection, word, end, end, end));
+            assertEquals("prefix:", connection.text.toString());
+            assertEquals(word.length(), connection.lastLegacyDeletion);
+            assertEquals(word.length(), connection.lastReadLength);
+            assertEquals(word.length(), connection.lastSurroundingBefore);
+            assertEquals(0, connection.lastSurroundingAfter);
+            assertEquals(1, connection.legacyDeletionCalls);
+        }
+    }
+
+    @Test public void automaticWordUndoRejectsInvalidOrUnboundedTextBeforeReading() {
+        for (String word : new String[]{null, "", "abcdefghijklmnopq", "\uD800", "\uDC00",
+                "A\uD83D\uDE00", "two words", "word\n", "word!", "\u200Fא"}) {
+            Connection connection = new Connection("unchanged");
+            assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, word, 9, 9, 9));
+            assertEquals(-1, connection.lastReadLength);
+            assertEquals(-1, connection.lastSurroundingBefore);
+            assertEquals(0, connection.legacyDeletionCalls);
+        }
+    }
+
+    @Test public void automaticWordUndoRejectsSelectionMismatchChangedSuffixAndUnreportedCaret() {
+        Connection connection = new Connection("prefix123");
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "124", 9, 9, 9));
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "123", 9, 8, 8));
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "123", 9, 6, 9));
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "123", 2, 2, 2));
+        Selection.setSelection(connection.text, 8);
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "123", 9, 9, 9));
+        assertEquals("prefix123", connection.text.toString());
+        assertEquals(0, connection.legacyDeletionCalls);
+    }
+
+    @Test @Config(sdk = 26)
+    public void legacyAutomaticWordUndoUsesOnlyTheBoundedExactSuffixAndTrackedCaret() {
+        Connection connection = new Connection("prefix123");
+        assertFalse(KeyboardEditor.undoAutomaticInsertion(connection, "123", 9, 8, 8));
+        assertTrue(KeyboardEditor.undoAutomaticInsertion(connection, "123", 9, 9, 9));
+        assertEquals("prefix", connection.text.toString());
+        assertEquals(3, connection.lastReadLength);
+        assertEquals(-1, connection.lastSurroundingBefore);
     }
 
     @Test public void automaticUndoRejectsMovedCursorEvenBeforeItsSelectionCallback() {

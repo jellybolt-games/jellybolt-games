@@ -36,7 +36,7 @@
     <string name="hebrew">עברית, כולל אותיות סופיות</string>
     <string name="group_changed">קבוצת התווים הוחלפה. כעת אפשר לצייר תו חדש.</string>
     <string name="training_instructions">מבוגר בוחר את התו שהתכוונו לכתוב. יש לצייר את התו בשלמותו, כולל כל הקווים, ואז ללחוץ על שמירת דוגמה מתויגת. גם צורות לא אחידות או בכתב ראי מתאימות: יש לבחור בתו שאליו הילד או הילדה התכוונו.</string>
-    <string name="writing_instructions">מציירים תו אחד בלבד, כולל כל הקווים שלו. אחרי הרמת האצבע ממתינים כדי להזין אוטומטית את התחזית המובילה. קו חדש מאפס את ההמתנה. אפשר לבטל הזנה אוטומטית ולהשתמש בזיהוי ובאישור ידני. מילים שלמות אינן מזוהות בבת אחת.</string>
+    <string name="writing_instructions">מציירים תו אחד, או מפעילים מצב מילה שלמה כדי לצייר מילה או מספר עם תווים מופרדים. אחרי הרמת האצבע ממתינים להזנת התחזית. קו חדש מאפס את ההמתנה. אפשר לבטל הזנה אוטומטית ולהשתמש בזיהוי ובאישור ידני.</string>
     <string name="training_label">התו שמלמדים: %1$s</string>
     <string name="choose_training_label">איזה תו מציירים?</string>
     <string name="training_goal">מומלץ לאסוף בהדרגה 20–50 דוגמאות מגוונות לכל תו. זו המלצה, לא דרישת מינימום: כל דוגמה שנשמרת נחשבת. כדאי ללמד כמה תווים שונים. ההצעות עדיין עלולות להיות שגויות; אין הבטחה לדיוק.</string>
@@ -49,7 +49,7 @@
     <string name="sample_saved">נשמרה דוגמה של ״%1$s״. אפשר לצייר עוד דוגמה כשמוכנים.</string>
     <string name="sample_removed">הדוגמה האחרונה של ״%1$s״ הוסרה.</string>
     <string name="no_sample">אין דוגמה שמורה של ״%1$s״ שאפשר לבטל.</string>
-    <string name="drawing_heading">אזור ציור לתו אחד</string>
+    <string name="drawing_heading">אזור כתב יד</string>
     <string name="draw_here">מציירים כאן</string>
     <string name="drawing_profile_hint">יש לבחור פרופיל</string>
     <string name="drawing_loading_hint">הפרופיל נטען…</string>

@@ -36,7 +36,7 @@
     <string name="hebrew">Hebrew, including final letters</string>
     <string name="group_changed">Character group changed. Draw a new character.</string>
     <string name="training_instructions">An adult chooses the intended character. Draw the whole character, including every stroke, then tap Save labeled example. Irregular or mirrored forms are welcome: label the character the child intended.</string>
-    <string name="writing_instructions">Draw ONE character, including all its strokes. Pause after lifting your finger to insert the top prediction automatically. A new stroke resets the pause. You can turn automatic insertion off and use Recognize and Confirm instead. Whole words are not recognized at once.</string>
+    <string name="writing_instructions">Draw one character, or enable whole-word mode to draw a separated word or number. Pause after lifting your finger to insert the prediction. A new stroke resets the pause. You can turn automatic insertion off and use Recognize and Confirm instead.</string>
     <string name="training_label">Teach this character: %1$s</string>
     <string name="choose_training_label">Which character is the child drawing?</string>
     <string name="training_goal">Aim for 20–50 varied examples per character over time. This is a guide, not a minimum: every saved example counts. Train several different characters. Suggestions may still be wrong; there is no accuracy promise.</string>
@@ -49,7 +49,7 @@
     <string name="sample_saved">Saved an example of “%1$s”. Draw another when ready.</string>
     <string name="sample_removed">Removed the latest example of “%1$s”.</string>
     <string name="no_sample">There is no saved example for “%1$s” to undo.</string>
-    <string name="drawing_heading">One-character drawing area</string>
+    <string name="drawing_heading">Handwriting area</string>
     <string name="draw_here">Draw here</string>
     <string name="drawing_profile_hint">Choose a profile</string>
     <string name="drawing_loading_hint">Loading profile…</string>

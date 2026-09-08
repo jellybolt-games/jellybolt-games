@@ -21,4 +21,7 @@
     <item type="id" name="auto_insert_delay" />
     <item type="id" name="undo_auto_insert" />
     <item type="id" name="undo_output_character" />
+    <item type="id" name="whole_word_mode" />
+    <item type="id" name="mirrored_handwriting" />
+    <item type="id" name="reverse_word_order" />
 </resources>
