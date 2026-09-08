@@ -27,6 +27,11 @@ public final class DefaultSamples {
         return Samples.BY_GROUP.get(group);
     }
 
+    /** Cached script-family examples, also included after the original Hebrew print examples. */
+    public static List<HandwritingRecognizer.Example> hebrewScriptExamples() {
+        return HebrewScriptSamples.examples();
+    }
+
     /** Optional left/right reflections retain the child's intended character label. */
     public static List<HandwritingRecognizer.Example> examples(String group, boolean mirrored) {
         if (!mirrored) return examples(group);
@@ -96,7 +101,11 @@ public final class DefaultSamples {
         upper(b);
         lower(b);
         hebrew(b);
-        return b.finish();
+        Map<String, List<HandwritingRecognizer.Example>> groups = new LinkedHashMap<>(b.finish());
+        List<HandwritingRecognizer.Example> hebrew = new ArrayList<>(groups.get(Alphabet.HEBREW));
+        hebrew.addAll(hebrewScriptExamples());
+        groups.put(Alphabet.HEBREW, Collections.unmodifiableList(hebrew));
+        return Collections.unmodifiableMap(groups);
     }
 
     private static void digits(Builder b) {

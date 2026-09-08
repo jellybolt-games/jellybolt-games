@@ -1602,6 +1602,32 @@ public class HandwritingImeServiceTest {
         throw new AssertionError("Missing starter " + label);
     }
 
+    @Test public void hebrewScriptUsesSameKeyboardAlphabetAndAutomaticInsertionAsPrint() throws Exception {
+        context.getSharedPreferences("handwriting-ime", Context.MODE_PRIVATE).edit()
+                .putString("alphabet", Alphabet.HEBREW).commit();
+        launch(true, textEditor());
+        awaitReady();
+        Ink scriptAlef = DefaultSamples.hebrewScriptExamples().stream()
+                .filter(example -> example.label.equals("\u05d0")).findFirst().get().ink;
+        drawGlyph(scriptAlef, 0, 1);
+        advance(1200);
+        await(() -> connection.commits == 1);
+        assertEquals("\u05d0", connection.text.toString());
+        assertFalse(WritingSettings.wordMode(context));
+        assertTrue(store.profiles().isEmpty());
+
+        WritingSettings.setWordMode(context, true);
+        shadowOf(Looper.getMainLooper()).idle();
+        awaitReady();
+        drawGlyph(scriptAlef, 0, 3);
+        drawGlyph(Alphabet.HEBREW, "\u05d1", 1, 3);
+        drawGlyph(scriptAlef, 2, 3);
+        advance(2000);
+        await(() -> connection.commits == 2);
+        assertEquals("\u05d0\u05d0\u05d1\u05d0", connection.text.toString());
+        assertTrue(store.profiles().isEmpty());
+    }
+
     private void drawLine(String group, String visualLeftToRight) {
         for (int i = 0; i < visualLeftToRight.length(); i++) {
             String label = visualLeftToRight.substring(i, i + 1);
@@ -1611,8 +1637,12 @@ public class HandwritingImeServiceTest {
     }
 
     private void drawGlyph(String group, String label, int index, int slots) {
+        drawGlyph(sample(group, label), index, slots);
+    }
+
+    private void drawGlyph(Ink glyph, int index, int slots) {
         float scale = Math.min((drawing().getWidth() - 20f) / (slots * 1.2f), drawing().getHeight() * 0.7f);
-        for (List<Ink.Point> stroke : sample(group, label).strokes) {
+        for (List<Ink.Point> stroke : glyph.strokes) {
             for (int i = 0; i < stroke.size(); i++) {
                 Ink.Point point = stroke.get(i);
                 float x = (10 + (index * 1.2f + point.x) * scale) / drawing().getWidth();

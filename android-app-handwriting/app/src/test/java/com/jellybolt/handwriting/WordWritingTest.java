@@ -13,6 +13,7 @@ import android.widget.TextView;
 
 import com.jellybolt.handwriting.core.Alphabet;
 import com.jellybolt.handwriting.core.DefaultSamples;
+import com.jellybolt.handwriting.core.HandwritingRecognizer;
 import com.jellybolt.handwriting.core.Ink;
 
 import org.junit.After;
@@ -117,6 +118,33 @@ public class WordWritingTest {
         await(() -> activity.findViewById(R.id.confirm_character_button).isEnabled());
         activity.findViewById(R.id.confirm_character_button).performClick();
         assertEquals("\u05e9\u05dc\u05de", output());
+    }
+
+    @Test public void hebrewScriptAutomaticallyInsertsOrdinaryLetterWithoutAStyleSwitchOrProfile() throws Exception {
+        click(R.string.writing_mode);
+        activity.findViewById(R.id.train_hebrew).performClick();
+        shadowOf(Looper.getMainLooper()).idle();
+        drawing().layout(0, 0, 500, 220);
+        draw(composeGlyphs(hebrewScript("\u05d0")));
+        advance(1200);
+        await(() -> !output().isEmpty());
+        assertEquals("\u05d0", output());
+        assertFalse(WritingSettings.wordMode(context));
+        assertTrue(store.profiles().isEmpty());
+    }
+
+    @Test public void hebrewWordCombinesScriptAndPrintWithoutChangingItsAlphabet() throws Exception {
+        wordMode(R.id.train_hebrew);
+        Ink printedBet = DefaultSamples.examples(Alphabet.HEBREW).stream()
+                .filter(example -> example.label.equals("\u05d1")).findFirst().get().ink;
+        draw(composeGlyphs(hebrewScript("\u05d0"), printedBet, hebrewScript("\u05d0")));
+        advance(2000);
+        await(() -> !output().isEmpty());
+        assertEquals("\u05d0\u05d1\u05d0", output());
+        assertTrue(store.profiles().isEmpty());
+        activity.findViewById(R.id.undo_auto_insert).performClick();
+        assertEquals("", output());
+        assertFalse(drawing().getInk().isEmpty());
     }
 
     @Test public void wholeWordUndoRemovesOnlyTheLatestInsertedSequence() throws Exception {
@@ -240,6 +268,25 @@ public class WordWritingTest {
             for (List<Ink.Point> stroke : glyph.strokes) {
                 List<Ink.Point> points = new ArrayList<>();
                 for (Ink.Point p : stroke) points.add(new Ink.Point(20 + i * 90 + p.x * 70, 30 + p.y * 120));
+                strokes.add(points);
+            }
+        }
+        return new Ink(strokes);
+    }
+
+    private static Ink hebrewScript(String label) {
+        for (HandwritingRecognizer.Example example : DefaultSamples.hebrewScriptExamples()) {
+            if (example.label.equals(label)) return example.ink;
+        }
+        throw new AssertionError("Missing Hebrew script starter " + label);
+    }
+
+    private static Ink composeGlyphs(Ink... glyphs) {
+        List<List<Ink.Point>> strokes = new ArrayList<>();
+        for (int i = 0; i < glyphs.length; i++) {
+            for (List<Ink.Point> stroke : glyphs[i].strokes) {
+                List<Ink.Point> points = new ArrayList<>();
+                for (Ink.Point p : stroke) points.add(new Ink.Point(20 + i * 140 + p.x * 110, 30 + p.y * 110));
                 strokes.add(points);
             }
         }

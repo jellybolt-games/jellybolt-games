@@ -20,7 +20,7 @@
     <string name="auto_insert_settings_changed">Writing pause updated. Finish a new stroke to start its timer.</string>
     <string name="auto_insert_undo">Undo automatic insertion</string>
     <string name="auto_insert_undone">Prediction removed. Choose the intended character, or draw another stroke.</string>
-    <string name="starter_examples_help">Built-in starter shapes cover every letter and digit, even before training. Personal examples improve matching to your handwriting. Counts below show your own saved examples, not the built-in shapes.</string>
+    <string name="starter_examples_help">Built-in starter shapes cover every letter and digit, even before training. Hebrew includes both printed letters and modern handwritten script, including final letters. Both styles share the Hebrew alphabet and produce ordinary Hebrew text; no style switch is needed. Personal examples improve matching. Counts below show only your saved examples.</string>
     <string name="starter_examples_profile">Built-in starter shapes</string>
     <string name="auto_insert_privacy">Starter shapes are bundled with the app and contain no child data. Automatic writing is on by default after a 1.2-second pause and can be turned off. It inserts predictions into your draft or the current app without saving them as training. A recent non-private handwriting result and its drawing may be kept briefly in memory for Undo; they are cleared when their input context changes.</string>
 </resources>

@@ -16,7 +16,7 @@
     <string name="ime_digits">Digits</string>
     <string name="ime_upper">English ABC</string>
     <string name="ime_lower">English abc</string>
-    <string name="ime_hebrew">Hebrew + finals</string>
+    <string name="ime_hebrew">Hebrew print/script</string>
     <string name="ime_loading_profiles">Loading profiles…</string>
     <string name="ime_no_profile">No profile</string>
     <string name="ime_no_profiles">Built-in shapes are ready. Draw a character; Train adds personal examples.</string>

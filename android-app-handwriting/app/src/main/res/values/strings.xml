@@ -33,9 +33,9 @@
     <string name="digits">Digits 0–9</string>
     <string name="english_upper">English A–Z (uppercase)</string>
     <string name="english_lower">English a–z (lowercase)</string>
-    <string name="hebrew">Hebrew, including final letters</string>
+    <string name="hebrew">Hebrew: print + script</string>
     <string name="group_changed">Character group changed. Draw a new character.</string>
-    <string name="training_instructions">An adult chooses the intended character. Draw the whole character, including every stroke, then tap Save labeled example. Irregular or mirrored forms are welcome: label the character the child intended.</string>
+    <string name="training_instructions">An adult chooses the intended character. Draw the whole character, including every stroke, then tap Save labeled example. Hebrew print and handwritten script use the same letter labels, including final letters: choose the printed letter in the grid, then draw either style. Irregular or mirrored forms are welcome: label the character the child intended.</string>
     <string name="writing_instructions">Draw one character, or enable whole-word mode to draw a separated word or number. Pause after lifting your finger to insert the prediction. A new stroke resets the pause. You can turn automatic insertion off and use Recognize and Confirm instead.</string>
     <string name="training_label">Teach this character: %1$s</string>
     <string name="choose_training_label">Which character is the child drawing?</string>

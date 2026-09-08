@@ -10,9 +10,9 @@ import java.util.Map;
 import java.util.concurrent.CancellationException;
 
 /**
- * Offline, single-line recognition of separated print characters, not cursive OCR.
+ * Offline, single-line recognition of separated characters, not joined-cursive OCR.
  * Stroke projections preserve pen-up boundaries; no connectors are cut or invented.
- * זיהוי מקומי של שורת אותיות דפוס מופרדות, לא של כתב מחובר.
+ * זיהוי מקומי של תווים נפרדים, כולל אותיות כתב בעברית, לא של אותיות מחוברות.
  */
 public final class WordRecognizer {
     public static final int MAX_CHARACTERS = 16;

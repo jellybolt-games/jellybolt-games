@@ -6,7 +6,7 @@
     <string name="mirrored_mode_short">Mirror shapes</string>
     <string name="reverse_word_order">Reverse the reading order</string>
     <string name="reverse_word_order_short">Reverse order</string>
-    <string name="word_help">Write one line with a small gap between characters (up to 16). Letters use the selected alphabet; digits are also recognized. Normally Hebrew reads right to left and numbers left to right. Reverse the reading order handles an entire line written backwards, including reversed digit sequences. Joined or overlapping letters may need to be redrawn separately. Automatic word insertion waits at least 2 seconds after the last stroke; turn it off if you need longer.</string>
+    <string name="word_help">Write one line with a small gap between characters (up to 16). Hebrew accepts printed and handwritten script letters together, including final letters; digits are also recognized. Normally Hebrew reads right to left and numbers left to right. Reverse the reading order handles an entire line written backwards, including reversed digit sequences. Touching or connected letters may need to be redrawn separately. Automatic word insertion waits at least 2 seconds after the last stroke; turn it off if you need longer.</string>
     <string name="mirror_help">Starter examples include left/right mirror images for every character. Some shapes become identical, such as b and d. Personal examples help; check uncertain predictions. Mirrored shapes do not automatically reverse the word.</string>
     <string name="word_draw_here">Write a word here</string>
     <string name="word_drawing_description">Draw one word or number on one line with a small gap between characters.</string>

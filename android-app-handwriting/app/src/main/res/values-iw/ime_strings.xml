@@ -16,7 +16,7 @@
     <string name="ime_digits">ספרות</string>
     <string name="ime_upper">אנגלית ABC</string>
     <string name="ime_lower">אנגלית abc</string>
-    <string name="ime_hebrew">עברית וסופיות</string>
+    <string name="ime_hebrew">עברית דפוס/כתב</string>
     <string name="ime_loading_profiles">טוען פרופילים…</string>
     <string name="ime_no_profile">אין פרופיל</string>
     <string name="ime_no_profiles">הצורות המובנות מוכנות. ציירו תו; אימון מוסיף דוגמאות אישיות.</string>

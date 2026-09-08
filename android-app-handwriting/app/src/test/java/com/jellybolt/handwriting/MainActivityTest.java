@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.GridLayout;
 
 import com.jellybolt.handwriting.core.Alphabet;
+import com.jellybolt.handwriting.core.DefaultSamples;
 import com.jellybolt.handwriting.core.Ink;
 
 import org.junit.After;
@@ -376,6 +377,29 @@ public class MainActivityTest {
             activity.findViewById(R.id.confirm_character_button).performClick();
         }
         assertEquals("Aa\u05d0", output());
+    }
+
+    @Test public void hebrewPrintAndScriptTrainingShareOneLetterAndPersistInTheSameProfile() {
+        launch(null);
+        activity.findViewById(R.id.train_hebrew).performClick();
+        selectTrainingCharacter("\u05d0");
+        Ink printed = DefaultSamples.examples(Alphabet.HEBREW).stream()
+                .filter(example -> example.label.equals("\u05d0")).findFirst().get().ink;
+        Ink script = DefaultSamples.hebrewScriptExamples().stream()
+                .filter(example -> example.label.equals("\u05d0")).findFirst().get().ink;
+        for (Ink style : new Ink[]{printed, script}) {
+            drawing().setInk(style);
+            activity.findViewById(R.id.save_example_button).performClick();
+        }
+        assertEquals(2, store.examples(profileId, Alphabet.HEBREW).size());
+        assertEquals("\u05d0", store.examples(profileId, Alphabet.HEBREW).get(0).label);
+        assertEquals("\u05d0", store.examples(profileId, Alphabet.HEBREW).get(1).label);
+        controller.pause().stop().destroy();
+        launch(null);
+        assertTrue(activity.findViewById(R.id.train_hebrew).isSelected());
+        assertTrue(trainingCharacter("\u05d0").isSelected());
+        assertEquals(27, ((GridLayout) activity.findViewById(R.id.training_character_grid)).getChildCount());
+        assertEquals(2, store.examples(profileId, Alphabet.HEBREW).size());
     }
 
     private void selectTrainingCharacter(String label) {

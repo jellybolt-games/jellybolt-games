@@ -11,6 +11,9 @@ clinically validated handwriting model.
 Version 0.6.0 adds horizontal mirrored starter shapes and optional separated
 whole-word/number input. Mirroring is enabled by default; whole-word mode is
 opt-in so an existing one-character workflow is not silently reinterpreted.
+Version 0.7.0 adds modern handwritten Hebrew script alongside printed Hebrew,
+including all five final forms. Both styles use the same Hebrew labels and
+personal profiles, and both participate in mirrored and separated-word recognition.
 
 אפליקציית Android ראשונית שפועלת ללא אינטרנט ולומדת מדוגמאות מתויגות של כתב היד
 האישי של הילד או הילדה. הממשק זמין בעברית ובאנגלית, ללא פרסומות, חשבונות,
@@ -20,12 +23,15 @@ opt-in so an existing one-character workflow is not silently reinterpreted.
 מקוריות, ולא רשת עצבית מאומנת או מודל כתב יד שעבר תיקוף קליני.
 גרסה 0.6.0 מוסיפה צורות התחלתיות בכתב ראי ומצב אופציונלי למילה או מספר
 שלמים עם תווים מופרדים. שיקוף מופעל כברירת מחדל; מצב מילה שלמה דורש בחירה.
+גרסה 0.7.0 מוסיפה אותיות כתב בעברית לצד אותיות הדפוס, כולל כל חמש האותיות
+הסופיות. שני הסגנונות משתמשים באותן תוויות ופרופילים אישיים, ומשתתפים גם
+בזיהוי כתב ראי ובזיהוי מילים עם אותיות נפרדות.
 
 ## Install and use
 
 Requires Android 8.0 or later. Build the debug APK below and transfer it to the
 device. Open it and allow installation from that source if Android requests it.
-This is a sideloadable prototype. Version 0.6.0 is also available through
+This is a sideloadable prototype. Version 0.7.0 is also available through
 [Google Play internal testing](https://play.google.com/apps/internaltest/4700966795480494872),
 not public production. Tester access uses the enabled JellyBolt Beta Testers
 and My Handwriting Testers lists; additional Google accounts must be enrolled through the app's
@@ -77,7 +83,7 @@ handwriting alphabet (or typing language), rather than resetting to digits.
 
 נדרשת גרסת Android 8.0 ומעלה. בונים את קובץ ה־APK לפי ההוראות בהמשך,
 מעבירים אותו למכשיר ופותחים אותו. אם Android מבקש, מאשרים התקנה מהמקור הזה.
-זו גרסה ראשונית להתקנה ישירה. גרסה 0.6.0 זמינה גם בבדיקה פנימית ב־Google Play
+זו גרסה ראשונית להתקנה ישירה. גרסה 0.7.0 זמינה גם בבדיקה פנימית ב־Google Play
 בקישור שלמעלה, ולא בהפצה ציבורית. הגישה ניתנת דרך הרשימות JellyBolt Beta Testers
 ו־My Handwriting Testers; יש להוסיף חשבונות Google נוספים בלשונית Testers לפני השימוש בקישור.
 לגרסת הפיתוח ולגרסה עתידית מהחנות חתימות שונות. מעבר ביניהן עלול לדרוש
@@ -172,6 +178,17 @@ to that app's privacy policy.
 
 ## Mirrored characters and whole words / כתב ראי ומילים שלמות
 
+For Hebrew, choose **Hebrew: print + script**. Printed letters (אותיות דפוס)
+and modern handwritten letters (אותיות כתב), including ך ם ן ף ץ, are recognized
+together without a style switch. Teach either or both styles using the same
+printed label in the training grid. Output is ordinary Hebrew text, not a
+handwriting font; existing profiles and saved labels are unchanged.
+
+בעברית בוחרים **עברית: דפוס וכתב**. אותיות דפוס ואותיות כתב, כולל ך ם ן ף ץ,
+מזוהות יחד בלי החלפת סגנון. אפשר ללמד את שני הסגנונות באמצעות אותה אות
+מודפסת בטבלת הלימוד. הפלט הוא טקסט עברי רגיל, לא גופן של כתב יד.
+הפרופילים והתוויות הקיימים אינם משתנים.
+
 **Recognize mirrored character shapes** includes each starter character's
 left/right reflection under the same intended label. It does not rotate the
 drawing or reverse the text order. Unchecking it restores normal starter-only
@@ -187,7 +204,8 @@ in the keyboard's handwriting toolbar and enable it there:
 1. Choose **Hebrew**, **English A–Z**, **English a–z**, or **Digits**. English
    case is explicit; whole-word mode includes digits with the chosen letters.
 2. Draw a single line, up to **16 characters**, leaving a small gap between
-   printed characters. Lift your finger normally between strokes of a letter.
+   characters. Hebrew may mix print and handwritten script in the same word.
+   Lift your finger normally between strokes of a letter.
    The tool groups character strokes spatially, rather than treating each
    stroke as a separate character.
 3. Pause to split, recognize, and insert the entire result together. Word mode
@@ -201,8 +219,9 @@ in the keyboard's handwriting toolbar and enable it there:
    **never** saved as a single-character training example. Continue teaching
    individual letters in the existing training screen.
 
-This first version segments **separated print-style handwriting**. Joined
-cursive, touching/overlapping characters, multiple lines, and ambiguous
+Word mode segments **separated characters**, including Hebrew print and
+handwritten script. This is not the same as separating a connected cursive
+word: touching/overlapping characters, multiple lines, and ambiguous
 spacing are not reliably supported. It requests more separation when it
 cannot split safely, but ambiguous layouts can still yield the wrong split.
 It does not insert spaces, choose Hebrew final forms automatically, fix
@@ -222,7 +241,8 @@ such as `57`, then a spaced lowercase word such as `cat`.
 1. בוחרים עברית, אותיות גדולות או קטנות באנגלית או ספרות. במצב מילה שלמה
    אפשר לשלב ספרות עם קבוצת האותיות הנבחרת.
 2. כותבים שורה אחת של עד **16 תווים**, עם רווח קטן בין האותיות. אפשר להרים
-   את האצבע בין קווים של אותה אות. ההפרדה מבוססת על מיקום, ולא על קו יחיד.
+   את האצבע בין קווים של אותה אות ולשלב אותיות דפוס וכתב בעברית באותה מילה.
+   ההפרדה מבוססת על מיקום, ולא על קו יחיד.
 3. ממתינים להפרדה ולזיהוי של כל התווים ולהזנה של התוצאה כולה. ההשהיה במצב
    מילה היא לפחות **2 שניות**; אפשר לבטל הזנה אוטומטית ולהשתמש בזיהוי ידני.
 4. אותיות בעברית נקראות מימין לשמאל, ורצפי ספרות נשארים משמאל לימין.
@@ -231,8 +251,9 @@ such as `57`, then a spaced lowercase word such as `cat`.
 5. בודקים תחזיות לא ודאיות ומתקנים או מבטלים. תיקון של מילה אינו נשמר
    כדוגמת לימוד של תו אחד; ממשיכים ללמד אותיות בודדות במסך הלימוד הקיים.
 
-הגרסה הראשונה מפרידה **אותיות דפוס נפרדות**. כתב מחובר, אותיות נוגעות או
-חופפות, כמה שורות ורווחים עמומים אינם נתמכים באופן אמין. כשלא ניתן להפריד
+מצב מילה מפריד **תווים נפרדים**, כולל אותיות דפוס ואותיות כתב בעברית.
+אותיות כתב נתמכות, אך חיבור בין אותיות, חפיפה, כמה שורות ורווחים עמומים
+אינם נתמכים באופן אמין. כשלא ניתן להפריד
 בבטחה תופיע בקשה להוסיף רווחים, אך עדיין עלולה להתרחש הפרדה שגויה.
 אין הוספת רווחים או בחירה אוטומטית באותיות סופיות, תיקון איות או השלמת קווים.
 מומלץ להתחיל ממספר קצר כמו `57` ואז מילה קצרה עם אותיות מופרדות.
@@ -313,10 +334,11 @@ unavailable, and is not an implementation of $P or $Q.
 component. Training stores labeled stroke examples; it does not fit a neural
 network. Recognition centers and uniformly scales each drawing, rasterizes it
 to a 32-by-32 occupancy grid, and compares symmetric chamfer distances against
-bundled starter examples plus the current child's templates. There are **119
-original starter examples for all 89 labels**, including print-style Hebrew
-forms and several common Latin/digit variants. These do not cover every
-cursive or disability-related variant; personal training remains important.
+bundled starter examples plus the current child's templates. There are
+**original starter examples for all 89 labels**, including both printed and
+modern handwritten Hebrew forms, their final letters, and common Latin/digit
+variants. These do not cover every individual's writing; personal training
+remains important.
 The bundled
 `core/DefaultSamples.java` supplies every one of the 89 labels without an
 internet connection or initial teaching session. Personal examples are
@@ -343,8 +365,9 @@ The synthetic regression examples are not a clinical handwriting dataset.
 עצבית. הוא מתאים מיקום וגודל ומשווה לצורות התחלתיות ולדוגמאות האישיות.
 כל 89 התווים זמינים בלי אינטרנט או מפגש אימון ראשון; לדוגמאות אישיות
 שמתאימות לציור יש עדיפות, בלי למחוק את הצורות ההתחלתיות.
-כלולות 119 דוגמאות מקוריות, ובהן אותיות עבריות בצורת דפוס ומספר וריאציות
-נפוצות באנגלית ובספרות. הן אינן מכסות כל צורה של כתב יד או לקות כתיבה.
+כלולות דוגמאות מקוריות לכל התווים, ובהן אותיות דפוס ואותיות כתב בעברית,
+כולל סופיות, ומספר וריאציות נפוצות באנגלית ובספרות. הן אינן מכסות כל צורה
+אישית של כתב יד או לקות כתיבה.
 הדוגמה האישית הקרובה מקבלת עדיפות בדירוג עם מקדם 0.8, ושוויון מדויק מעדיף
 דוגמה אישית. ציון הדמיון המוצג אינו משוקלל ולכן אינו בהכרח הגבוה בין המועמדים.
 הוא שומר על יחס הממדים ועל הכיוון המרחבי, ואינו הופך או מסובב תווים באופן

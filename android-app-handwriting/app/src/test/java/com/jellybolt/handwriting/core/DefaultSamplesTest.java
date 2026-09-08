@@ -57,9 +57,9 @@ public class DefaultSamplesTest {
         }
     }
 
-    @Test public void everyExactStarterRanksFirstWithoutCrossLabelRasterDuplicates() {
+    @Test public void everyExactOriginalStarterRanksFirstWithoutCrossLabelRasterDuplicates() {
         for (String group : GROUPS) {
-            for (HandwritingRecognizer.Example example : DefaultSamples.examples(group)) {
+            for (HandwritingRecognizer.Example example : originalExamples(group)) {
                 HandwritingRecognizer.Result result = recognize(example.ink, group);
                 assertEquals(group + " starter " + example.id, example.label, result.candidates.get(0).label);
                 assertEquals(100, result.candidates.get(0).similarity);
@@ -71,9 +71,9 @@ public class DefaultSamplesTest {
         }
     }
 
-    @Test public void everyStarterSurvivesTranslationAndUniformScale() {
+    @Test public void everyOriginalStarterSurvivesTranslationAndUniformScale() {
         for (String group : GROUPS) {
-            for (HandwritingRecognizer.Example example : DefaultSamples.examples(group)) {
+            for (HandwritingRecognizer.Example example : originalExamples(group)) {
                 for (float scale : new float[]{37, 213}) {
                     HandwritingRecognizer.Result result = recognize(transform(example.ink, scale, 117, -83), group);
                     assertEquals(group + " transformed " + example.id,
@@ -273,10 +273,12 @@ public class DefaultSamplesTest {
     @Test public void mirroredCacheRetainsAll119OriginalsAndReflectsEveryIntendedLabel() {
         Set<Long> ids = new HashSet<>();
         int originals = 0;
+        int addedScript = 0;
         for (String group : GROUPS) {
             List<HandwritingRecognizer.Example> normal = DefaultSamples.examples(group);
             List<HandwritingRecognizer.Example> mirrored = DefaultSamples.examples(group, true);
-            originals += normal.size();
+            originals += originalExamples(group).size();
+            addedScript += normal.size() - originalExamples(group).size();
             assertSame(normal, DefaultSamples.examples(group, false));
             assertSame(mirrored, DefaultSamples.examples(group, true));
             assertEquals(normal.size() * 2, mirrored.size());
@@ -302,7 +304,8 @@ public class DefaultSamplesTest {
             }
         }
         assertEquals(119, originals);
-        assertEquals(238, ids.size());
+        assertEquals(30, addedScript);
+        assertEquals(298, ids.size());
     }
 
     @Test public void reflectionChangesOnlyHorizontalCoordinatesAndPreservesPenLifts() {
@@ -363,6 +366,14 @@ public class DefaultSamplesTest {
             if (example.label.equals(label)) return example;
         }
         throw new AssertionError("Missing " + label);
+    }
+
+    private static List<HandwritingRecognizer.Example> originalExamples(String group) {
+        List<HandwritingRecognizer.Example> originals = new ArrayList<>();
+        for (HandwritingRecognizer.Example example : DefaultSamples.examples(group)) {
+            if (example.id >= -119 && example.id <= -1) originals.add(example);
+        }
+        return originals;
     }
 
     private static HandwritingRecognizer.Candidate candidate(HandwritingRecognizer.Result result, String label) {
