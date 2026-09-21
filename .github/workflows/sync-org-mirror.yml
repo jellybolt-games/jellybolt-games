@@ -1,0 +1,44 @@
+name: Sync Organization Mirror
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-org-mirror
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    if: github.repository == 'tdsquadAI/jellybolt-games'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Synchronize organization main
+        env:
+          TARGET_TOKEN: ${{ secrets.TDSQUADAI_PAT }}
+        run: |
+          set -euo pipefail
+          test -n "${TARGET_TOKEN}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add organization "https://x-access-token:${TARGET_TOKEN}@github.com/jellybolt-games/jellybolt-games.git"
+          git fetch organization main
+          git checkout --detach organization/main
+          git read-tree --reset -u "${GITHUB_SHA}"
+
+          if git diff --cached --quiet; then
+            echo "Organization mirror is already synchronized."
+            exit 0
+          fi
+
+          git commit -m "chore: synchronize canonical main ${GITHUB_SHA::12}"
+          git push organization HEAD:main
