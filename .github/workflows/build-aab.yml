@@ -1,0 +1,46 @@
+name: Build Signed AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      game:
+        description: 'Game to build (dungeon-bolt or all)'
+        required: true
+        default: 'dungeon-bolt'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > jellybolt-release.keystore
+
+      - name: Build TWA AAB
+        working-directory: ${{ inputs.game == 'all' && 'android-app' || format('android-app/{0}', inputs.game) }}
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=${{ github.workspace }}/jellybolt-release.keystore \
+            -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jellybolt-release-aab-${{ inputs.game }}
+          path: ${{ inputs.game == 'all' && 'android-app' || format('android-app/{0}', inputs.game) }}/app/build/outputs/bundle/release/*.aab
+          retention-days: 30
+
