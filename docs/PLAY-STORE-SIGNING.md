@@ -19,12 +19,12 @@ keytool -genkey -v -keystore jellybolt-release.keystore \
 
 Add these four secrets in GitHub → Settings → Secrets → Actions:
 
-| Secret name        | Value                                         |
-|--------------------|-----------------------------------------------|
-| `ANDROID_KEYSTORE_BASE64`   | `base64 -w 0 jellybolt-release.keystore`      |
+| Secret name | Value |
+|-------------|-------|
+| `ANDROID_KEYSTORE_BASE64` | `base64 -w 0 jellybolt-release.keystore` |
 | `ANDROID_KEYSTORE_PASSWORD` | Keystore password set during keytool creation |
-| `ANDROID_KEY_ALIAS`         | `jellybolt`                                   |
-| `ANDROID_KEY_PASSWORD`      | Key password (same as keystore password)      |
+| `ANDROID_KEY_ALIAS` | `jellybolt` |
+| `ANDROID_KEY_PASSWORD` | Key password (same as keystore password) |
 
 ## Build AAB with GitHub Actions
 
