@@ -21,10 +21,10 @@ Add these four secrets in GitHub → Settings → Secrets → Actions:
 
 | Secret name        | Value                                         |
 |--------------------|-----------------------------------------------|
-| `KEYSTORE_BASE64`  | `base64 -w 0 jellybolt-release.keystore`      |
-| `KEYSTORE_PASSWORD`| Keystore password set during keytool creation |
-| `KEY_ALIAS`        | `jellybolt`                                   |
-| `KEY_PASSWORD`     | Key password (same as keystore password)      |
+| `ANDROID_KEYSTORE_BASE64`   | `base64 -w 0 jellybolt-release.keystore`      |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password set during keytool creation |
+| `ANDROID_KEY_ALIAS`         | `jellybolt`                                   |
+| `ANDROID_KEY_PASSWORD`      | Key password (same as keystore password)      |
 
 ## Build AAB with GitHub Actions
 
@@ -33,7 +33,7 @@ See `.github/workflows/build-aab.yml` for the automated build workflow.
 To trigger manually:
 1. Go to **Actions** → **Build Signed AAB**
 2. Click **Run workflow**
-3. Select game (`dungeon-bolt` or `all`)
+3. Select a game or `all`
 4. Download the AAB artifact from the completed run
 
 ## Upload to Play Console

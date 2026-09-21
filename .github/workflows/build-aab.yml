@@ -4,9 +4,20 @@ on:
   workflow_dispatch:
     inputs:
       game:
-        description: 'Game to build (dungeon-bolt or all)'
+        description: 'Game to build'
         required: true
+        type: choice
         default: 'dungeon-bolt'
+        options:
+          - dungeon-bolt
+          - arcade-collection
+          - brainrot-quiz
+          - code-conquest
+          - bolt-blocks
+          - bolt-solitaire
+          - escape-room
+          - quest-rpg
+          - all
 
 jobs:
   build:
@@ -28,19 +39,45 @@ jobs:
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > jellybolt-release.keystore
 
       - name: Build TWA AAB
-        working-directory: ${{ inputs.game == 'all' && 'android-app' || format('android-app/{0}', inputs.game) }}
+        shell: bash
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          chmod +x gradlew
-          ./gradlew bundleRelease \
-            -Pandroid.injected.signing.store.file=${{ github.workspace }}/jellybolt-release.keystore \
-            -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
+          declare -A projects=(
+            [dungeon-bolt]=android-app-dungeonbolt
+            [arcade-collection]=android-app
+            [brainrot-quiz]=android-app-brainrot
+            [code-conquest]=android-app-codeconquest
+            [bolt-blocks]=android-app-boltblocks
+            [bolt-solitaire]=android-app-boltsolitaire
+            [escape-room]=android-app-escaperoom
+            [quest-rpg]=android-app-questrpg
+          )
+
+          if [[ "${{ inputs.game }}" == "all" ]]; then
+            build_projects=("${projects[@]}")
+          else
+            build_projects=("${projects[${{ inputs.game }}]}")
+          fi
+
+          for project in "${build_projects[@]}"; do
+            echo "Building ${project}"
+            chmod +x "${project}/gradlew"
+            (
+              cd "${project}"
+              ./gradlew bundleRelease \
+                -Pandroid.injected.signing.store.file="${{ github.workspace }}/jellybolt-release.keystore" \
+                -Pandroid.injected.signing.store.password="${KEYSTORE_PASSWORD}" \
+                -Pandroid.injected.signing.key.alias="${KEY_ALIAS}" \
+                -Pandroid.injected.signing.key.password="${KEY_PASSWORD}"
+            )
+          done
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: jellybolt-release-aab-${{ inputs.game }}
-          path: ${{ inputs.game == 'all' && 'android-app' || format('android-app/{0}', inputs.game) }}/app/build/outputs/bundle/release/*.aab
+          path: android-app*/app/build/outputs/bundle/release/*.aab
           retention-days: 30
-
