@@ -5,7 +5,7 @@ Last updated: 2026-08-29
 - **Name:** JellyBolt Games (JellyBolt⚡)
 - **NEVER mention "real owner identity"** — independent brand
 - **Landing page:** `index.html` — 24-game responsive site with affiliate gear section
-- **GitHub Pages:** https://jellybolt-games.github.io/jellybolt-games/ — live, but the org mirror is stale since 2026-03-21
+- **GitHub Pages:** https://jellybolt-games.github.io/jellybolt-games/ — live; organization mirror synchronized manually on 2026-09-21
 - **itch.io:** jellyboltgames.itch.io
 - **YouTube:** https://www.youtube.com/channel/UC0roFVTTy1nSW9Zc7DgcsmQ (12 videos)
 - **Contact:** jellybolt@sharebot.net
@@ -72,7 +72,7 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 | Platform | URL | Status |
 |----------|-----|--------|
 | JellyBolt Games (org) | jellybolt-games.github.io/jellybolt-games | ✅ Live |
-| JellyBolt Games (org mirror) | jellybolt-games.github.io/jellybolt-games | ⚠️ Live but stale (2026-03-21); push blocked |
+| JellyBolt Games (org mirror) | jellybolt-games.github.io/jellybolt-games | ✅ Live; synchronized manually on 2026-09-21 |
 | TechAI Explained | techai-explained.github.io/techai-explained | ✅ Live (11ty) |
 | Content Empire | content-empire.github.io | ✅ Live |
 | dev.to | dev.to/techaiexplained | ✅ Active |
