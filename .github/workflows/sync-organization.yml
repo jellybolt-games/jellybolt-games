@@ -1,0 +1,29 @@
+name: Sync organization repository
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: organization-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    if: github.repository_owner != 'jellybolt-games'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push canonical main to organization repository
+        env:
+          SYNC_TOKEN: ${{ secrets.ORG_SYNC_TOKEN }}
+        run: |
+          test -n "${SYNC_TOKEN}"
+          git push "https://x-access-token:${SYNC_TOKEN}@github.com/jellybolt-games/jellybolt-games.git" HEAD:main
