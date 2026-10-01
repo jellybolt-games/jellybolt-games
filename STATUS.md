@@ -1,11 +1,11 @@
 # JellyBolt Games — Project Status
-Last updated: 2026-09-21
+Last updated: 2026-10-01
 
 ## Brand Identity
 - **Name:** JellyBolt Games (JellyBolt⚡)
 - **NEVER mention "real owner identity"** — independent brand
 - **Landing page:** `index.html` — 24-game responsive site with affiliate gear section
-- **GitHub Pages:** https://jellybolt-games.github.io/jellybolt-games/ — live; organization mirror synchronized manually on 2026-09-21
+- **GitHub Pages:** https://jellybolt-games.github.io/jellybolt-games/ — live; organization repository synchronized automatically / מאגר הארגון מסונכרן אוטומטית
 - **itch.io:** jellyboltgames.itch.io
 - **YouTube:** https://www.youtube.com/channel/UC0roFVTTy1nSW9Zc7DgcsmQ (12 videos)
 - **Contact:** jellybolt@sharebot.net
@@ -105,6 +105,7 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 ## GitHub Actions
 - `ci.yml` — Validates JSON files + checks required directories
 - `pages-deploy.yml` — Deploy to GitHub Pages (org repo)
+- `sync-organization.yml` — Synchronizes canonical `main` to the organization repository / מסנכרן אוטומטית את `main` למאגר הארגון
 
 ## Pending Actions
 - [ ] Sign up for Amazon Associates (affiliate-program.amazon.com) — tag jellybolt-20 ready
