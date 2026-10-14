@@ -1,5 +1,5 @@
 # JellyBolt Games — Project Status
-Last updated: 2026-10-01
+Last updated: 2026-10-14
 
 ## Brand Identity
 - **Name:** JellyBolt Games (JellyBolt⚡)
@@ -103,7 +103,7 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 - `.env.example` — Environment variable template
 
 ## GitHub Actions
-- `ci.yml` — Validates JSON files + checks required directories
+- `ci.yml` — Validates JSON files + checks required directories; fails immediately on invalid JSON or a missing required directory / מאמת קובצי JSON ותיקיות נדרשות ונכשל מיד אם קובץ אינו תקין או תיקייה חסרה
 - `pages-deploy.yml` — Deploy to GitHub Pages (org repo)
 - `sync-organization.yml` — Synchronizes canonical `main` to the organization repository / מסנכרן אוטומטית את `main` למאגר הארגון
 

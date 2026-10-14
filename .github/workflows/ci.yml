@@ -17,10 +17,12 @@ jobs:
         run: |
           find . -name "*.json" ! -path "./node_modules/*" | while read f; do
             echo "Checking $f..."
-            python3 -m json.tool "$f" > /dev/null && echo "OK: $f" || (echo "INVALID JSON: $f" && exit 1)
+            python3 -m json.tool "$f" > /dev/null && echo "OK: $f" || { echo "INVALID JSON: $f"; exit 1; }
           done
 
       - name: Check required directories exist
         run: |
-          ls store-listings/ && echo "✅ store-listings/ found"
-          ls .squad/ && echo "✅ .squad/ found"
+          test -d store-listings/
+          echo "✅ store-listings/ found"
+          test -d .squad/
+          echo "✅ .squad/ found"
