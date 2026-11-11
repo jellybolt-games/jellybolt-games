@@ -1,11 +1,14 @@
 # JellyBolt Games — itch.io Upload Manifest
 
-**Brand:** JellyBolt Games (jellyboltgames.itch.io)  
-**Total Pending:** 0 games (ALL UPLOADED ✅)  
-**Generated:** 2025-01-17  
-**Updated:** 2025-07-03  
-**Purpose:** Browser-automated itch.io upload preparation  
-**Status:** ✅ ALL 29 games now live on itch.io (45 total on profile)
+- **Brand:** JellyBolt Games (jellyboltgames.itch.io)
+- **Manifest Pending:** 0 of 29 games / לא נותרו משחקים במניפסט להעלאה ✅
+- **Generated:** 2025-01-17
+- **Updated:** 2025-07-03
+- **Verified:** 2026-11-11 / אומת בתאריך 2026-11-11
+- **Purpose:** Browser-automated itch.io upload preparation
+- **Status:** ✅ ALL 29 games now live on itch.io (45 total on profile)
+
+Rush Lanes and Tower Defense Fantasy are outside this manifest and are not listed on itch.io. / שני המשחקים הללו אינם כלולים במניפסט ואינם מופיעים ב-itch.io.
 
 ---
 
@@ -258,8 +261,9 @@
 
 ## Metadata Summary
 
-**Total Pending:** 29 games  
-**All Free:** Yes (accessible to all players)  
+- **Manifest Pending:** 0 games / משחקים שנותרו במניפסט: 0
+- **All Free:** Yes (accessible to all players)
+
 **Game Categories:**
 - Action: 10 games
 - Puzzle: 8 games

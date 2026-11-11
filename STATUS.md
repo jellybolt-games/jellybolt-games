@@ -1,20 +1,20 @@
 # JellyBolt Games — Project Status
-Last updated: 2026-10-14
+Last updated: 2026-11-11
 
 ## Brand Identity
 - **Name:** JellyBolt Games (JellyBolt⚡)
 - **NEVER mention "real owner identity"** — independent brand
-- **Landing page:** `index.html` — 24-game responsive site with affiliate gear section
+- **Landing page:** `index.html` — 30-game responsive site with affiliate gear section / אתר רספונסיבי עם 30 משחקים וקישורי שותפים
 - **GitHub Pages:** https://jellybolt-games.github.io/jellybolt-games/ — live; organization repository synchronized automatically / מאגר הארגון מסונכרן אוטומטית
 - **itch.io:** jellyboltgames.itch.io
 - **YouTube:** https://www.youtube.com/channel/UC0roFVTTy1nSW9Zc7DgcsmQ (12 videos)
 - **Contact:** jellybolt@sharebot.net
 - **Gumroad:** squadai.gumroad.com (Game Bundle $4.99)
 
-## Games (45 total)
-All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
+## Games (47 total / 47 משחקים)
+All games in `games/` are HTML5 browser games / כל המשחקים בתיקייה הם משחקי דפדפן ב-HTML5.
 
-### Published on itch.io (16)
+### Published on itch.io (45 / 45 משחקים)
 1. **Asteroid Dash** 🚀 — Space Shooter ($1 suggested)
 2. **Bolt Breaker** ⚡ — Breakout-style (free)
 3. **Bounce Blitz** 🏐 — Hyper-casual arcade (free)
@@ -32,7 +32,6 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 15. **Space Trader** 🛸 — Trading sim (free)
 16. **Word Rush** ⌨️ — Typing game (free)
 
-### Built, pending itch.io upload (29 new)
 17. **Color Match** 🎨 — Puzzle (free)
 18. **Cube Runner** 🧊 — 3D Runner (free)
 19. **Maze Runner** 🏃 — Maze navigation (free)
@@ -60,8 +59,12 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 41. **Space Jump** 🚀 — Gravity-defying space platformer (free)
 42. **Space Shooter 3D** 🚀 — First-person 3D space combat (free)
 43. **Territory Bolt** ⚡ — Territory control strategy (free)
-44. **Tower Defense** 🏰 — Classic tower defense (free)
-45. **Zombie Shooter** 🧟 — Wave-based zombie survival (free)
+44. **Zombie Shooter** 🧟 — Wave-based zombie survival (free)
+45. **Sweet Blast** 🍬 — Match-3 puzzle (free) / משחק התאמת שלישיות
+
+### Available on Pages; not listed on itch.io (2 / שני משחקים)
+46. **Rush Lanes** 💨 — Endless runner / משחק מרוץ אינסופי
+47. **Tower Defense Fantasy** 🏰 — Tower defense / משחק הגנה עם מגדלים
 
 ### Shared Assets
 - `games/shared/monetization.js` (16.8 KB) — Global monetization module
@@ -75,7 +78,7 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 | TechAI Explained | techai-explained.github.io/techai-explained | ✅ Live (11ty) |
 | Content Empire | content-empire.github.io | ✅ Live |
 | dev.to | dev.to/techaiexplained | ✅ Active |
-| itch.io | jellyboltgames.itch.io | ✅ 16 games |
+| itch.io | jellyboltgames.itch.io | ✅ 45 games / 45 משחקים |
 | YouTube | UC0roFVTTy1nSW9Zc7DgcsmQ | ✅ 12 videos |
 | Google Play | JellyBolt Games Collection | ✅ Internal testing |
 | Gumroad | squadai.gumroad.com | ⚠️ Root loads, bundle `/l/qtmyl` 404s |
@@ -88,7 +91,7 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 ## Monetization
 
 ### Active
-- **itch.io:** jellyboltgames.itch.io — 16 games (8 more pending upload)
+- **itch.io:** jellyboltgames.itch.io — 45 games; two more are available on Pages but not listed on itch.io / שני משחקים נוספים זמינים ב-Pages אך לא מופיעים ב-itch.io
 - **Gumroad:** squadai.gumroad.com — Game Bundle $4.99 + courses (⚠️ product `qtmyl` returns 404 — verify product ID)
 - **Amazon Associates:** Tag `jellybolt-20` configured, gear section on landing page (pending account activation)
 
@@ -109,7 +112,7 @@ All games in `games/` — single HTML5 Canvas files (7-16 KB, instant load):
 
 ## Pending Actions
 - [ ] Sign up for Amazon Associates (affiliate-program.amazon.com) — tag jellybolt-20 ready
-- [ ] Upload 8 new games to itch.io (#48)
+- [ ] Verify and, after QA, publish Rush Lanes and Tower Defense Fantasy on itch.io ([tracking](https://github.com/jellybolt-games/jellybolt-games/issues/4)) / לאמת ולפרסם את שני המשחקים לאחר בדיקות איכות
 - [ ] Register real AdSense publisher ID
 - [ ] Set up BuyMeACoffee page
 - [ ] Register .dev domains (techai-explained.dev, content-empire.dev, jellybolt.dev)
