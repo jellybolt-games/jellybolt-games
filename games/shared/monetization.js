@@ -65,7 +65,7 @@ style.textContent = `
 .jb-support-btn:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(255,153,0,.5)}
 
 /* === More Games Button === */
-.jb-more-games-btn{position:fixed;bottom:100px;left:16px;z-index:9995;padding:8px 14px;background:linear-gradient(135deg,#58a6ff,#3b82f6);color:#fff;border:none;border-radius:20px;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:5px;box-shadow:0 4px 15px rgba(88,166,255,.3);transition:all .2s;font-family:'Segoe UI',system-ui,sans-serif}
+.jb-more-games-btn{position:fixed;bottom:100px;left:16px;z-index:9995;padding:8px 14px;background:linear-gradient(135deg,#58a6ff,#3b82f6);color:#fff;border:none;border-radius:20px;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:5px;box-shadow:0 4px 15px rgba(88,166,255,.3);transition:transform .2s,box-shadow .2s;font-family:'Segoe UI',system-ui,sans-serif}
 .jb-more-games-btn:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(88,166,255,.5)}
 
 /* === More Games Modal === */
@@ -214,7 +214,8 @@ window.jbShowLoadingAd = function(){
 /* ══════════════════════════════════════
    2. SUPPORT / TIP BUTTON (skip if monetization bar present)
    ══════════════════════════════════════ */
-if(!document.querySelector('.jb-monetization-bar')){
+const monetizationBar=document.querySelector('.jb-monetization-bar');
+if(!monetizationBar){
   const supportBtn=el('a',{
     class:'jb-support-btn',
     href:'https://jellyboltgames.itch.io',
@@ -230,6 +231,22 @@ if(!document.querySelector('.jb-monetization-bar')){
    ══════════════════════════════════════ */
 const moreBtn=el('button',{class:'jb-more-games-btn',id:'jb-more-games-btn'},'🎮 More Games');
 document.body.appendChild(moreBtn);
+
+if(monetizationBar){
+  const positionMoreGamesButton=()=>{
+    const bounds=monetizationBar.getBoundingClientRect();
+    const barStyle=window.getComputedStyle(monetizationBar);
+    if(barStyle.position!=='fixed'||barStyle.bottom==='auto'||bounds.height===0){
+      moreBtn.style.bottom='';
+      return;
+    }
+    const defaultBottom=window.innerWidth<=768?60:100;
+    moreBtn.style.bottom=Math.max(defaultBottom,window.innerHeight-bounds.top+8)+'px';
+  };
+  window.addEventListener('resize',positionMoreGamesButton);
+  if(window.ResizeObserver)new window.ResizeObserver(positionMoreGamesButton).observe(monetizationBar);
+  positionMoreGamesButton();
+}
 
 /* Modal */
 const modal=el('div',{class:'jb-games-modal',id:'jb-games-modal'});
