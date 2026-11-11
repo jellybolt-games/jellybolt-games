@@ -9,7 +9,7 @@ Last updated: 2026-11-11
 - **itch.io:** jellyboltgames.itch.io
 - **YouTube:** https://www.youtube.com/channel/UC0roFVTTy1nSW9Zc7DgcsmQ (12 videos)
 - **Contact:** jellybolt@sharebot.net
-- **Gumroad:** squadai.gumroad.com (Game Bundle $4.99)
+- **Gumroad bundle:** https://gumroad.com/l/qtmyl — $4.99 for 16 games / חבילת 16 משחקים
 
 ## Games (47 total / 47 משחקים)
 All games in `games/` are HTML5 browser games / כל המשחקים בתיקייה הם משחקי דפדפן ב-HTML5.
@@ -81,7 +81,7 @@ All games in `games/` are HTML5 browser games / כל המשחקים בתיקיי
 | itch.io | jellyboltgames.itch.io | ✅ 45 games / 45 משחקים |
 | YouTube | UC0roFVTTy1nSW9Zc7DgcsmQ | ✅ 12 videos |
 | Google Play | JellyBolt Games Collection | ✅ Internal testing |
-| Gumroad | squadai.gumroad.com | ⚠️ Root loads, bundle `/l/qtmyl` 404s |
+| Gumroad | gumroad.com/l/qtmyl | ✅ $4.99 bundle verified 2026-11-11 / חבילה זמינה במחיר $4.99 |
 
 ### Custom Domains (NOT WORKING — need registrar action)
 - techai-explained.dev — No DNS records
@@ -92,12 +92,12 @@ All games in `games/` are HTML5 browser games / כל המשחקים בתיקיי
 
 ### Active
 - **itch.io:** jellyboltgames.itch.io — 45 games; two more are available on Pages but not listed on itch.io / שני משחקים נוספים זמינים ב-Pages אך לא מופיעים ב-itch.io
-- **Gumroad:** squadai.gumroad.com — Game Bundle $4.99 + courses (⚠️ product `qtmyl` returns 404 — verify product ID)
+- **Gumroad:** [16-game bundle](https://gumroad.com/l/qtmyl) — $4.99 / חבילת 16 משחקים
 - **Amazon Associates:** Tag `jellybolt-20` configured, gear section on landing page (pending account activation)
 
 ### Pending
 - **Google AdSense** — Placeholder in all games + landing page
-- **BuyMeACoffee** — buymeacoffee.com/jellyboltgames ⚠️ **account does not exist yet (404)**; public support buttons now use the live itch.io store as a safe fallback.
+- **BuyMeACoffee** — buymeacoffee.com/jellyboltgames returns 404. GitHub Pages uses the itch.io fallback, but 26 of 45 published itch.io builds still contain broken support links ([tracking](https://github.com/jellybolt-games/jellybolt-games/issues/3)) / העמוד מחזיר 404; ב-Pages יש חלופה פעילה, אך ב-26 מתוך 45 משחקים ב-itch.io עדיין יש קישורי תמיכה שבורים.
 - **Unity Affiliate** — pending signup
 - **JetBrains Affiliate** — pending signup
 
@@ -115,6 +115,7 @@ All games in `games/` are HTML5 browser games / כל המשחקים בתיקיי
 - [ ] Verify and, after QA, publish Rush Lanes and Tower Defense Fantasy on itch.io ([tracking](https://github.com/jellybolt-games/jellybolt-games/issues/4)) / לאמת ולפרסם את שני המשחקים לאחר בדיקות איכות
 - [ ] Register real AdSense publisher ID
 - [ ] Set up BuyMeACoffee page
+- [ ] Safely update the 26 affected itch.io builds and verify their support links / לעדכן בבטחה את 26 המשחקים המושפעים ולבדוק את קישורי התמיכה שלהם
 - [ ] Register .dev domains (techai-explained.dev, content-empire.dev, jellybolt.dev)
 - [ ] Build dungeon game series (#49)
 - [ ] Render remaining video scripts (#51)

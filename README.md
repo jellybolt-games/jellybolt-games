@@ -238,6 +238,7 @@ Love our games? Here's how you can support the studio:
 | 🎮 **Play our games** | [jellyboltgames.itch.io](https://jellyboltgames.itch.io) |
 | 💰 **Pay what you want** | Most games have a "Name your price" option on itch.io |
 | ⚡ **Buy Dungeon Bolt** | [Our flagship game — $2.99](https://jellyboltgames.itch.io/dungeon-bolt) |
+| 📦 **16-game bundle / חבילת 16 משחקים** | [$4.99 on Gumroad / חבילה ב-Gumroad](https://gumroad.com/l/qtmyl) |
 | 📢 **Share with friends** | Tweet, post, tell your gamer friends! |
 | 🐛 **Report bugs / דיווח על תקלות** | Email / דוא״ל: [jellybolt@sharebot.net](mailto:jellybolt@sharebot.net) |
 

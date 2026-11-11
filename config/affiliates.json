@@ -25,7 +25,8 @@
   },
   "gumroad": {
     "store_url": "https://squadai.gumroad.com",
-    "products": ["jnmqpd", "nnefv"],
+    "bundle_url": "https://gumroad.com/l/qtmyl",
+    "products": ["jnmqpd", "nnefv", "qtmyl"],
     "status": "active"
   },
   "buymeacoffee": {

@@ -79,6 +79,8 @@ style.textContent = `
 .jb-game-card .ge{font-size:1.8rem;display:block;margin-bottom:4px}
 .jb-game-card .gn{font-weight:700;font-size:.8rem;color:#fff}
 .jb-game-card .gg{font-size:.65rem;color:#666;margin-top:2px}
+.jb-games-modal .jb-bundle-link{display:block;margin:16px auto 0;text-align:center;color:#ffcc00;font-size:.85rem;font-weight:700;text-decoration:none}
+.jb-games-modal .jb-bundle-link:hover{text-decoration:underline}
 .jb-games-modal .close-btn{display:block;margin:16px auto 0;padding:8px 24px;background:linear-gradient(135deg,#ff6b6b,#ff4444);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px}
 
 /* === Social Share Overlay === */
@@ -236,7 +238,7 @@ GAMES.forEach(g=>{
   if(currentGame && g.id===currentGame.id)return;
   gridHTML+=`<a class="jb-game-card" href="../${g.id}/index.html"><span class="ge">${g.emoji}</span><div class="gn">${g.name}</div><div class="gg">${g.genre}</div></a>`;
 });
-gridHTML+='</div><button class="close-btn" id="jb-close-games">✕ Close</button></div>';
+gridHTML+='</div><a class="jb-bundle-link" href="https://gumroad.com/l/qtmyl" target="_blank" rel="noopener noreferrer">📦 16-Game Bundle ($4.99) / חבילת 16 משחקים ($4.99)</a><button class="close-btn" id="jb-close-games">✕ Close</button></div>';
 modal.innerHTML=gridHTML;
 document.body.appendChild(modal);
 
